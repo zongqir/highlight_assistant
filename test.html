@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>触摸选择测试</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            padding: 20px; 
+            line-height: 1.6;
+        }
+        .test-content {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .popup {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+        }
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .yellow { background: #fff3cd; }
+        .green { background: #d4edda; }
+        .blue { background: #cce5ff; }
+        .pink { background: #fce4ec; }
+    </style>
+</head>
+<body>
+    <h1>🧪 触摸选择测试</h1>
+    <p>在下面的文本中选择内容，应该会出现高亮弹窗：</p>
+    
+    <div class="test-content protyle-wysiwyg">
+        <p>这是一段测试文本。请尝试选择这些文字，看看是否会出现高亮工具。</p>
+        <p>在手机上，请长按文本开始选择，然后看看是否会弹出我们的高亮工具。</p>
+        <p>如果这个方案有效，我们就找到了解决方案！</p>
+    </div>
+    
+    <div id="popup" class="popup">
+        <button class="color-btn yellow" onclick="highlight('yellow')"></button>
+        <button class="color-btn green" onclick="highlight('green')"></button>
+        <button class="color-btn blue" onclick="highlight('blue')"></button>
+        <button class="color-btn pink" onclick="highlight('pink')"></button>
+    </div>
+    
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+        <strong>日志:</strong><br>
+    </div>
+
+    <script>
+        let currentSelection = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+        
+        // 核心监听逻辑 - 直接监听touchend
+        document.addEventListener('touchend', function() {
+            log('touchend 触发');
+            
+            // 短延迟让系统完成选择处理
+            setTimeout(function() {
+                checkSelection();
+            }, 50);
+        }, true);
+        
+        // 也监听mouseup以支持桌面测试
+        document.addEventListener('mouseup', function() {
+            log('mouseup 触发');
+            setTimeout(checkSelection, 50);
+        });
+        
+        function checkSelection() {
+            const selection = window.getSelection();
+            const text = selection ? selection.toString().trim() : '';
+            
+            log('检查选择: "' + text + '"');
+            
+            if (!text) {
+                hidePopup();
+                return;
+            }
+            
+            // 检查是否在测试区域内
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const container = range.startContainer;
+                const element = container.nodeType === Node.TEXT_NODE ? 
+                    container.parentElement : container;
+                
+                // 查找protyle-wysiwyg容器
+                let current = element;
+                let inEditor = false;
+                for (let i = 0; i < 10 && current; i++) {
+                    if (current.classList && current.classList.contains('protyle-wysiwyg')) {
+                        inEditor = true;
+                        break;
+                    }
+                    current = current.parentElement;
+                }
+                
+                if (inEditor) {
+                    log('✅ 在编辑器中选择了: ' + text);
+                    showPopup(range);
+                    currentSelection = selection;
+                } else {
+                    log('❌ 不在编辑器中');
+                    hidePopup();
+                }
+            }
+        }
+        
+        function showPopup(range) {
+            const popup = document.getElementById('popup');
+            const rect = range.getBoundingClientRect();
+            
+            popup.style.left = (rect.left + rect.width / 2 - 70) + 'px';
+            popup.style.top = (rect.bottom + 10) + 'px';
+            popup.style.display = 'block';
+            
+            log('🎯 显示弹窗');
+        }
+        
+        function hidePopup() {
+            document.getElementById('popup').style.display = 'none';
+            currentSelection = null;
+        }
+        
+        function highlight(color) {
+            if (!currentSelection) return;
+            
+            try {
+                const range = currentSelection.getRangeAt(0);
+                const text = range.toString();
+                
+                // 创建高亮span
+                const span = document.createElement('span');
+                span.style.backgroundColor = getColorValue(color);
+                span.style.borderRadius = '2px';
+                span.style.padding = '1px 2px';
+                span.textContent = text;
+                
+                // 替换选择内容
+                range.deleteContents();
+                range.insertNode(span);
+                
+                // 清除选择
+                currentSelection.removeAllRanges();
+                
+                log('🎨 应用 ' + color + ' 高亮: ' + text);
+                hidePopup();
+                
+            } catch (error) {
+                log('❌ 高亮失败: ' + error.message);
+            }
+        }
+        
+        function getColorValue(color) {
+            const colors = {
+                yellow: '#fff3cd',
+                green: '#d4edda', 
+                blue: '#cce5ff',
+                pink: '#fce4ec'
+            };
+            return colors[color] || '#fff3cd';
+        }
+        
+        // 页面加载完成
+        log('🚀 测试页面加载完成');
+        log('💡 请在上方文本中选择内容进行测试');
+    </script>
+</body>
+</html>
+

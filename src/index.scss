@@ -1,0 +1,376 @@
+/**
+ * 高亮助手插件样式
+ * 类似微信读书的高亮效果，移动端优先设计
+ */
+
+/* 全局变量 */
+:root {
+    --highlight-yellow: #fff3cd;
+    --highlight-yellow-text: #856404;
+    --highlight-blue: #cce5ff;
+    --highlight-blue-text: #004085;
+    --highlight-green: #d4e6d4;
+    --highlight-green-text: #155724;
+    --highlight-pink: #f8d7da;
+    --highlight-pink-text: #721c24;
+    
+    --toolbar-bg: var(--b3-theme-background);
+    --toolbar-border: var(--b3-theme-border);
+    --toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --toolbar-radius: 8px;
+    
+    --animation-fast: 0.2s ease;
+    --animation-medium: 0.3s ease;
+}
+
+/* 暗色主题适配 */
+.b3-theme-dark {
+    --highlight-yellow: #4a4016;
+    --highlight-yellow-text: #f4d03f;
+    --highlight-blue: #1a3a5c;
+    --highlight-blue-text: #85c1ff;
+    --highlight-green: #1e3a1e;
+    --highlight-green-text: #7ed57e;
+    --highlight-pink: #4a1a1e;
+    --highlight-pink-text: #ff7a7a;
+}
+
+/* 基础高亮样式重置 */
+.highlight-assistant-span {
+    display: inline !important;
+    position: relative !important;
+    line-height: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    text-decoration: none !important;
+    border-radius: 3px !important;
+    padding: 2px 4px !important;
+    margin: 0 1px !important;
+    cursor: pointer !important;
+    transition: var(--animation-fast) !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    
+    /* 防止继承其他样式 */
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    vertical-align: baseline !important;
+}
+
+/* 高亮悬停效果 */
+.highlight-assistant-span:hover {
+    transform: scale(1.02) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    z-index: 10 !important;
+}
+
+/* 高亮颜色 */
+.highlight-color-yellow {
+    background-color: var(--highlight-yellow) !important;
+    color: var(--highlight-yellow-text) !important;
+}
+
+.highlight-color-blue {
+    background-color: var(--highlight-blue) !important;
+    color: var(--highlight-blue-text) !important;
+}
+
+.highlight-color-green {
+    background-color: var(--highlight-green) !important;
+    color: var(--highlight-green-text) !important;
+}
+
+.highlight-color-pink {
+    background-color: var(--highlight-pink) !important;
+    color: var(--highlight-pink-text) !important;
+}
+
+/* 有备注的高亮特殊样式 */
+.highlight-with-comment {
+    position: relative;
+    border-bottom: 2px dotted currentColor !important;
+}
+
+.highlight-with-comment::after {
+    content: "💭";
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 10px;
+    opacity: 0.8;
+    pointer-events: none;
+    background: var(--b3-theme-background);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--b3-theme-border);
+}
+
+/* 浮动工具栏 */
+.highlight-assistant-toolbar {
+    position: fixed !important;
+    z-index: 999999 !important; /* 确保在思源界面之上 */
+    background: var(--toolbar-bg);
+    border: 1px solid var(--toolbar-border);
+    border-radius: var(--toolbar-radius);
+    box-shadow: var(--toolbar-shadow);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: var(--animation-fast);
+    user-select: none;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width: 90vw; /* 防止在小屏幕上溢出 */
+}
+
+.highlight-assistant-toolbar.highlight-assistant-toolbar-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.highlight-assistant-toolbar.highlight-assistant-toolbar-hidden {
+    opacity: 0;
+    transform: scale(0.9);
+    pointer-events: none;
+}
+
+/* 工具栏按钮 */
+.highlight-assistant-toolbar-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: var(--animation-fast);
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    
+    /* 防止按钮默认样式 */
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.highlight-assistant-toolbar-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.highlight-assistant-toolbar-btn:active {
+    transform: scale(0.95);
+}
+
+/* 颜色按钮特殊样式 */
+.highlight-assistant-color-btn {
+    border: 2px solid transparent;
+}
+
+.highlight-assistant-color-btn:hover {
+    border-color: var(--b3-theme-primary);
+}
+
+/* 删除按钮 */
+.highlight-assistant-delete-btn {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.highlight-assistant-delete-btn:hover {
+    background-color: #c82333 !important;
+}
+
+/* 想法按钮 */
+.highlight-assistant-comment-btn {
+    background-color: #007bff !important;
+    color: white !important;
+}
+
+.highlight-assistant-comment-btn:hover {
+    background-color: #0056b3 !important;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .highlight-assistant-span {
+        padding: 3px 5px !important;
+        margin: 0 2px !important;
+        border-radius: 4px !important;
+    }
+    
+    .highlight-assistant-toolbar {
+        padding: 10px;
+        gap: 8px;
+        border-radius: 12px;
+    }
+    
+    .highlight-assistant-toolbar-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+        border-radius: 8px;
+    }
+    
+    .highlight-with-comment::after {
+        font-size: 12px;
+        top: -5px;
+        right: -5px;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* 动画效果 */
+.highlight-assistant-fade-in {
+    animation: highlightFadeIn var(--animation-medium);
+}
+
+.highlight-assistant-fade-out {
+    animation: highlightFadeOut var(--animation-medium);
+}
+
+@keyframes highlightFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes highlightFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* 高亮创建动画 */
+.highlight-creating {
+    animation: highlightPulse 0.6s ease;
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.6);
+    }
+}
+
+/* 选中状态 */
+.highlight-assistant-selected {
+    outline: 2px solid var(--b3-theme-primary) !important;
+    outline-offset: 1px !important;
+    z-index: 20 !important;
+}
+
+/* 确保高亮不影响原有布局 */
+.highlight-assistant-span * {
+    background: inherit !important;
+    color: inherit !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
+
+/* 防止文本选择问题 */
+.protyle-wysiwyg .highlight-assistant-span {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+/* 工具栏分隔符 */
+.highlight-assistant-toolbar .separator {
+    width: 1px;
+    height: 24px;
+    background-color: var(--b3-theme-border);
+    margin: 0 4px;
+    opacity: 0.5;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    .highlight-assistant-span {
+        border: 1px solid currentColor !important;
+    }
+    
+    .highlight-assistant-toolbar {
+        border: 2px solid var(--b3-theme-border) !important;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+    .highlight-assistant-span,
+    .highlight-assistant-toolbar,
+    .highlight-assistant-toolbar-btn {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* 确保在所有主题下都可见 */
+.highlight-assistant-toolbar {
+    border: 1px solid var(--b3-theme-border);
+    background: var(--b3-theme-background);
+    color: var(--b3-theme-on-background);
+}
+
+/* 防止与思源原生样式冲突 */
+.protyle-wysiwyg .highlight-assistant-span {
+    display: inline !important;
+    float: none !important;
+    position: relative !important;
+    clear: none !important;
+}
+
+/* 调试样式 */
+.highlight-assistant-debug {
+    border: 2px dashed red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+/* 兼容性修复 */
+.highlight-assistant-span {
+    /* 修复可能的继承问题 */
+    all: unset;
+    /* 重新设置必要的样式 */
+    display: inline !important;
+    background-color: var(--highlight-yellow) !important;
+    color: var(--highlight-yellow-text) !important;
+    padding: 2px 4px !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    user-select: text !important;
+    transition: var(--animation-fast) !important;
+}

@@ -37,16 +37,24 @@ import SettingExample from "@/setting-example.svelte";
 import { SettingUtils } from "./libs/setting-utils";
 import { svelteDialog } from "./libs/dialog";
 
-const STORAGE_NAME = "menu-config";
+// 导入高亮助手模块
+import { HighlightFloatingBall } from "./utils/HighlightFloatingBall";
+import { ToolbarHijacker } from "./utils/toolbarHijacker";
+
+const STORAGE_NAME = "highlight-config";
 const TAB_TYPE = "custom_tab";
 const DOCK_TYPE = "dock_tab";
 
-export default class PluginSample extends Plugin {
+export default class HighlightAssistantPlugin extends Plugin {
 
     private custom: () => Custom;
     private isMobile: boolean;
     private blockIconEventBindThis = this.blockIconEvent.bind(this);
     private settingUtils: SettingUtils;
+    
+    // 高亮助手相关
+    private highlightFloatingBall: HighlightFloatingBall | null = null;
+    private toolbarHijacker: ToolbarHijacker | null = null;
 
 
     updateProtyleToolbar(toolbar: Array<string | IMenuItem>) {
@@ -65,12 +73,44 @@ export default class PluginSample extends Plugin {
     }
 
     async onload() {
-        this.data[STORAGE_NAME] = { readonlyText: "Readonly" };
+        this.data[STORAGE_NAME] = {};
 
-        console.log("loading plugin-sample", this.i18n);
+        console.log("loading highlight-assistant", this.i18n);
 
         const frontEnd = getFrontend();
+        const backEnd = getBackend();
         this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+        
+        // 详细的环境检测
+        console.log("🔍 环境检测:", {
+            frontEnd,
+            backEnd,
+            isMobile: this.isMobile,
+            userAgent: navigator.userAgent,
+            screenWidth: window.innerWidth,
+            touchSupport: 'ontouchstart' in window
+        });
+        
+        // 启动弹窗 - 证明插件已部署
+        const modeText = this.isMobile ? " [手机版模式]" : " [桌面版模式]";
+        const envText = ` (${frontEnd}/${backEnd})`;
+        showMessage("🎉 高亮助手 v1 已成功加载！" + modeText + envText, 5000);
+        
+        // 额外的手机版确认
+        if (this.isMobile) {
+            setTimeout(() => {
+                showMessage("📱 已确认为手机版环境，正在初始化工具栏劫持...", 3000);
+            }, 1000);
+        }
+        
+        // 根据平台初始化功能
+        if (this.isMobile) {
+            // 手机版：启动工具栏劫持
+            this.initToolbarHijacker();
+        } else {
+            // 桌面版：启动悬浮工具栏
+            this.initHighlightFloatingBall();
+        }
         // 图标的制作参见帮助文档
         this.addIcons(`<symbol id="iconFace" viewBox="0 0 32 32">
 <path d="M13.667 17.333c0 0.92-0.747 1.667-1.667 1.667s-1.667-0.747-1.667-1.667 0.747-1.667 1.667-1.667 1.667 0.747 1.667 1.667zM20 15.667c-0.92 0-1.667 0.747-1.667 1.667s0.747 1.667 1.667 1.667 1.667-0.747 1.667-1.667-0.747-1.667-1.667-1.667zM29.333 16c0 7.36-5.973 13.333-13.333 13.333s-13.333-5.973-13.333-13.333 5.973-13.333 13.333-13.333 13.333 5.973 13.333 13.333zM14.213 5.493c1.867 3.093 5.253 5.173 9.12 5.173 0.613 0 1.213-0.067 1.787-0.16-1.867-3.093-5.253-5.173-9.12-5.173-0.613 0-1.213 0.067-1.787 0.16zM5.893 12.627c2.28-1.293 4.040-3.4 4.88-5.92-2.28 1.293-4.040 3.4-4.88 5.92zM26.667 16c0-1.040-0.16-2.040-0.44-2.987-0.933 0.2-1.893 0.32-2.893 0.32-4.173 0-7.893-1.92-10.347-4.92-1.4 3.413-4.187 6.093-7.653 7.4 0.013 0.053 0 0.12 0 0.187 0 5.88 4.787 10.667 10.667 10.667s10.667-4.787 10.667-10.667z"></path>
@@ -379,6 +419,45 @@ export default class PluginSample extends Plugin {
         });
         // this.loadData(STORAGE_NAME);
         this.settingUtils.load();
+        
+        // 在 onLayoutReady 中启动手机版劫持（确保编辑器完全加载）
+        if (this.isMobile && this.toolbarHijacker) {
+            setTimeout(() => {
+                console.log('[Plugin] 在 onLayoutReady 中启动工具栏劫持...');
+                this.toolbarHijacker.hijack();
+                
+                // 再次确认劫持成功
+                setTimeout(() => {
+                    if (this.toolbarHijacker?.hijacked) {
+                        showMessage("📱 手机版工具栏劫持成功！请选择文本测试高亮功能", 4000);
+                    } else {
+                        showMessage("⚠️ 手机版工具栏劫持失败，请查看控制台", 4000);
+                    }
+                }, 1000);
+                
+                // 添加全局调试函数
+                (window as any).testHijack = () => {
+                    console.log('🧪 手动测试劫持状态...');
+                    console.log('- 劫持器存在:', !!this.toolbarHijacker);
+                    console.log('- 劫持状态:', this.toolbarHijacker?.hijacked);
+                    console.log('- 是否手机版:', this.isMobile);
+                    
+                    const editors = getAllEditor();
+                    console.log('- 编辑器数量:', editors.length);
+                    editors.forEach((editor, i) => {
+                        console.log(`- 编辑器${i}:`, {
+                            hasProtyle: !!editor.protyle,
+                            hasToolbar: !!(editor.protyle?.toolbar),
+                            hasShowContent: !!(editor.protyle?.toolbar?.showContent)
+                        });
+                    });
+                };
+                
+                console.log('💡 可以在控制台运行 testHijack() 来检查劫持状态');
+                
+            }, 2000);
+        }
+        
         console.log(`frontend: ${getFrontend()}; backend: ${getBackend()}`);
 
         console.log(
@@ -391,7 +470,19 @@ export default class PluginSample extends Plugin {
 
     async onunload() {
         console.log(this.i18n.byePlugin);
-        showMessage("Goodbye SiYuan Plugin");
+        
+        // 销毁高亮功能
+        if (this.highlightFloatingBall) {
+            this.highlightFloatingBall.destroy();
+            this.highlightFloatingBall = null;
+        }
+        
+        if (this.toolbarHijacker) {
+            this.toolbarHijacker.unhijack();
+            this.toolbarHijacker = null;
+        }
+        
+        showMessage("Goodbye Highlight Assistant");
         console.log("onunload");
     }
 
@@ -1007,5 +1098,53 @@ export default class PluginSample extends Plugin {
             return;
         }
         return editors[0];
+    }
+
+
+    /**
+     * 初始化工具栏劫持器（手机版）
+     */
+    private initToolbarHijacker(): void {
+        try {
+            this.toolbarHijacker = new ToolbarHijacker(this.isMobile);
+            console.log('工具栏劫持器创建完成，将在 onLayoutReady 中启动');
+            
+        } catch (error) {
+            console.error('工具栏劫持器初始化失败:', error);
+            showMessage(`手机版高亮初始化失败: ${error.message}`, 5000, 'error');
+        }
+    }
+
+    /**
+     * 初始化高亮悬浮工具栏（桌面版）
+     */
+    private initHighlightFloatingBall(): void {
+        try {
+            this.highlightFloatingBall = HighlightFloatingBall.getInstance();
+            this.highlightFloatingBall.init();
+            
+            // 设置全局引用（用于调试）
+            if (typeof window !== 'undefined') {
+                (window as any).highlightAssistant = {
+                    floatingBall: this.highlightFloatingBall
+                };
+            }
+            
+            console.log('高亮悬浮工具栏初始化完成');
+            
+        } catch (error) {
+            console.error('高亮悬浮工具栏初始化失败:', error);
+            showMessage(`高亮助手初始化失败: ${error.message}`, 5000, 'error');
+        }
+    }
+    
+    /**
+     * 获取悬浮工具栏状态（调试用）
+     */
+    getFloatingBallState(): any {
+        if (this.highlightFloatingBall) {
+            return this.highlightFloatingBall.getState();
+        }
+        return null;
     }
 }

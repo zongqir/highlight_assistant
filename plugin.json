@@ -1,10 +1,10 @@
 {
-  "name": "plugin-sample-vite-svelte",
-  "author": "frostime",
-  "url": "https://github.com/siyuan-note/plugin-sample-vite-svelte",
-  "version": "0.4.1",
+  "name": "highlight-assistant",
+  "author": "AI Assistant",
+  "url": "https://github.com/your-username/highlight-assistant",
+  "version": "1.0.1",
   "minAppVersion": "3.2.1",
-  "disabledInPublish": true,
+  "disabledInPublish": false,
   "backends": [
     "windows",
     "linux",
@@ -22,12 +22,12 @@
     "desktop-window"
   ],
   "displayName": {
-    "en_US": "Plugin sample with vite and svelte",
-    "zh_CN": "插件样例 vite + svelte 版"
+    "en_US": "Highlight Assistant",
+    "zh_CN": "高亮助手"
   },
   "description": {
-    "en_US": "SiYuan plugin sample with vite and svelte",
-    "zh_CN": "使用 vite 和 svelte 开发的思源插件样例"
+    "en_US": "WeChat Reading-style highlight tool for SiYuan. Select text to highlight with floating toolbar, optimized for mobile.",
+    "zh_CN": "类似微信读书的高亮工具。选中文本即可高亮，浮动工具栏操作，移动端优化。"
   },
   "readme": {
     "en_US": "README.md",
@@ -39,8 +39,12 @@
     ]
   },
   "keywords": [
-    "plugin",
-    "sample",
-    "插件样例"
+    "highlight",
+    "annotation",
+    "mobile",
+    "reading",
+    "高亮",
+    "标注",
+    "阅读"
   ]
 }
