@@ -3,7 +3,7 @@
  */
 
 // 高亮颜色类型
-export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink';
+export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink' | 'red' | 'purple';
 
 // 高亮类型
 export type HighlightType = 'default' | 'custom';

@@ -38,7 +38,6 @@ import { SettingUtils } from "./libs/setting-utils";
 import { svelteDialog } from "./libs/dialog";
 
 // 导入高亮助手模块
-import { HighlightFloatingBall } from "./utils/HighlightFloatingBall";
 import { ToolbarHijacker } from "./utils/toolbarHijacker";
 
 const STORAGE_NAME = "highlight-config";
@@ -52,8 +51,7 @@ export default class HighlightAssistantPlugin extends Plugin {
     private blockIconEventBindThis = this.blockIconEvent.bind(this);
     private settingUtils: SettingUtils;
     
-    // 高亮助手相关
-    private highlightFloatingBall: HighlightFloatingBall | null = null;
+    // 高亮助手相关 - 手机版专用
     private toolbarHijacker: ToolbarHijacker | null = null;
 
 
@@ -103,13 +101,11 @@ export default class HighlightAssistantPlugin extends Plugin {
             }, 1000);
         }
         
-        // 根据平台初始化功能
+        // 只支持手机版
         if (this.isMobile) {
-            // 手机版：启动工具栏劫持
             this.initToolbarHijacker();
         } else {
-            // 桌面版：启动悬浮工具栏
-            this.initHighlightFloatingBall();
+            //showMessage("⚠️ 此插件专为手机版设计，桌面版暂不支持", 3000);
         }
         // 图标的制作参见帮助文档
         this.addIcons(`<symbol id="iconFace" viewBox="0 0 32 32">
@@ -471,12 +467,7 @@ export default class HighlightAssistantPlugin extends Plugin {
     async onunload() {
         console.log(this.i18n.byePlugin);
         
-        // 销毁高亮功能
-        if (this.highlightFloatingBall) {
-            this.highlightFloatingBall.destroy();
-            this.highlightFloatingBall = null;
-        }
-        
+        // 销毁工具栏劫持器
         if (this.toolbarHijacker) {
             this.toolbarHijacker.unhijack();
             this.toolbarHijacker = null;
@@ -1115,36 +1106,4 @@ export default class HighlightAssistantPlugin extends Plugin {
         }
     }
 
-    /**
-     * 初始化高亮悬浮工具栏（桌面版）
-     */
-    private initHighlightFloatingBall(): void {
-        try {
-            this.highlightFloatingBall = HighlightFloatingBall.getInstance();
-            this.highlightFloatingBall.init();
-            
-            // 设置全局引用（用于调试）
-            if (typeof window !== 'undefined') {
-                (window as any).highlightAssistant = {
-                    floatingBall: this.highlightFloatingBall
-                };
-            }
-            
-            console.log('高亮悬浮工具栏初始化完成');
-            
-        } catch (error) {
-            console.error('高亮悬浮工具栏初始化失败:', error);
-            showMessage(`高亮助手初始化失败: ${error.message}`, 5000, 'error');
-        }
-    }
-    
-    /**
-     * 获取悬浮工具栏状态（调试用）
-     */
-    getFloatingBallState(): any {
-        if (this.highlightFloatingBall) {
-            return this.highlightFloatingBall.getState();
-        }
-        return null;
-    }
 }
