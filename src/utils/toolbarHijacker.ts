@@ -147,6 +147,9 @@ export class ToolbarHijacker {
             // 添加高亮按钮组
             this.addHighlightButtons(flexContainer, range, nodeElement, protyle, toolbar);
             
+            // 添加按钮后调整工具栏位置，确保完整显示
+            this.adjustToolbarPosition(toolbar, range);
+            
         } catch (error) {
             // 静默处理错误
         }
@@ -167,12 +170,12 @@ export class ToolbarHijacker {
         separator.className = 'keyboard__split';
         container.insertBefore(separator, insertPoint);
         
-        // 高亮颜色配置
-        const colors: Array<{name: HighlightColor, icon: string, bg: string, displayName: string}> = [
-            { name: 'yellow', icon: '🟡', bg: '#fff3cd', displayName: '黄色高亮' },
-            { name: 'green', icon: '🟢', bg: '#d4edda', displayName: '绿色高亮' },
-            { name: 'blue', icon: '🔵', bg: '#cce5ff', displayName: '蓝色高亮' },
-            { name: 'pink', icon: '🩷', bg: '#fce4ec', displayName: '粉色高亮' }
+        // 浅色系颜色配置（保持之前的颜色）
+        const colors: Array<{name: HighlightColor, bg: string, displayName: string}> = [
+            { name: 'yellow', bg: '#fff3cd', displayName: '黄色高亮' },
+            { name: 'green', bg: '#d4edda', displayName: '绿色高亮' },
+            { name: 'blue', bg: '#cce5ff', displayName: '蓝色高亮' },
+            { name: 'pink', bg: '#fce4ec', displayName: '粉色高亮' }
         ];
         
         // 为每种颜色创建按钮
@@ -186,44 +189,48 @@ export class ToolbarHijacker {
      * 创建高亮按钮
      */
     private createHighlightButton(
-        colorConfig: {name: HighlightColor, icon: string, bg: string, displayName: string}, 
+        colorConfig: {name: HighlightColor, bg: string, displayName: string}, 
         range: Range, 
         nodeElement: Element, 
         protyle: any, 
         toolbar: any
     ): HTMLButtonElement {
         const btn = document.createElement('button');
-        btn.className = 'keyboard__action highlight-btn';
+        btn.className = 'keyboard__action highlight-btn wechat-style';
         btn.setAttribute('data-color', colorConfig.name);
         
-        // 设置按钮内容
-        btn.innerHTML = `
-            <span style="font-size: 16px; line-height: 1;">${colorConfig.icon}</span>
-        `;
-        
-        // 设置按钮样式
+        // 微信读书风格：小号纯色圆形按钮，强制垂直居中
         btn.style.cssText = `
             background: ${colorConfig.bg} !important;
-            border: 2px solid rgba(0,0,0,0.1) !important;
-            border-radius: 6px !important;
-            padding: 8px !important;
-            margin: 0 2px !important;
-            min-width: 36px !important;
-            min-height: 36px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            transition: all 0.2s ease !important;
+            border: none !important;
+            border-radius: 50% !important;
+            width: 22px !important;
+            height: 22px !important;
+            margin: auto 2px !important;
+            padding: 0 !important;
+            display: inline-block !important;
             cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+            vertical-align: middle !important;
         `;
         
-        // 添加悬停效果
+        // 简单的触摸效果
+        btn.addEventListener('touchstart', () => {
+            btn.style.opacity = '0.7';
+        });
+        
+        btn.addEventListener('touchend', () => {
+            btn.style.opacity = '1';
+        });
+        
+        // 鼠标效果
         btn.addEventListener('mousedown', () => {
-            btn.style.transform = 'scale(0.95)';
+            btn.style.opacity = '0.7';
         });
         
         btn.addEventListener('mouseup', () => {
-            btn.style.transform = 'scale(1)';
+            btn.style.opacity = '1';
         });
         
         // 添加点击事件
@@ -452,10 +459,10 @@ export class ToolbarHijacker {
     
     
     /**
-     * 获取颜色值（用于按钮显示）
+     * 获取浅色系颜色值
      */
     private getColorValue(color: HighlightColor): string {
-        const colorValues = {
+        const lightColors = {
             yellow: '#fff3cd',
             green: '#d4edda',
             blue: '#cce5ff',
@@ -464,10 +471,55 @@ export class ToolbarHijacker {
             purple: '#e2d9f7'
         };
         
-        return colorValues[color] || colorValues.yellow;
+        return lightColors[color] || lightColors.yellow;
     }
     
     
+    /**
+     * 简化的工具栏位置调整
+     */
+    private adjustToolbarPosition(toolbar: any, range: Range): void {
+        try {
+            const subElement = toolbar.subElement;
+            if (!subElement) return;
+            
+            const toolbarRect = subElement.getBoundingClientRect();
+            const selectionRect = range.getBoundingClientRect();
+            
+            let needsAdjust = false;
+            let newLeft = parseFloat(subElement.style.left) || toolbarRect.left;
+            let newTop = parseFloat(subElement.style.top) || toolbarRect.top;
+            
+            // 右边界检查
+            if (toolbarRect.right > window.innerWidth - 10) {
+                newLeft = window.innerWidth - toolbarRect.width - 10;
+                needsAdjust = true;
+            }
+            
+            // 左边界检查
+            if (toolbarRect.left < 10) {
+                newLeft = 10;
+                needsAdjust = true;
+            }
+            
+            // 下边界检查
+            if (toolbarRect.bottom > window.innerHeight - 10) {
+                newTop = selectionRect.top - toolbarRect.height - 10;
+                needsAdjust = true;
+            }
+            
+            // 应用调整
+            if (needsAdjust) {
+                subElement.style.left = newLeft + 'px';
+                subElement.style.top = newTop + 'px';
+                subElement.style.position = 'fixed';
+            }
+            
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
+
     /**
      * 隐藏工具栏
      */
