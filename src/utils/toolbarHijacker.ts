@@ -291,13 +291,31 @@ export class ToolbarHijacker {
                 return;
             }
 
-            // 使用 updateBlock API 保存 - 保存innerHTML内容
-            const updateResult = await this.api.updateBlock(blockId, newContent, "dom");
+            // 添加调试日志
+            console.log('[ToolbarHijacker] 保存块内容:', {
+                blockId,
+                dataType: "dom",
+                oldContentLength: oldContent.length,
+                newContentLength: newContent.length,
+                newContent: newContent
+            });
+
+            // 提取markdown格式内容
+            const markdownContent = this.extractMarkdownFromBlock(blockElement);
+            
+            console.log('[ToolbarHijacker] 提取的markdown内容:', markdownContent);
+
+            // 使用 updateBlock API 保存 - 保存markdown内容
+            const updateResult = await this.api.updateBlock(blockId, markdownContent, "markdown");
+
+            console.log('[ToolbarHijacker] API保存结果:', updateResult);
 
             if (updateResult.code === 0) {
                 this.api.showMessage(`已应用${colorConfig.name}`);
+                console.log("✅ 高亮保存成功");
             } else {
                 this.api.showMessage(`高亮失败`, 3000, "error");
+                console.error("❌ 保存失败:", updateResult.msg);
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
@@ -339,6 +357,34 @@ export class ToolbarHijacker {
         }
         
         return null;
+    }
+    
+    /**
+     * 从块元素提取markdown内容
+     */
+    private extractMarkdownFromBlock(blockElement: HTMLElement): string {
+        try {
+            // 获取块的innerHTML内容
+            const innerHTML = blockElement.innerHTML;
+            
+            // 简单处理：提取主要内容，转换为markdown格式
+            // 查找contenteditable="false"的div（这是实际内容容器）
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = innerHTML;
+            
+            const contentDiv = tempDiv.querySelector('div[contenteditable="false"]');
+            if (contentDiv) {
+                // 获取内容并保持HTML格式的高亮span
+                return contentDiv.innerHTML;
+            }
+            
+            // 如果没找到contenteditable div，直接返回innerHTML
+            return innerHTML;
+            
+        } catch (error) {
+            console.error('提取markdown失败:', error);
+            return blockElement.innerHTML;
+        }
     }
     
     /**
