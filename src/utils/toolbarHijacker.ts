@@ -3,16 +3,47 @@
  * 在原有复制弹窗基础上添加高亮功能
  */
 
-import { showMessage, getAllEditor } from "siyuan";
+import { showMessage, getAllEditor, Constants } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
     private isHijacked: boolean = false;
     private isMobile: boolean = false;
+    private api: any;
     
     constructor(isMobile: boolean = false) {
         this.isMobile = isMobile;
+        // 设置API引用
+        this.api = {
+            updateBlock: async (blockId: string, data: string, dataType: string) => {
+                const payload = {
+                    id: blockId,
+                    data: data,
+                    dataType: dataType
+                };
+                
+                console.log('[ToolbarHijacker] 🚀 updateBlock API请求参数:', {
+                    url: '/api/block/updateBlock',
+                    blockId,
+                    dataType,
+                    dataLength: data.length,
+                    dataPreview: data.substring(0, 200) + '...',
+                    完整data内容: data
+                });
+                
+                const response = await fetch('/api/block/updateBlock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                console.log('[ToolbarHijacker] 📥 updateBlock API响应:', result);
+                return result;
+            },
+            showMessage: showMessage
+        };
     }
     
     /**
@@ -111,6 +142,9 @@ export class ToolbarHijacker {
                             if (hijacker.isMobile && range.toString().trim()) {
                                 console.log('[ToolbarHijacker] 准备增强工具栏...');
                                 hijacker.enhanceToolbarForMobile(this, range, nodeElement, protyle);
+                                
+                                // 添加按钮后重新调整工具栏位置，确保完整显示
+                                hijacker.adjustToolbarPosition(this, range);
                             }
                         }, 50);
                     };
@@ -187,16 +221,16 @@ export class ToolbarHijacker {
         container.insertBefore(separator, insertPoint);
         
         // 高亮颜色配置
-        const colors: Array<{name: HighlightColor, icon: string, bg: string}> = [
-            { name: 'yellow', icon: '🟡', bg: '#fff3cd' },
-            { name: 'green', icon: '🟢', bg: '#d4edda' },
-            { name: 'blue', icon: '🔵', bg: '#cce5ff' },
-            { name: 'pink', icon: '🩷', bg: '#fce4ec' }
+        const colors: Array<{name: HighlightColor, icon: string, bg: string, displayName: string}> = [
+            { name: 'yellow', icon: '🟡', bg: '#fff3cd', displayName: '黄色高亮' },
+            { name: 'green', icon: '🟢', bg: '#d4edda', displayName: '绿色高亮' },
+            { name: 'blue', icon: '🔵', bg: '#cce5ff', displayName: '蓝色高亮' },
+            { name: 'pink', icon: '🩷', bg: '#fce4ec', displayName: '粉色高亮' }
         ];
         
         // 为每种颜色创建按钮
         colors.forEach(color => {
-            const btn = this.createHighlightButton(color.name, color.icon, color.bg, range, nodeElement, protyle, toolbar);
+            const btn = this.createHighlightButton(color, range, nodeElement, protyle, toolbar);
             container.insertBefore(btn, insertPoint);
         });
         
@@ -207,9 +241,7 @@ export class ToolbarHijacker {
      * 创建高亮按钮
      */
     private createHighlightButton(
-        colorName: HighlightColor, 
-        icon: string, 
-        bgColor: string, 
+        colorConfig: {name: HighlightColor, icon: string, bg: string, displayName: string}, 
         range: Range, 
         nodeElement: Element, 
         protyle: any, 
@@ -217,16 +249,16 @@ export class ToolbarHijacker {
     ): HTMLButtonElement {
         const btn = document.createElement('button');
         btn.className = 'keyboard__action highlight-btn';
-        btn.setAttribute('data-color', colorName);
+        btn.setAttribute('data-color', colorConfig.name);
         
         // 设置按钮内容
         btn.innerHTML = `
-            <span style="font-size: 16px; line-height: 1;">${icon}</span>
+            <span style="font-size: 16px; line-height: 1;">${colorConfig.icon}</span>
         `;
         
         // 设置按钮样式
         btn.style.cssText = `
-            background: ${bgColor} !important;
+            background: ${colorConfig.bg} !important;
             border: 2px solid rgba(0,0,0,0.1) !important;
             border-radius: 6px !important;
             padding: 8px !important;
@@ -250,77 +282,282 @@ export class ToolbarHijacker {
         });
         
         // 添加点击事件
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             e.preventDefault();
             
-            console.log(`[ToolbarHijacker] 高亮按钮被点击: ${colorName}`);
+            console.log(`[ToolbarHijacker] 高亮按钮被点击: ${colorConfig.name}`);
             
-            try {
-                this.applyHighlight(colorName, range, nodeElement, protyle);
-                
-                // 隐藏工具栏
-                this.hideToolbar(toolbar);
-                
-                showMessage(`✅ ${colorName} 高亮已应用`);
-                
-            } catch (error) {
-                console.error('[ToolbarHijacker] 应用高亮失败:', error);
-                showMessage('❌ 高亮应用失败');
-            }
+            // 构建API需要的颜色配置
+            const apiColorConfig = {
+                name: colorConfig.displayName,
+                color: this.getColorValue(colorConfig.name)
+            };
+            
+            // 应用高亮（异步处理）
+            await this.applyHighlight(protyle, range, nodeElement, apiColorConfig);
         });
         
         return btn;
     }
     
     /**
-     * 应用高亮
+     * 应用高亮 - 按照案例代码实现
      */
-    private applyHighlight(color: HighlightColor, range: Range, nodeElement: Element, protyle: any): void {
-        const selectedText = range.toString();
+    private async applyHighlight(protyle: any, range: Range, nodeElement: Element, colorConfig: {name: string, color: string}): Promise<void> {
+        try {
+            const selectedText = range.toString();
+            if (!selectedText) return;
+
+            // 找到真正的块元素
+            const blockElement = this.findBlockElement(range.startContainer);
+            if (!blockElement) {
+                console.error("未找到块元素");
+                return;
+            }
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) {
+                console.error("未找到块ID");
+                return;
+            }
+
+            console.log('[ToolbarHijacker] 开始应用高亮:', {
+                color: colorConfig.name,
+                text: selectedText.substring(0, 20),
+                blockId,
+                blockElement: blockElement.tagName
+            });
+
+            // 保存原始内容用于对比 - 关键：使用innerHTML而不是outerHTML
+            const oldContent = blockElement.innerHTML;
+            
+            console.log('[ToolbarHijacker] 当前块元素详情:', {
+                tagName: blockElement.tagName,
+                className: blockElement.className,
+                blockId,
+                dataType: blockElement.getAttribute('data-type'),
+                updated: blockElement.getAttribute('updated'),
+                oldContent: oldContent
+            });
+
+            // 创建简单的高亮span元素
+            const highlightSpan = document.createElement("span");
+            highlightSpan.setAttribute("data-type", "text");
+            highlightSpan.style.backgroundColor = colorConfig.color;
+            highlightSpan.textContent = selectedText;
+            
+            // DOM操作 - 替换选中内容
+            range.deleteContents();
+            range.insertNode(highlightSpan);
+            
+            console.log('[ToolbarHijacker] 高亮元素已创建:', {
+                dataType: highlightSpan.getAttribute("data-type"),
+                backgroundColor: highlightSpan.style.backgroundColor,
+                text: selectedText.substring(0, 20)
+            });
+
+            // 更新时间戳
+            const timestamp = new Date().getTime().toString().substring(0, 10);
+            blockElement.setAttribute("updated", timestamp);
+
+            // 关键修正：保存块的innerHTML内容，不是outerHTML
+            const newContent = blockElement.innerHTML;
+
+            // 检查是否真的有变化
+            if (newContent === oldContent) {
+                console.warn("DOM内容没有变化");
+                this.api.showMessage("高亮应用失败：内容未更改", 3000, "error");
+                return;
+            }
+
+            console.log('[ToolbarHijacker] DOM更新完成，准备保存到数据库:', {
+                blockId,
+                oldLength: oldContent.length,
+                newLength: newContent.length,
+                oldContent: oldContent,
+                newContent: newContent
+            });
+
+            // 使用 updateBlock API 保存 - 保存innerHTML内容
+            const updateResult = await this.api.updateBlock(blockId, newContent, "dom");
+
+            if (updateResult.code === 0) {
+                this.api.showMessage(`已应用${colorConfig.name}`);
+                console.log("✅ 高亮保存成功 - updateBlock API");
+            } else {
+                console.error("❌ 更新块失败:", updateResult);
+                this.api.showMessage(`高亮失败: ${updateResult.msg || '未知错误'}`, 3000, "error");
+                // 保存失败时恢复原状
+                this.restoreOriginalHTML(blockId, oldContent);
+            }
+
+            this.hideToolbarAndClearSelection(protyle);
+
+        } catch (error) {
+            console.error("应用高亮时出错:", error);
+            this.api.showMessage("高亮功能出错", 3000, "error");
+            // 发生错误时恢复原状
+            const blockElement = this.findBlockElement(range.startContainer);
+            if (blockElement) {
+                const blockId = blockElement.getAttribute("data-node-id");
+                if (blockId) {
+                    this.restoreOriginalHTML(blockId, blockElement.innerHTML);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 关键修正：正确查找块元素
+     */
+    private findBlockElement(node: Node): HTMLElement | null {
+        let current = node;
         
-        console.log('[ToolbarHijacker] 开始应用高亮:', {
-            color,
-            text: selectedText.substring(0, 20),
-            nodeId: nodeElement.getAttribute('data-node-id')
-        });
+        // 向上遍历DOM树查找具有data-node-id属性的块元素
+        while (current && current !== document) {
+            if (current.nodeType === Node.ELEMENT_NODE && 
+                (current as HTMLElement).getAttribute && 
+                (current as HTMLElement).getAttribute("data-node-id")) {
+                
+                const element = current as HTMLElement;
+                // 确保这是一个真正的块元素(p, h1-h6, li等)，而不是容器元素
+                const tagName = element.tagName.toLowerCase();
+                const className = element.className || '';
+                
+                // 排除容器类元素，只保留真正的内容块
+                if (!className.includes('protyle-content') && 
+                    !className.includes('protyle-wysiwyg') &&
+                    !className.includes('protyle-html') &&
+                    tagName !== 'body' && 
+                    tagName !== 'html') {
+                    
+                    console.log('[ToolbarHijacker] 找到真正的块元素:', {
+                        tagName,
+                        className,
+                        id: element.getAttribute("data-node-id")
+                    });
+                    return element;
+                }
+            }
+            current = current.parentNode!;
+        }
         
-        // 创建高亮span元素
-        const span = document.createElement('span');
-        span.className = `highlight-assistant-span highlight-color-${color}`;
-        span.setAttribute('data-highlight-type', 'custom');
-        span.setAttribute('data-highlight-color', color);
-        span.setAttribute('data-highlight-id', this.generateId());
-        span.setAttribute('data-highlight-created', Date.now().toString());
-        span.textContent = selectedText;
-        
-        // 设置高亮样式
-        const colorStyles = {
-            yellow: { bg: '#fff3cd', border: '#ffeaa7' },
-            green: { bg: '#d4edda', border: '#55a3ff' },
-            blue: { bg: '#cce5ff', border: '#74b9ff' },
-            pink: { bg: '#fce4ec', border: '#fd79a8' },
-            red: { bg: '#f8d7da', border: '#e17055' },
-            purple: { bg: '#e2d9f7', border: '#a29bfe' }
+        return null;
+    }
+    
+    /**
+     * 恢复原始HTML
+     */
+    private restoreOriginalHTML(blockId: string, originalHTML: string): void {
+        try {
+            const blockElement = document.querySelector(`[data-node-id="${blockId}"]`);
+            if (blockElement && blockElement.parentNode) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = originalHTML;
+                const newElement = tempDiv.firstElementChild;
+                if (newElement) {
+                    blockElement.parentNode.replaceChild(newElement, blockElement);
+                    console.log('[ToolbarHijacker] 已恢复原始HTML');
+                }
+            }
+        } catch (error) {
+            console.error('[ToolbarHijacker] 恢复原始HTML失败:', error);
+        }
+    }
+    
+    /**
+     * 隐藏工具栏并清除选择
+     */
+    private hideToolbarAndClearSelection(protyle: any): void {
+        try {
+            // 隐藏工具栏
+            if (protyle.toolbar && protyle.toolbar.element) {
+                protyle.toolbar.element.style.display = "none";
+            }
+            
+            // 清除选择
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+            }
+            
+            console.log('[ToolbarHijacker] 工具栏已隐藏，选择已清除');
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 隐藏工具栏失败:', error);
+        }
+    }
+    
+    /**
+     * 获取CSS变量名（思源标准格式）
+     */
+    private getColorCSSVariable(colorName: string): string {
+        const cssVariables = {
+            '黄色高亮': 'var(--b3-card-warning-background)',
+            '绿色高亮': 'var(--b3-card-success-background)', 
+            '蓝色高亮': 'var(--b3-card-info-background)',
+            '粉色高亮': 'var(--b3-card-error-background)'
         };
         
-        const style = colorStyles[color] || colorStyles.yellow;
-        span.style.cssText = `
-            background-color: ${style.bg};
-            border-bottom: 2px solid ${style.border};
-            border-radius: 2px;
-            padding: 1px 2px;
-            margin: 0 1px;
-        `;
+        return cssVariables[colorName] || 'var(--b3-card-warning-background)';
+    }
+    
+    /**
+     * 获取颜色值（用于按钮显示）
+     */
+    private getColorValue(color: HighlightColor): string {
+        const colorValues = {
+            yellow: '#fff3cd',
+            green: '#d4edda',
+            blue: '#cce5ff',
+            pink: '#fce4ec',
+            red: '#f8d7da',
+            purple: '#e2d9f7'
+        };
         
-        // 替换选中内容
-        range.deleteContents();
-        range.insertNode(span);
-        
-        // 清除选择
-        window.getSelection()?.removeAllRanges();
-        
-        console.log('[ToolbarHijacker] 高亮应用成功');
+        return colorValues[color] || colorValues.yellow;
+    }
+    
+    /**
+     * 获取正确的session ID
+     */
+    private getSessionId(): string {
+        // 尝试多种方式获取session ID
+        try {
+            // 方式1：从window.siyuan获取
+            if ((window as any).siyuan && (window as any).siyuan.config && (window as any).siyuan.config.system) {
+                const systemId = (window as any).siyuan.config.system.id;
+                if (systemId) {
+                    console.log('[ToolbarHijacker] 使用系统ID作为session:', systemId);
+                    return systemId;
+                }
+            }
+            
+            // 方式2：从Constants获取
+            if (Constants.SIYUAN_APPID) {
+                console.log('[ToolbarHijacker] 使用Constants.SIYUAN_APPID:', Constants.SIYUAN_APPID);
+                return Constants.SIYUAN_APPID;
+            }
+            
+            // 方式3：尝试从DOM获取
+            const appElement = document.querySelector('[data-app-id]');
+            if (appElement) {
+                const appId = appElement.getAttribute('data-app-id');
+                if (appId) {
+                    console.log('[ToolbarHijacker] 从DOM获取app-id:', appId);
+                    return appId;
+                }
+            }
+            
+            // 方式4：默认值
+            console.warn('[ToolbarHijacker] 使用默认session ID');
+            return 'highlight-assistant-plugin';
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 获取session ID失败:', error);
+            return 'highlight-assistant-plugin';
+        }
     }
     
     /**
@@ -337,6 +574,90 @@ export class ToolbarHijacker {
     }
     
     /**
+     * 调整工具栏位置，确保完整显示
+     */
+    private adjustToolbarPosition(toolbar: any, range: Range): void {
+        try {
+            const subElement = toolbar.subElement;
+            if (!subElement) return;
+            
+            // 获取工具栏当前位置和尺寸
+            const toolbarRect = subElement.getBoundingClientRect();
+            const selectionRect = range.getBoundingClientRect();
+            
+            console.log('[ToolbarHijacker] 调整前工具栏位置:', {
+                toolbarRect: {
+                    left: toolbarRect.left,
+                    right: toolbarRect.right,
+                    top: toolbarRect.top,
+                    width: toolbarRect.width,
+                    height: toolbarRect.height
+                },
+                selectionRect: {
+                    left: selectionRect.left,
+                    right: selectionRect.right,
+                    top: selectionRect.top,
+                    width: selectionRect.width
+                },
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+            });
+            
+            let needsReposition = false;
+            let newLeft = parseFloat(subElement.style.left) || toolbarRect.left;
+            let newTop = parseFloat(subElement.style.top) || toolbarRect.top;
+            
+            // 检查右边界 - 如果工具栏超出屏幕右边
+            if (toolbarRect.right > window.innerWidth - 10) {
+                newLeft = window.innerWidth - toolbarRect.width - 10;
+                needsReposition = true;
+                console.log('[ToolbarHijacker] 工具栏超出右边界，调整left:', newLeft);
+            }
+            
+            // 检查左边界 - 如果工具栏超出屏幕左边
+            if (toolbarRect.left < 10) {
+                newLeft = 10;
+                needsReposition = true;
+                console.log('[ToolbarHijacker] 工具栏超出左边界，调整left:', newLeft);
+            }
+            
+            // 检查下边界 - 如果工具栏超出屏幕底部
+            if (toolbarRect.bottom > window.innerHeight - 10) {
+                newTop = selectionRect.top - toolbarRect.height - 10;
+                needsReposition = true;
+                console.log('[ToolbarHijacker] 工具栏超出底部，移到选择区域上方，调整top:', newTop);
+            }
+            
+            // 检查上边界 - 如果移到上方后还是超出
+            if (newTop < 10) {
+                newTop = 10;
+                needsReposition = true;
+                console.log('[ToolbarHijacker] 工具栏超出顶部，调整top:', newTop);
+            }
+            
+            // 应用新位置
+            if (needsReposition) {
+                subElement.style.left = newLeft + 'px';
+                subElement.style.top = newTop + 'px';
+                subElement.style.position = 'fixed';
+                
+                console.log('[ToolbarHijacker] 工具栏位置已调整:', {
+                    left: newLeft,
+                    top: newTop,
+                    reason: '确保完整显示'
+                });
+            } else {
+                console.log('[ToolbarHijacker] 工具栏位置无需调整');
+            }
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 调整工具栏位置失败:', error);
+        }
+    }
+
+    /**
      * 生成唯一ID
      */
     private generateId(): string {
@@ -350,5 +671,63 @@ export class ToolbarHijacker {
      */
     public get hijacked(): boolean {
         return this.isHijacked;
+    }
+    
+    /**
+     * 创建全局查询函数
+     */
+    public createGlobalQueryFunction(): void {
+        // 添加全局查询函数供调试使用
+        (window as any).queryBlockInfo = async (blockId: string) => {
+            console.log('🔍 开始查询块信息:', blockId);
+            
+            try {
+                // 1. 查询数据库中的块信息
+                const response = await fetch('/api/query/sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stmt: `SELECT id, content, markdown, updated FROM blocks WHERE id = '${blockId}' LIMIT 1`
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('💾 数据库查询结果:', result);
+                
+                if (result.data && result.data.length > 0) {
+                    const block = result.data[0];
+                    console.log('📊 块详细信息:', {
+                        id: block.id,
+                        content长度: block.content?.length || 0,
+                        markdown长度: block.markdown?.length || 0,
+                        updated: block.updated,
+                        content内容: block.content,
+                        markdown内容: block.markdown
+                    });
+                } else {
+                    console.log('❌ 数据库中未找到该块');
+                }
+                
+                // 2. 查询DOM中的当前状态
+                const domElement = document.querySelector(`[data-node-id="${blockId}"]`);
+                if (domElement) {
+                    console.log('🎯 DOM中的当前状态:', {
+                        tagName: domElement.tagName,
+                        className: domElement.className,
+                        dataType: domElement.getAttribute('data-type'),
+                        updated: domElement.getAttribute('updated'),
+                        innerHTML: domElement.innerHTML,
+                        outerHTML: domElement.outerHTML
+                    });
+                } else {
+                    console.log('❌ DOM中未找到该元素');
+                }
+                
+            } catch (error) {
+                console.error('❌ 查询失败:', error);
+            }
+        };
+        
+        console.log('💡 已创建全局函数 queryBlockInfo(blockId)，可用于调试');
     }
 }
