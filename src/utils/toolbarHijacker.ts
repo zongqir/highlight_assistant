@@ -367,19 +367,41 @@ export class ToolbarHijacker {
             // 获取块的innerHTML内容
             const innerHTML = blockElement.innerHTML;
             
-            // 简单处理：提取主要内容，转换为markdown格式
-            // 查找contenteditable="false"的div（这是实际内容容器）
+            // 创建临时容器解析内容
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = innerHTML;
             
-            const contentDiv = tempDiv.querySelector('div[contenteditable="false"]');
-            if (contentDiv) {
-                // 获取内容并保持HTML格式的高亮span
+            // 尝试多种方式提取内容
+            // 方式1：查找 contenteditable="false" 的div（只读模式）
+            let contentDiv = tempDiv.querySelector('div[contenteditable="false"]');
+            
+            // 方式2：如果没找到，查找 contenteditable="true" 的div（编辑模式）
+            if (!contentDiv) {
+                contentDiv = tempDiv.querySelector('div[contenteditable="true"]');
+            }
+            
+            // 方式3：如果还没找到，查找第一个div
+            if (!contentDiv) {
+                contentDiv = tempDiv.querySelector('div');
+            }
+            
+            if (contentDiv && contentDiv.innerHTML.trim() && contentDiv.innerHTML.trim() !== '​') {
+                console.log('[ToolbarHijacker] 提取内容成功 - 方式:', contentDiv.getAttribute('contenteditable') || 'div');
                 return contentDiv.innerHTML;
             }
             
-            // 如果没找到contenteditable div，直接返回innerHTML
-            return innerHTML;
+            // 方式4：如果都没找到，可能是编辑模式，尝试提取第一个div的内容
+            const firstDiv = tempDiv.querySelector('div');
+            if (firstDiv && firstDiv.innerHTML.trim() && firstDiv.innerHTML.trim() !== '​') {
+                console.log('[ToolbarHijacker] 提取编辑模式内容 - div内容');
+                return firstDiv.innerHTML;
+            }
+            
+            // 方式5：最后回退，过滤掉protyle-attr后返回
+            const cleanedInnerHTML = innerHTML.replace(/<div[^>]*class="protyle-attr"[^>]*>​<\/div>/g, '');
+            
+            console.log('[ToolbarHijacker] 使用清理后的innerHTML');
+            return cleanedInnerHTML;
             
         } catch (error) {
             console.error('提取markdown失败:', error);
