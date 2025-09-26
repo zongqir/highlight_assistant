@@ -11,6 +11,7 @@ export class ToolbarHijacker {
     private isHijacked: boolean = false;
     private isMobile: boolean = false;
     private api: any;
+    private activeEventListeners: (() => void)[] = [];
     
     constructor(isMobile: boolean = false) {
         this.isMobile = isMobile;
@@ -81,6 +82,9 @@ export class ToolbarHijacker {
                 }
             });
             
+            // 清理事件监听器
+            this.cleanupEventListeners();
+            
             this.isHijacked = false;
             this.originalShowContent = null;
             
@@ -149,13 +153,14 @@ export class ToolbarHijacker {
             const subElement = toolbar.subElement;
             if (!subElement) return;
             
+            // 确保工具栏可见（重置之前的隐藏状态）
+            this.resetToolbarVisibility(toolbar);
+            
             const flexContainer = subElement.querySelector('.fn__flex');
             if (!flexContainer) return;
             
-            // 检查是否已经添加过高亮按钮
-            if (flexContainer.querySelector('.highlight-btn')) {
-                return;
-            }
+            // 清理之前添加的按钮（避免重复添加）
+            this.cleanupPreviousButtons(flexContainer);
             
             // 添加高亮按钮组
             this.addHighlightButtons(flexContainer, range, nodeElement, protyle, toolbar);
@@ -1033,6 +1038,9 @@ export class ToolbarHijacker {
      */
     private setupAutoHide(toolbar: any): void {
         try {
+            // 先清理之前的监听器
+            this.cleanupEventListeners();
+            
             // 监听文档点击事件，点击工具栏外部时隐藏
             const hideOnClickOutside = (e: Event) => {
                 const target = e.target as HTMLElement;
@@ -1041,11 +1049,18 @@ export class ToolbarHijacker {
                 // 如果点击的不是工具栏或其子元素，则隐藏工具栏
                 if (toolbarElement && !toolbarElement.contains(target)) {
                     this.hideToolbar(toolbar);
-                    // 移除监听器
-                    document.removeEventListener('click', hideOnClickOutside, true);
-                    document.removeEventListener('touchstart', hideOnClickOutside, true);
+                    this.cleanupEventListeners();
                 }
             };
+            
+            // 创建清理函数
+            const cleanup = () => {
+                document.removeEventListener('click', hideOnClickOutside, true);
+                document.removeEventListener('touchstart', hideOnClickOutside, true);
+            };
+            
+            // 存储清理函数
+            this.activeEventListeners.push(cleanup);
             
             // 延迟添加监听器，避免立即触发
             setTimeout(() => {
@@ -1053,6 +1068,18 @@ export class ToolbarHijacker {
                 document.addEventListener('touchstart', hideOnClickOutside, true);
             }, 100);
             
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
+    
+    /**
+     * 清理事件监听器
+     */
+    private cleanupEventListeners(): void {
+        try {
+            this.activeEventListeners.forEach(cleanup => cleanup());
+            this.activeEventListeners = [];
         } catch (error) {
             // 静默处理错误
         }
@@ -1120,6 +1147,35 @@ export class ToolbarHijacker {
         }
     }
 
+    /**
+     * 重置工具栏可见性
+     */
+    private resetToolbarVisibility(toolbar: any): void {
+        try {
+            if (toolbar.subElement) {
+                toolbar.subElement.style.display = '';
+            }
+            if (toolbar.element) {
+                toolbar.element.style.display = '';
+            }
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
+    
+    /**
+     * 清理之前添加的按钮
+     */
+    private cleanupPreviousButtons(container: HTMLElement): void {
+        try {
+            // 移除之前添加的高亮按钮
+            const highlightBtns = container.querySelectorAll('.highlight-btn, .remove-btn, .comment-btn');
+            highlightBtns.forEach(btn => btn.remove());
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
+    
     /**
      * 隐藏工具栏
      */
