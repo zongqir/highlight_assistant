@@ -935,6 +935,7 @@ export class ToolbarHijacker {
                 const dataType = span.getAttribute('data-type');
                 const text = span.textContent || '';
                 let markdownText = text;
+                let shouldReplace = false;
                 
                 if (dataType === 'text') {
                     // 我们添加的高亮span
@@ -944,17 +945,25 @@ export class ToolbarHijacker {
                     if (bgColor && bgColor !== 'transparent') {
                         // 保留颜色信息，使用SiYuan的颜色高亮语法
                         markdownText = `<span data-type="text" style="background-color: ${bgColor};">${text}</span>`;
+                        shouldReplace = true;
                     }
                 } else if (dataType === 'mark') {
                     // 原有的mark类型，保持为高亮语法
                     markdownText = `==${text}==`;
+                    shouldReplace = true;
+                } else if (dataType === 'inline-memo') {
+                    // 备注类型，保留原样
+                    console.log('[ToolbarHijacker] 处理备注span:', text, '备注内容:', span.getAttribute('data-inline-memo-content'));
+                    markdownText = span.outerHTML;
+                    shouldReplace = false; // 保留原HTML
                 } else if (span.style.backgroundColor && span.style.backgroundColor !== 'transparent') {
                     // 其他有背景颜色的span，保留原样
                     markdownText = span.outerHTML;
+                    shouldReplace = false; // 保留原HTML
                 }
                 
-                // 替换 span 为对应的文本
-                if (markdownText !== span.outerHTML) {
+                // 只有在需要替换时才替换
+                if (shouldReplace && markdownText !== span.outerHTML) {
                     if (markdownText.startsWith('<span')) {
                         // 如果是HTML，创建新的span
                         const newSpan = document.createElement('div');
@@ -966,6 +975,7 @@ export class ToolbarHijacker {
                         span.parentNode?.replaceChild(textNode, span);
                     }
                 }
+                // 如果 shouldReplace 为 false，则保留原 span 不变
             });
             
             // 返回处理后的HTML内容（保留span标签）
