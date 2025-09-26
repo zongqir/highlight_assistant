@@ -1,7 +1,7 @@
 {
   "name": "highlight-assistant",
-  "author": "AI Assistant",
-  "url": "https://github.com/your-username/highlight-assistant",
+  "author": "zongqir",
+  "url": "https://github.com/zongqir/highlight_assistant.git",
   "version": "1.0.1",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,

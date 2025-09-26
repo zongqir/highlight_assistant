@@ -223,6 +223,18 @@ private restoreReadOnlyState(blockId: string): void {
 
 
 
+## 💖 支持开发
+
+如果这个插件对你有帮助，欢迎支持开发者！
+
+<div align="center">
+<img src="https://i0.hdslb.com/bfs/openplatform/3b4d37a5285096d3493d09ca88280d9acf90129e.png@1e_1c.webp" width="200" alt="赞助二维码"/>
+
+**扫码支持开发者** ☕
+</div>
+
+你的支持是我继续优化插件的动力！
+
 ---
 
 *本插件专注于提供最佳的移动端高亮和备注体验，让思源笔记的阅读更加高效和愉悦。*
