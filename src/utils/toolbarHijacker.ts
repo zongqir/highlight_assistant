@@ -150,6 +150,9 @@ export class ToolbarHijacker {
             // 添加按钮后调整工具栏位置，确保完整显示
             this.adjustToolbarPosition(toolbar, range);
             
+            // 添加自动隐藏机制
+            this.setupAutoHide(toolbar);
+            
         } catch (error) {
             // 静默处理错误
         }
@@ -341,18 +344,231 @@ export class ToolbarHijacker {
             btn.style.opacity = '1';
         });
         
-        // 点击事件 - 待实现
+        // 点击事件 - 实现备注功能
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             e.preventDefault();
             
-            // TODO: 实现备注功能
-            showMessage('备注功能待实现', 2000);
+            await this.addMemoToSelection(protyle, range, nodeElement, toolbar);
         });
         
         return btn;
     }
     
+    /**
+     * 添加备注到选中文本
+     */
+    private async addMemoToSelection(protyle: any, range: Range, nodeElement: Element, toolbar: any): Promise<void> {
+        try {
+            const selectedText = range.toString().trim();
+            if (!selectedText) {
+                showMessage('请先选择要添加备注的文本', 2000);
+                return;
+            }
+
+            // 找到真正的块元素
+            const blockElement = this.findBlockElement(range.startContainer);
+            if (!blockElement) {
+                showMessage('未找到目标块元素', 2000);
+                return;
+            }
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) {
+                showMessage('未找到块ID', 2000);
+                return;
+            }
+
+            // 弹出输入框让用户输入备注内容
+            const memoText = await this.showMemoInput();
+            if (!memoText) {
+                return; // 用户取消或未输入内容
+            }
+
+            // 保存原始内容
+            const oldContent = blockElement.innerHTML;
+
+            // 创建备注span元素（使用思源的inline-memo格式）
+            const memoSpan = document.createElement("span");
+            memoSpan.setAttribute("data-type", "inline-memo");
+            memoSpan.setAttribute("data-memo", memoText);
+            memoSpan.style.cssText = `
+                background-color: #fff3cd;
+                border-bottom: 2px dotted #856404;
+                cursor: help;
+                position: relative;
+            `;
+            memoSpan.textContent = selectedText;
+            
+            // 添加悬停提示
+            memoSpan.title = memoText;
+
+            // DOM操作 - 替换选中内容
+            range.deleteContents();
+            range.insertNode(memoSpan);
+
+            // 更新时间戳
+            const timestamp = new Date().getTime().toString().substring(0, 10);
+            blockElement.setAttribute("updated", timestamp);
+
+            // 提取并保存内容
+            const newContent = this.extractMarkdownFromBlock(blockElement);
+            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+
+            if (updateResult.code === 0) {
+                showMessage(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
+            } else {
+                showMessage('❌ 备注添加失败', 3000);
+                this.restoreOriginalHTML(blockId, oldContent);
+            }
+
+            this.hideToolbar(toolbar);
+            this.clearSelection();
+
+        } catch (error) {
+            console.error('添加备注出错:', error);
+            showMessage('❌ 添加备注出错', 3000);
+        }
+    }
+
+    /**
+     * 显示备注输入框
+     */
+    private showMemoInput(): Promise<string> {
+        return new Promise((resolve) => {
+            // 创建遮罩层
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+
+            // 创建输入框容器
+            const inputContainer = document.createElement('div');
+            inputContainer.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                max-width: 90vw;
+                width: 400px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            `;
+
+            // 标题
+            const title = document.createElement('h3');
+            title.textContent = '添加备注';
+            title.style.cssText = `
+                margin: 0 0 15px 0;
+                color: #333;
+                font-size: 18px;
+            `;
+
+            // 输入框
+            const textarea = document.createElement('textarea');
+            textarea.placeholder = '请输入备注内容...';
+            textarea.style.cssText = `
+                width: 100%;
+                height: 80px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 14px;
+                resize: vertical;
+                box-sizing: border-box;
+                font-family: inherit;
+            `;
+
+            // 按钮容器
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 15px;
+            `;
+
+            // 取消按钮
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = `
+                padding: 8px 16px;
+                border: 1px solid #ddd;
+                background: white;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+
+            // 确定按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.style.cssText = `
+                padding: 8px 16px;
+                border: none;
+                background: #007bff;
+                color: white;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+
+            // 事件处理
+            const cleanup = () => {
+                document.body.removeChild(overlay);
+            };
+
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                resolve('');
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                const memoText = textarea.value.trim();
+                cleanup();
+                resolve(memoText);
+            });
+
+            // 点击遮罩关闭
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                    resolve('');
+                }
+            });
+
+            // 回车键确定
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    const memoText = textarea.value.trim();
+                    cleanup();
+                    resolve(memoText);
+                }
+            });
+
+            // 组装界面
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(confirmBtn);
+            inputContainer.appendChild(title);
+            inputContainer.appendChild(textarea);
+            inputContainer.appendChild(buttonContainer);
+            overlay.appendChild(inputContainer);
+            document.body.appendChild(overlay);
+
+            // 自动聚焦
+            setTimeout(() => textarea.focus(), 100);
+        });
+    }
+
     /**
      * 应用高亮 - 按照案例代码实现
      */
@@ -428,7 +644,8 @@ export class ToolbarHijacker {
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
-            this.hideToolbarAndClearSelection(protyle);
+            this.hideToolbar(toolbar);
+            this.clearSelection();
 
         } catch (error) {
             this.api.showMessage("高亮功能出错", 3000, "error");
@@ -501,7 +718,8 @@ export class ToolbarHijacker {
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
-            this.hideToolbarAndClearSelection(protyle);
+            this.hideToolbar(toolbar);
+            this.clearSelection();
 
         } catch (error) {
             showMessage('❌ 移除高亮出错');
@@ -632,6 +850,35 @@ export class ToolbarHijacker {
         }
     }
     
+    /**
+     * 设置自动隐藏机制
+     */
+    private setupAutoHide(toolbar: any): void {
+        try {
+            // 监听文档点击事件，点击工具栏外部时隐藏
+            const hideOnClickOutside = (e: Event) => {
+                const target = e.target as HTMLElement;
+                const toolbarElement = toolbar.subElement;
+                
+                // 如果点击的不是工具栏或其子元素，则隐藏工具栏
+                if (toolbarElement && !toolbarElement.contains(target)) {
+                    this.hideToolbar(toolbar);
+                    // 移除监听器
+                    document.removeEventListener('click', hideOnClickOutside, true);
+                    document.removeEventListener('touchstart', hideOnClickOutside, true);
+                }
+            };
+            
+            // 延迟添加监听器，避免立即触发
+            setTimeout(() => {
+                document.addEventListener('click', hideOnClickOutside, true);
+                document.addEventListener('touchstart', hideOnClickOutside, true);
+            }, 100);
+            
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
     
     /**
      * 获取浅色系颜色值
@@ -701,13 +948,30 @@ export class ToolbarHijacker {
     private hideToolbar(toolbar: any): void {
         try {
             if (toolbar.subElement) {
-                toolbar.subElement.classList.add('fn__none');
+                toolbar.subElement.style.display = 'none';
+            }
+            // 也尝试隐藏toolbar.element
+            if (toolbar.element) {
+                toolbar.element.style.display = 'none';
             }
         } catch (error) {
-            console.error('[ToolbarHijacker] 隐藏工具栏失败:', error);
+            // 静默处理错误
         }
     }
     
+    /**
+     * 清除选择
+     */
+    private clearSelection(): void {
+        try {
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+            }
+        } catch (error) {
+            // 静默处理错误
+        }
+    }
 
     /**
      * 生成唯一ID
