@@ -388,20 +388,12 @@ export class ToolbarHijacker {
             // 保存原始内容
             const oldContent = blockElement.innerHTML;
 
-            // 创建备注span元素（使用思源的inline-memo格式）
+            // 创建备注span元素（使用思源的正确格式）
             const memoSpan = document.createElement("span");
             memoSpan.setAttribute("data-type", "inline-memo");
-            memoSpan.setAttribute("data-memo", memoText);
-            memoSpan.style.cssText = `
-                background-color: #fff3cd;
-                border-bottom: 2px dotted #856404;
-                cursor: help;
-                position: relative;
-            `;
+            memoSpan.setAttribute("data-inline-memo-content", memoText);  // 正确的属性名
+            // 不设置style，让思源自己处理样式
             memoSpan.textContent = selectedText;
-            
-            // 添加悬停提示
-            memoSpan.title = memoText;
 
             // DOM操作 - 替换选中内容
             range.deleteContents();
