@@ -129,6 +129,11 @@ export class ToolbarHijacker {
                         // 延迟一点再增强，确保原始工具栏已显示
                         setTimeout(() => {
                             if (hijacker.isMobile && range.toString().trim()) {
+                                // 检查是否跨块选择
+                                if (hijacker.isCrossBlockSelection(range)) {
+                                    console.log('[ToolbarHijacker] 检测到跨块选择，不显示高亮工具栏');
+                                    return; // 跨块选择时不增强工具栏
+                                }
                                 hijacker.enhanceToolbarForMobile(this, range, nodeElement, protyle);
                             }
                         }, 50);
@@ -1660,6 +1665,52 @@ export class ToolbarHijacker {
                 }
             }, 300);
         });
+    }
+
+    /**
+     * 检测是否为跨块选择
+     */
+    private isCrossBlockSelection(range: Range): boolean {
+        try {
+            const startContainer = range.startContainer;
+            const endContainer = range.endContainer;
+            
+            // 如果开始和结束容器相同，肯定不跨块
+            if (startContainer === endContainer) {
+                return false;
+            }
+            
+            // 查找开始位置所在的块
+            const startBlock = this.findBlockElement(startContainer);
+            const endBlock = this.findBlockElement(endContainer);
+            
+            // 如果找不到块元素，认为是跨块
+            if (!startBlock || !endBlock) {
+                console.log('[ToolbarHijacker] 无法找到块元素，可能跨块选择');
+                return true;
+            }
+            
+            // 获取块ID进行比较
+            const startBlockId = startBlock.getAttribute('data-node-id');
+            const endBlockId = endBlock.getAttribute('data-node-id');
+            
+            // 如果块ID不同，则为跨块选择
+            if (startBlockId !== endBlockId) {
+                console.log('[ToolbarHijacker] 跨块选择检测:', {
+                    startBlockId,
+                    endBlockId,
+                    selectedText: range.toString().substring(0, 50) + '...'
+                });
+                return true;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 跨块检测失败:', error);
+            // 出错时为安全起见，认为是跨块选择
+            return true;
+        }
     }
 
     /**
