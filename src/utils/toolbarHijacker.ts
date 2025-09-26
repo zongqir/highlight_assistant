@@ -1282,12 +1282,60 @@ export class ToolbarHijacker {
         const memoText = await this.showEnhancedMemoInput(selectedText, existingContent);
         
         if (memoText !== null && memoElement) {
-            // 更新备注内容
-            memoElement.setAttribute('data-inline-memo-content', memoText);
-            console.log('备注已更新:', memoText);
-            
-            // 触发保存到思源
-            this.saveMemoToSiYuan(memoElement, memoText);
+            if (memoText === '__DELETE_MEMO__') {
+                // 删除备注操作
+                console.log('删除备注');
+                this.deleteMemoFromElement(memoElement);
+            } else {
+                // 更新备注内容
+                memoElement.setAttribute('data-inline-memo-content', memoText);
+                console.log('备注已更新:', memoText);
+                
+                // 触发保存到思源
+                this.saveMemoToSiYuan(memoElement, memoText);
+            }
+        }
+    }
+
+    /**
+     * 删除备注元素
+     */
+    private async deleteMemoFromElement(memoElement: HTMLElement): Promise<void> {
+        try {
+            // 找到包含备注的块
+            const blockElement = this.findBlockElement(memoElement);
+            if (!blockElement) {
+                console.warn('未找到块元素');
+                return;
+            }
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) {
+                console.warn('未找到块ID');
+                return;
+            }
+
+            // 保存原始内容用于回滚
+            const oldContent = blockElement.innerHTML;
+
+            // 将备注元素替换为纯文本
+            const textContent = memoElement.textContent || '';
+            const textNode = document.createTextNode(textContent);
+            memoElement.parentNode?.replaceChild(textNode, memoElement);
+
+            // 提取并保存内容
+            const newContent = await this.extractMarkdownFromBlock(blockElement);
+            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+
+            if (updateResult.code === 0) {
+                console.log('✅ 备注删除成功');
+            } else {
+                console.error('❌ 备注删除失败');
+                // 恢复原始内容
+                blockElement.innerHTML = oldContent;
+            }
+        } catch (error) {
+            console.error('删除备注出错:', error);
         }
     }
 
@@ -1492,11 +1540,38 @@ export class ToolbarHijacker {
                 font-weight: 500;
             `;
 
+            // 删除按钮（仅在有现有内容时显示）
+            let deleteBtn = null;
+            if (existingContent) {
+                deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '删除';
+                deleteBtn.style.cssText = `
+                    flex: 1;
+                    padding: 14px;
+                    border: none;
+                    border-radius: 12px;
+                    background: #dc3545;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 500;
+                    transition: background-color 0.2s ease;
+                `;
+                
+                // 删除按钮悬停效果
+                deleteBtn.onmouseenter = () => {
+                    deleteBtn.style.backgroundColor = '#c82333';
+                };
+                deleteBtn.onmouseleave = () => {
+                    deleteBtn.style.backgroundColor = '#dc3545';
+                };
+            }
+
             // 确认按钮
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = existingContent ? '更新' : '添加';
             confirmBtn.style.cssText = `
-                flex: 2;
+                flex: ${existingContent ? '1' : '2'};
                 padding: 14px;
                 border: none;
                 border-radius: 12px;
@@ -1523,6 +1598,17 @@ export class ToolbarHijacker {
                 cleanup();
                 resolve(null);
             };
+
+            // 删除按钮事件
+            if (deleteBtn) {
+                deleteBtn.onclick = () => {
+                    // 显示删除确认
+                    if (confirm('确定要删除这个备注吗？')) {
+                        cleanup();
+                        resolve('__DELETE_MEMO__'); // 特殊标识表示删除操作
+                    }
+                };
+            }
 
             confirmBtn.onclick = () => {
                 const value = textarea.value.trim();
@@ -1552,6 +1638,9 @@ export class ToolbarHijacker {
             header.appendChild(title);
             content.appendChild(textarea);
             footer.appendChild(cancelBtn);
+            if (deleteBtn) {
+                footer.appendChild(deleteBtn);
+            }
             footer.appendChild(confirmBtn);
             
             bottomSheet.appendChild(dragIndicator);
