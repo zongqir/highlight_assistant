@@ -16,8 +16,10 @@ export class ToolbarHijacker {
     constructor(isMobile: boolean = false) {
         this.isMobile = isMobile;
         
-        // 拦截原生备注弹窗
-        this.interceptNativeMemo();
+        // 只在手机版环境下拦截原生备注弹窗
+        if (this.isMobile) {
+            this.interceptNativeMemo();
+        }
         
         // 设置API引用
         this.api = {
