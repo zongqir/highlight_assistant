@@ -32,6 +32,19 @@ export class ToolbarHijacker {
                 
                 return await response.json();
             },
+            getBlockKramdown: async (blockId: string) => {
+                const payload = {
+                    id: blockId
+                };
+                
+                const response = await fetch('/api/block/getBlockKramdown', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                return await response.json();
+            },
             showMessage: showMessage
         };
     }
@@ -404,7 +417,7 @@ export class ToolbarHijacker {
             blockElement.setAttribute("updated", timestamp);
 
             // 提取并保存内容
-            const newContent = this.extractMarkdownFromBlock(blockElement);
+            const newContent = await this.extractMarkdownFromBlock(blockElement);
             const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
 
             if (updateResult.code === 0) {
@@ -595,6 +608,12 @@ export class ToolbarHijacker {
             range.deleteContents();
             range.insertNode(highlightSpan);
             
+            // 调试：检查span是否真的添加到了DOM中
+            console.log('[ToolbarHijacker] span添加后，blockElement的innerHTML:', blockElement.innerHTML);
+            
+            // 查找刚添加的span
+            const addedSpan = blockElement.querySelector('span[data-type="text"]');
+            console.log('[ToolbarHijacker] 找到的span元素:', addedSpan, '内容:', addedSpan?.textContent);
 
             // 更新时间戳
             const timestamp = new Date().getTime().toString().substring(0, 10);
@@ -618,7 +637,7 @@ export class ToolbarHijacker {
             });
 
             // 提取markdown格式内容
-            const markdownContent = this.extractMarkdownFromBlock(blockElement);
+            const markdownContent = await this.extractMarkdownFromBlock(blockElement);
             
             console.log('[ToolbarHijacker] 提取的markdown内容:', markdownContent);
 
@@ -700,7 +719,7 @@ export class ToolbarHijacker {
             blockElement.setAttribute("updated", timestamp);
 
             // 提取并保存内容
-            const newContent = this.extractMarkdownFromBlock(blockElement);
+            const newContent = await this.extractMarkdownFromBlock(blockElement);
             const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
 
             if (updateResult.code === 0) {
@@ -752,11 +771,40 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 从块元素提取markdown内容
+     * 从块元素提取markdown内容，并合并高亮修改
      */
-    private extractMarkdownFromBlock(blockElement: HTMLElement): string {
+    private async extractMarkdownFromBlock(blockElement: HTMLElement): Promise<string> {
         try {
-            // 获取块的innerHTML内容
+            // 首先尝试通过 API 获取原始 Markdown 内容
+            const blockId = blockElement.getAttribute("data-node-id");
+            console.log('[ToolbarHijacker] 尝试获取 blockId:', blockId);
+            
+            if (blockId) {
+                try {
+                    console.log('[ToolbarHijacker] 开始调用 getBlockKramdown API...');
+                    const response = await this.api.getBlockKramdown(blockId);
+                    console.log('[ToolbarHijacker] API 响应:', response);
+                    
+                    if (response && response.code === 0 && response.data && response.data.kramdown) {
+                        const originalMarkdown = response.data.kramdown;
+                        console.log('[ToolbarHijacker] 成功获取原始 Markdown 内容:', originalMarkdown);
+                        
+                        // 尝试从修改后的 DOM 生成包含高亮的 Markdown
+                        const modifiedMarkdown = this.mergeHighlightIntoMarkdown(originalMarkdown, blockElement);
+                        console.log('[ToolbarHijacker] 合并后的 Markdown 内容:', modifiedMarkdown);
+                        
+                        return modifiedMarkdown;
+                    } else {
+                        console.warn('[ToolbarHijacker] API 响应格式不正确，完整响应:', response);
+                    }
+                } catch (apiError) {
+                    console.warn('[ToolbarHijacker] API 获取 Markdown 失败，回退到 HTML 解析:', apiError);
+                }
+            } else {
+                console.warn('[ToolbarHijacker] 未找到 blockId，使用 HTML 解析');
+            }
+
+            // 回退方案：从 HTML 内容提取
             const innerHTML = blockElement.innerHTML;
             
             // 创建临时容器解析内容
@@ -798,6 +846,134 @@ export class ToolbarHijacker {
         } catch (error) {
             console.error('提取markdown失败:', error);
             return blockElement.innerHTML;
+        }
+    }
+    
+    /**
+     * 将高亮修改合并到原始 Markdown 中
+     */
+    private mergeHighlightIntoMarkdown(originalMarkdown: string, blockElement: HTMLElement): string {
+        try {
+            // 从 DOM 中提取纯文本内容和高亮信息
+            let contentDiv = blockElement.querySelector('div[contenteditable]');
+            
+            // 如果没找到，尝试其他可能的选择器
+            if (!contentDiv) {
+                contentDiv = blockElement.querySelector('div[contenteditable="true"]');
+            }
+            if (!contentDiv) {
+                contentDiv = blockElement.querySelector('div[contenteditable="false"]');
+            }
+            if (!contentDiv) {
+                // 直接使用 blockElement 的第一个 div
+                contentDiv = blockElement.querySelector('div');
+            }
+            
+            if (!contentDiv) {
+                console.warn('[ToolbarHijacker] 未找到可编辑的内容区域，使用整个块元素');
+                contentDiv = blockElement;
+            }
+
+            // 提取修改后的内容，保留高亮标记
+            const modifiedHtml = contentDiv.innerHTML;
+            console.log('[ToolbarHijacker] 修改后的 HTML:', modifiedHtml);
+            console.log('[ToolbarHijacker] 内容区域标签:', contentDiv.tagName, 'contenteditable:', contentDiv.getAttribute('contenteditable'));
+
+            // 将高亮 span 转换为 Markdown 高亮语法
+            const processedHtml = this.convertHighlightSpansToMarkdown(modifiedHtml);
+            console.log('[ToolbarHijacker] 处理后的HTML:', processedHtml);
+            
+            // 提取原始 Markdown 的格式前缀（如 ###）
+            const lines = originalMarkdown.split('\n');
+            const contentLine = lines.find(line => !line.startsWith('{:') && line.trim());
+            
+            if (contentLine) {
+                // 提取格式前缀（如 ###, -, * 等）
+                const formatMatch = contentLine.match(/^(\s*#{1,6}\s*|\s*[-*+]\s*|\s*\d+\.\s*)/);
+                const formatPrefix = formatMatch ? formatMatch[1] : '';
+                
+                // 从处理后的HTML中提取纯文本内容（但保留HTML标签）
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = processedHtml;
+                const finalContent = tempDiv.innerHTML;
+                
+                // 构建新的内容行
+                const newContentLine = formatPrefix + finalContent;
+                console.log('[ToolbarHijacker] 最终内容行:', newContentLine);
+                
+                // 替换原内容行，保留其他行（如属性行）
+                const newLines = lines.map(line => {
+                    if (line === contentLine) {
+                        return newContentLine;
+                    }
+                    return line;
+                });
+                
+                return newLines.join('\n');
+            }
+            
+            return processedHtml;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 合并高亮到 Markdown 失败:', error);
+            return originalMarkdown;
+        }
+    }
+    
+    /**
+     * 将高亮 span 转换为 Markdown 语法
+     */
+    private convertHighlightSpansToMarkdown(html: string): string {
+        try {
+            // 创建临时容器
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // 处理所有类型的 span 元素
+            const allSpans = tempDiv.querySelectorAll('span');
+            allSpans.forEach(span => {
+                const dataType = span.getAttribute('data-type');
+                const text = span.textContent || '';
+                let markdownText = text;
+                
+                if (dataType === 'text') {
+                    // 我们添加的高亮span
+                    const bgColor = span.style.backgroundColor;
+                    console.log('[ToolbarHijacker] 处理高亮span:', text, 'bgColor:', bgColor);
+                    
+                    if (bgColor && bgColor !== 'transparent') {
+                        // 保留颜色信息，使用SiYuan的颜色高亮语法
+                        markdownText = `<span data-type="text" style="background-color: ${bgColor};">${text}</span>`;
+                    }
+                } else if (dataType === 'mark') {
+                    // 原有的mark类型，保持为高亮语法
+                    markdownText = `==${text}==`;
+                } else if (span.style.backgroundColor && span.style.backgroundColor !== 'transparent') {
+                    // 其他有背景颜色的span，保留原样
+                    markdownText = span.outerHTML;
+                }
+                
+                // 替换 span 为对应的文本
+                if (markdownText !== span.outerHTML) {
+                    if (markdownText.startsWith('<span')) {
+                        // 如果是HTML，创建新的span
+                        const newSpan = document.createElement('div');
+                        newSpan.innerHTML = markdownText;
+                        span.parentNode?.replaceChild(newSpan.firstChild || document.createTextNode(text), span);
+                    } else {
+                        // 如果是纯文本，创建文本节点
+                        const textNode = document.createTextNode(markdownText);
+                        span.parentNode?.replaceChild(textNode, span);
+                    }
+                }
+            });
+            
+            // 返回处理后的HTML内容（保留span标签）
+            return tempDiv.innerHTML;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 转换高亮 span 失败:', error);
+            return html;
         }
     }
     
