@@ -183,6 +183,14 @@ export class ToolbarHijacker {
             const btn = this.createHighlightButton(color, range, nodeElement, protyle, toolbar);
             container.insertBefore(btn, insertPoint);
         });
+        
+        // 添加恢复按钮（白色小球）
+        const removeBtn = this.createRemoveButton(range, nodeElement, protyle, toolbar);
+        container.insertBefore(removeBtn, insertPoint);
+        
+        // 添加备注按钮
+        const commentBtn = this.createCommentButton(range, nodeElement, protyle, toolbar);
+        container.insertBefore(commentBtn, insertPoint);
     }
     
     /**
@@ -246,6 +254,100 @@ export class ToolbarHijacker {
             
             // 应用高亮（异步处理）
             await this.applyHighlight(protyle, range, nodeElement, apiColorConfig);
+        });
+        
+        return btn;
+    }
+    
+    /**
+     * 创建恢复按钮（白色小球）
+     */
+    private createRemoveButton(range: Range, nodeElement: Element, protyle: any, toolbar: any): HTMLButtonElement {
+        const btn = document.createElement('button');
+        btn.className = 'keyboard__action remove-btn';
+        btn.setAttribute('data-action', 'remove-highlight');
+        
+        // 白色小球样式
+        btn.style.cssText = `
+            background: #ffffff !important;
+            border: 1px solid #ddd !important;
+            border-radius: 50% !important;
+            width: 22px !important;
+            height: 22px !important;
+            margin: auto 2px !important;
+            padding: 0 !important;
+            display: inline-block !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+            vertical-align: middle !important;
+        `;
+        
+        // 纯白色小球，不添加任何图标
+        
+        // 触摸效果
+        btn.addEventListener('touchstart', () => {
+            btn.style.opacity = '0.7';
+        });
+        
+        btn.addEventListener('touchend', () => {
+            btn.style.opacity = '1';
+        });
+        
+        // 点击事件 - 去除高亮格式
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            await this.removeHighlight(protyle, range, nodeElement);
+        });
+        
+        return btn;
+    }
+    
+    /**
+     * 创建备注按钮
+     */
+    private createCommentButton(range: Range, nodeElement: Element, protyle: any, toolbar: any): HTMLButtonElement {
+        const btn = document.createElement('button');
+        btn.className = 'keyboard__action comment-btn';
+        btn.setAttribute('data-action', 'add-comment');
+        
+        // 灰色小球样式
+        btn.style.cssText = `
+            background: #f5f5f5 !important;
+            border: 1px solid #ddd !important;
+            border-radius: 50% !important;
+            width: 22px !important;
+            height: 22px !important;
+            margin: auto 2px !important;
+            padding: 0 !important;
+            display: inline-block !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+            vertical-align: middle !important;
+        `;
+        
+        // 添加备注图标
+        btn.innerHTML = '<span style="color: #666; font-size: 10px;">💬</span>';
+        
+        // 触摸效果
+        btn.addEventListener('touchstart', () => {
+            btn.style.opacity = '0.7';
+        });
+        
+        btn.addEventListener('touchend', () => {
+            btn.style.opacity = '1';
+        });
+        
+        // 点击事件 - 待实现
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            // TODO: 实现备注功能
+            showMessage('备注功能待实现', 2000);
         });
         
         return btn;
@@ -330,6 +432,79 @@ export class ToolbarHijacker {
 
         } catch (error) {
             this.api.showMessage("高亮功能出错", 3000, "error");
+        }
+    }
+    
+    /**
+     * 移除高亮格式
+     */
+    private async removeHighlight(protyle: any, range: Range, nodeElement: Element): Promise<void> {
+        try {
+            const selectedText = range.toString();
+            if (!selectedText) return;
+
+            // 找到真正的块元素
+            const blockElement = this.findBlockElement(range.startContainer);
+            if (!blockElement) return;
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) return;
+
+            // 保存原始内容
+            const oldContent = blockElement.innerHTML;
+
+            // 检查选中的内容是否包含高亮span
+            const tempRange = range.cloneRange();
+            const fragment = tempRange.cloneContents();
+            const hasHighlight = fragment.querySelector('span[data-type="text"]');
+
+            if (hasHighlight) {
+                // 移除高亮：将span替换为纯文本
+                const walker = document.createTreeWalker(
+                    range.commonAncestorContainer,
+                    NodeFilter.SHOW_ELEMENT,
+                    {
+                        acceptNode: (node) => {
+                            return (node as Element).tagName === 'SPAN' && 
+                                   (node as Element).getAttribute('data-type') === 'text' 
+                                   ? NodeFilter.FILTER_ACCEPT 
+                                   : NodeFilter.FILTER_SKIP;
+                        }
+                    }
+                );
+
+                const spansToRemove: Element[] = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    spansToRemove.push(node as Element);
+                }
+
+                // 移除所有高亮span，保留文本内容
+                spansToRemove.forEach(span => {
+                    const textNode = document.createTextNode(span.textContent || '');
+                    span.parentNode?.replaceChild(textNode, span);
+                });
+            }
+
+            // 更新时间戳
+            const timestamp = new Date().getTime().toString().substring(0, 10);
+            blockElement.setAttribute("updated", timestamp);
+
+            // 提取并保存内容
+            const newContent = this.extractMarkdownFromBlock(blockElement);
+            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+
+            if (updateResult.code === 0) {
+                showMessage('✅ 已移除高亮');
+            } else {
+                showMessage('❌ 移除失败');
+                this.restoreOriginalHTML(blockId, oldContent);
+            }
+
+            this.hideToolbarAndClearSelection(protyle);
+
+        } catch (error) {
+            showMessage('❌ 移除高亮出错');
         }
     }
     
