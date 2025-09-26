@@ -1454,32 +1454,17 @@ export class ToolbarHijacker {
                 flex-shrink: 0;
             `;
 
-            const title = document.createElement('h3');
-            title.textContent = existingContent ? '编辑备注' : '添加备注';
-            title.style.cssText = `
-                margin: 0;
-                color: var(--b3-theme-on-background, #333);
-                font-size: 18px;
-                font-weight: 600;
-            `;
+            // 移除标题，让界面更简洁
 
-            // 引用文本（如果有选中文本）
+            // 引用文本（如果有选中文本）- 移除标签，只显示文本
             if (selectedText) {
                 const quoteDiv = document.createElement('div');
                 quoteDiv.style.cssText = `
-                    margin-top: 12px;
-                    padding: 12px;
+                    padding: 16px;
                     background: var(--b3-theme-surface, #f8f9fa);
                     border-radius: 8px;
                     border-left: 3px solid var(--b3-theme-primary, #007bff);
-                `;
-                
-                const quoteLabel = document.createElement('div');
-                quoteLabel.textContent = '引用文本：';
-                quoteLabel.style.cssText = `
-                    font-size: 12px;
-                    color: var(--b3-theme-on-surface-variant, #666);
-                    margin-bottom: 4px;
+                    margin-bottom: 8px;
                 `;
                 
                 const quoteText = document.createElement('div');
@@ -1488,9 +1473,9 @@ export class ToolbarHijacker {
                     font-size: 14px;
                     color: var(--b3-theme-on-surface, #333);
                     line-height: 1.4;
+                    font-style: italic;
                 `;
                 
-                quoteDiv.appendChild(quoteLabel);
                 quoteDiv.appendChild(quoteText);
                 header.appendChild(quoteDiv);
             }
@@ -1645,7 +1630,6 @@ export class ToolbarHijacker {
             };
 
             // 组装UI
-            header.appendChild(title);
             content.appendChild(textarea);
             footer.appendChild(cancelBtn);
             if (deleteBtn) {
@@ -1654,7 +1638,10 @@ export class ToolbarHijacker {
             footer.appendChild(confirmBtn);
             
             bottomSheet.appendChild(dragIndicator);
-            bottomSheet.appendChild(header);
+            // 只有在有引用文本时才添加header
+            if (selectedText) {
+                bottomSheet.appendChild(header);
+            }
             bottomSheet.appendChild(content);
             bottomSheet.appendChild(footer);
             
