@@ -15,6 +15,10 @@ export class ToolbarHijacker {
     
     constructor(isMobile: boolean = false) {
         this.isMobile = isMobile;
+        
+        // 拦截原生备注弹窗
+        this.interceptNativeMemo();
+        
         // 设置API引用
         this.api = {
             updateBlock: async (blockId: string, data: string, dataType: string) => {
@@ -397,7 +401,7 @@ export class ToolbarHijacker {
             }
 
             // 弹出输入框让用户输入备注内容
-            const memoText = await this.showMemoInput();
+            const memoText = await this.showEnhancedMemoInput(selectedText);
             if (!memoText) {
                 return; // 用户取消或未输入内容
             }
@@ -1213,6 +1217,363 @@ export class ToolbarHijacker {
         return `hl-${timestamp}-${random}`;
     }
     
+    /**
+     * 拦截原生备注弹窗
+     */
+    private interceptNativeMemo(): void {
+        console.log('开始拦截原生备注弹窗...');
+        
+        // 拦截点击 inline-memo 元素的事件
+        document.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            
+            // 检查是否点击了备注元素
+            if (target && target.getAttribute('data-type') === 'inline-memo') {
+                console.log('检测到备注元素点击，拦截原生弹窗');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // 使用自定义备注输入框
+                this.showCustomMemoDialog(target);
+                
+                return false;
+            }
+        }, true); // 使用捕获阶段拦截
+        
+        // 延迟拦截思源内部方法
+        setTimeout(() => {
+            this.interceptSiYuanMemoMethods();
+        }, 2000);
+    }
+
+    /**
+     * 拦截思源的备注相关方法
+     */
+    private interceptSiYuanMemoMethods(): void {
+        try {
+            // 拦截可能的思源备注相关全局方法
+            const originalAlert = window.alert;
+            const originalPrompt = window.prompt;
+            const originalConfirm = window.confirm;
+            
+            // 检测是否为备注相关的弹窗
+            window.prompt = (message?: string, defaultText?: string) => {
+                if (message && (message.includes('备注') || message.includes('memo') || message.includes('想法'))) {
+                    console.log('拦截了疑似备注的 prompt 弹窗');
+                    return null; // 取消原生弹窗
+                }
+                return originalPrompt.call(window, message, defaultText);
+            };
+            
+            console.log('已设置备注方法拦截');
+        } catch (error) {
+            console.log('备注方法拦截设置完成');
+        }
+    }
+
+    /**
+     * 显示自定义备注对话框
+     */
+    private async showCustomMemoDialog(memoElement?: HTMLElement): Promise<void> {
+        const existingContent = memoElement?.getAttribute('data-inline-memo-content') || '';
+        const selectedText = memoElement?.textContent || '';
+        
+        const memoText = await this.showEnhancedMemoInput(selectedText, existingContent);
+        
+        if (memoText !== null && memoElement) {
+            // 更新备注内容
+            memoElement.setAttribute('data-inline-memo-content', memoText);
+            console.log('备注已更新:', memoText);
+            
+            // 触发保存到思源
+            this.saveMemoToSiYuan(memoElement, memoText);
+        }
+    }
+
+    /**
+     * 保存备注到思源
+     */
+    private async saveMemoToSiYuan(memoElement: HTMLElement, memoText: string): Promise<void> {
+        try {
+            // 找到包含备注的块
+            const blockElement = this.findBlockElement(memoElement);
+            if (!blockElement) {
+                console.warn('未找到块元素');
+                return;
+            }
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) {
+                console.warn('未找到块ID');
+                return;
+            }
+
+            // 提取并保存内容
+            const newContent = await this.extractMarkdownFromBlock(blockElement);
+            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+
+            if (updateResult.code === 0) {
+                console.log('✅ 备注保存成功');
+            } else {
+                console.error('❌ 备注保存失败');
+            }
+        } catch (error) {
+            console.error('保存备注出错:', error);
+        }
+    }
+
+    /**
+     * 显示增强的备注输入框（手机版友好的 Bottom Sheet）
+     */
+    private showEnhancedMemoInput(selectedText: string = '', existingContent: string = ''): Promise<string | null> {
+        return new Promise((resolve) => {
+            // 创建底部弹出层（Bottom Sheet 风格）
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 10000;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                animation: fadeIn 0.3s ease;
+            `;
+
+            // 创建底部弹出容器
+            const bottomSheet = document.createElement('div');
+            bottomSheet.style.cssText = `
+                background: var(--b3-theme-background, white);
+                border-radius: 16px 16px 0 0;
+                width: 100%;
+                max-width: 600px;
+                max-height: 70vh;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+                transform: translateY(100%);
+                animation: slideUp 0.3s ease forwards;
+                display: flex;
+                flex-direction: column;
+            `;
+
+            // 添加动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+                @keyframes slideDown {
+                    from { transform: translateY(0); }
+                    to { transform: translateY(100%); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // 顶部拖拽指示器
+            const dragIndicator = document.createElement('div');
+            dragIndicator.style.cssText = `
+                width: 40px;
+                height: 4px;
+                background: var(--b3-theme-border, #ddd);
+                border-radius: 2px;
+                margin: 12px auto 8px;
+                opacity: 0.6;
+            `;
+
+            // 标题栏
+            const header = document.createElement('div');
+            header.style.cssText = `
+                padding: 0 20px 16px;
+                border-bottom: 1px solid var(--b3-theme-border, #eee);
+                flex-shrink: 0;
+            `;
+
+            const title = document.createElement('h3');
+            title.textContent = existingContent ? '编辑备注' : '添加备注';
+            title.style.cssText = `
+                margin: 0;
+                color: var(--b3-theme-on-background, #333);
+                font-size: 18px;
+                font-weight: 600;
+            `;
+
+            // 引用文本（如果有选中文本）
+            if (selectedText) {
+                const quoteDiv = document.createElement('div');
+                quoteDiv.style.cssText = `
+                    margin-top: 12px;
+                    padding: 12px;
+                    background: var(--b3-theme-surface, #f8f9fa);
+                    border-radius: 8px;
+                    border-left: 3px solid var(--b3-theme-primary, #007bff);
+                `;
+                
+                const quoteLabel = document.createElement('div');
+                quoteLabel.textContent = '引用文本：';
+                quoteLabel.style.cssText = `
+                    font-size: 12px;
+                    color: var(--b3-theme-on-surface-variant, #666);
+                    margin-bottom: 4px;
+                `;
+                
+                const quoteText = document.createElement('div');
+                quoteText.textContent = selectedText;
+                quoteText.style.cssText = `
+                    font-size: 14px;
+                    color: var(--b3-theme-on-surface, #333);
+                    line-height: 1.4;
+                `;
+                
+                quoteDiv.appendChild(quoteLabel);
+                quoteDiv.appendChild(quoteText);
+                header.appendChild(quoteDiv);
+            }
+
+            // 内容区域
+            const content = document.createElement('div');
+            content.style.cssText = `
+                padding: 20px;
+                flex: 1;
+                overflow-y: auto;
+                max-height: 40vh;
+            `;
+
+            // 输入框
+            const textarea = document.createElement('textarea');
+            textarea.value = existingContent;
+            textarea.placeholder = '写下你的想法...';
+            textarea.style.cssText = `
+                width: 100%;
+                min-height: 120px;
+                border: 1px solid var(--b3-theme-border, #ddd);
+                border-radius: 12px;
+                padding: 16px;
+                font-size: 16px;
+                line-height: 1.5;
+                resize: none;
+                box-sizing: border-box;
+                font-family: inherit;
+                background: var(--b3-theme-surface, white);
+                color: var(--b3-theme-on-surface, #333);
+                outline: none;
+                transition: border-color 0.2s ease;
+            `;
+
+            // 底部按钮区域
+            const footer = document.createElement('div');
+            footer.style.cssText = `
+                padding: 16px 20px;
+                border-top: 1px solid var(--b3-theme-border, #eee);
+                display: flex;
+                gap: 12px;
+                flex-shrink: 0;
+            `;
+
+            // 取消按钮
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = `
+                flex: 1;
+                padding: 14px;
+                border: 1px solid var(--b3-theme-border, #ddd);
+                border-radius: 12px;
+                background: var(--b3-theme-surface, white);
+                color: var(--b3-theme-on-surface, #666);
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 500;
+            `;
+
+            // 确认按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = existingContent ? '更新' : '添加';
+            confirmBtn.style.cssText = `
+                flex: 2;
+                padding: 14px;
+                border: none;
+                border-radius: 12px;
+                background: var(--b3-theme-primary, #007bff);
+                color: white;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 500;
+            `;
+
+            // 事件处理
+            const cleanup = () => {
+                document.head.removeChild(style);
+                bottomSheet.style.animation = 'slideDown 0.3s ease forwards';
+                overlay.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => {
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
+                }, 300);
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
+
+            confirmBtn.onclick = () => {
+                const value = textarea.value.trim();
+                cleanup();
+                resolve(value);
+            };
+
+            // ESC键取消
+            const handleKeydown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    resolve(null);
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+
+            // 点击遮罩层取消
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                    resolve(null);
+                }
+            };
+
+            // 组装UI
+            header.appendChild(title);
+            content.appendChild(textarea);
+            footer.appendChild(cancelBtn);
+            footer.appendChild(confirmBtn);
+            
+            bottomSheet.appendChild(dragIndicator);
+            bottomSheet.appendChild(header);
+            bottomSheet.appendChild(content);
+            bottomSheet.appendChild(footer);
+            
+            overlay.appendChild(bottomSheet);
+            
+            // 添加到页面并聚焦
+            document.body.appendChild(overlay);
+            
+            // 延迟聚焦，等待动画完成
+            setTimeout(() => {
+                textarea.focus();
+                if (existingContent) {
+                    textarea.select();
+                }
+            }, 300);
+        });
+    }
+
     /**
      * 获取劫持状态
      */
