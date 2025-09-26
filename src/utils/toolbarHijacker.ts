@@ -430,6 +430,8 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
+                // 恢复只读状态
+                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
                 console.error('❌ 备注添加失败');
                 this.restoreOriginalHTML(blockId, oldContent);
@@ -656,6 +658,8 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log(`✅ 已应用${colorConfig.name}高亮`);
+                // 恢复只读状态
+                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
                 console.error("❌ 高亮失败:", updateResult.msg);
                 this.restoreOriginalHTML(blockId, oldContent);
@@ -730,6 +734,8 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log('✅ 已移除高亮');
+                // 恢复只读状态
+                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
                 console.error('❌ 移除失败');
                 this.restoreOriginalHTML(blockId, oldContent);
@@ -1329,6 +1335,8 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log('✅ 备注删除成功');
+                // 恢复只读状态
+                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
                 console.error('❌ 备注删除失败');
                 // 恢复原始内容
@@ -1363,6 +1371,8 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log('✅ 备注保存成功');
+                // 恢复只读状态
+                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
                 console.error('❌ 备注保存失败');
             }
@@ -1661,6 +1671,46 @@ export class ToolbarHijacker {
                 }
             }, 300);
         });
+    }
+
+    /**
+     * 恢复块的只读状态（阅读模式）
+     */
+    private restoreReadOnlyState(blockId: string): void {
+        try {
+            const blockElement = document.querySelector(`[data-node-id="${blockId}"]`);
+            if (!blockElement) {
+                console.warn('未找到要恢复只读状态的块元素');
+                return;
+            }
+
+            console.log('[ToolbarHijacker] 恢复块的只读状态:', blockId);
+
+            // 查找所有可编辑的div元素
+            const editableDivs = blockElement.querySelectorAll('div[contenteditable="true"]');
+            editableDivs.forEach(div => {
+                console.log('[ToolbarHijacker] 将div设置为只读:', div);
+                div.setAttribute('contenteditable', 'false');
+            });
+
+            // 确保块本身也是只读的（如果它有contenteditable属性）
+            if (blockElement.hasAttribute('contenteditable')) {
+                blockElement.setAttribute('contenteditable', 'false');
+            }
+
+            // 移除可能的编辑相关class
+            blockElement.classList.remove('protyle-wysiwyg__block--editing');
+            
+            // 确保块处于只读模式
+            const contentDiv = blockElement.querySelector('div[contenteditable]');
+            if (contentDiv) {
+                contentDiv.setAttribute('contenteditable', 'false');
+                console.log('[ToolbarHijacker] 内容区域已设置为只读');
+            }
+
+        } catch (error) {
+            console.error('[ToolbarHijacker] 恢复只读状态失败:', error);
+        }
     }
 
     /**
