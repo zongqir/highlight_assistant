@@ -32,24 +32,13 @@ export default class HighlightAssistantPlugin extends Plugin {
             touchSupport: 'ontouchstart' in window
         });
         
-        // 启动弹窗 - 证明插件已部署
-        const modeText = this.isMobile ? " [手机版模式]" : " [桌面版模式]";
-        const envText = ` (${frontEnd}/${backEnd})`;
-        showMessage("🎉 高亮助手已成功加载！" + modeText + envText, 5000);
-        
-        // 额外的手机版确认
-        if (this.isMobile) {
-            setTimeout(() => {
-                showMessage("📱 已确认为手机版环境，正在初始化工具栏劫持...", 3000);
-            }, 1000);
-        }
+        // 静默加载，不显示弹窗
         
         // 只支持手机版
         if (this.isMobile) {
             this.initToolbarHijacker();
-        } else {
-            showMessage("⚠️ 此插件专为手机版设计，桌面版暂不支持", 3000);
         }
+        // 桌面版静默忽略
 
         console.log(this.i18n.helloPlugin);
     }
@@ -61,12 +50,12 @@ export default class HighlightAssistantPlugin extends Plugin {
                 console.log('[Plugin] 在 onLayoutReady 中启动工具栏劫持...');
                 this.toolbarHijacker.hijack();
                 
-                // 再次确认劫持成功
+                // 静默确认劫持状态（仅在控制台记录）
                 setTimeout(() => {
                     if (this.toolbarHijacker?.hijacked) {
-                        showMessage("📱 手机版工具栏劫持成功！请选择文本测试高亮功能", 4000);
+                        console.log("📱 手机版工具栏劫持成功");
                     } else {
-                        showMessage("⚠️ 手机版工具栏劫持失败，请查看控制台", 4000);
+                        console.warn("⚠️ 手机版工具栏劫持失败");
                     }
                 }, 1000);
                 
@@ -105,7 +94,7 @@ export default class HighlightAssistantPlugin extends Plugin {
             this.toolbarHijacker = null;
         }
         
-        showMessage("Goodbye Highlight Assistant");
+        // 静默卸载
         console.log("onunload");
     }
 
@@ -123,7 +112,7 @@ export default class HighlightAssistantPlugin extends Plugin {
             
         } catch (error) {
             console.error('工具栏劫持器初始化失败:', error);
-            showMessage(`手机版高亮初始化失败: ${error.message}`, 5000, 'error');
+            // 静默处理错误，不显示弹窗
         }
     }
 }

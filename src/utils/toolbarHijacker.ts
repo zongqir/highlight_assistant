@@ -3,7 +3,7 @@
  * 在原有复制弹窗基础上添加高亮功能
  */
 
-import { showMessage, getAllEditor, Constants } from "siyuan";
+import { getAllEditor, Constants } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 
 export class ToolbarHijacker {
@@ -45,8 +45,7 @@ export class ToolbarHijacker {
                 });
                 
                 return await response.json();
-            },
-            showMessage: showMessage
+            }
         };
     }
     
@@ -135,7 +134,7 @@ export class ToolbarHijacker {
             
             if (hijackSuccess) {
                 this.isHijacked = true;
-                showMessage('📱 高亮功能已激活');
+                console.log('📱 高亮功能已激活');
             } else {
                 setTimeout(() => this.performHijack(), 3000);
             }
@@ -380,20 +379,20 @@ export class ToolbarHijacker {
         try {
             const selectedText = range.toString().trim();
             if (!selectedText) {
-                showMessage('请先选择要添加备注的文本', 2000);
+                console.warn('请先选择要添加备注的文本');
                 return;
             }
 
             // 找到真正的块元素
             const blockElement = this.findBlockElement(range.startContainer);
             if (!blockElement) {
-                showMessage('未找到目标块元素', 2000);
+                console.warn('未找到目标块元素');
                 return;
             }
 
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                showMessage('未找到块ID', 2000);
+                console.warn('未找到块ID');
                 return;
             }
 
@@ -426,9 +425,9 @@ export class ToolbarHijacker {
             const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
 
             if (updateResult.code === 0) {
-                showMessage(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
+                console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
             } else {
-                showMessage('❌ 备注添加失败', 3000);
+                console.error('❌ 备注添加失败');
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
@@ -437,7 +436,7 @@ export class ToolbarHijacker {
 
         } catch (error) {
             console.error('添加备注出错:', error);
-            showMessage('❌ 添加备注出错', 3000);
+            // 静默处理错误
         }
     }
 
@@ -652,11 +651,9 @@ export class ToolbarHijacker {
             console.log('[ToolbarHijacker] API保存结果:', updateResult);
 
             if (updateResult.code === 0) {
-                this.api.showMessage(`已应用${colorConfig.name}`);
-                console.log("✅ 高亮保存成功");
+                console.log(`✅ 已应用${colorConfig.name}高亮`);
             } else {
-                this.api.showMessage(`高亮失败`, 3000, "error");
-                console.error("❌ 保存失败:", updateResult.msg);
+                console.error("❌ 高亮失败:", updateResult.msg);
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
@@ -664,7 +661,7 @@ export class ToolbarHijacker {
             this.clearSelection();
 
         } catch (error) {
-            this.api.showMessage("高亮功能出错", 3000, "error");
+            console.error("高亮功能出错:", error);
         }
     }
     
@@ -728,9 +725,9 @@ export class ToolbarHijacker {
             const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
 
             if (updateResult.code === 0) {
-                showMessage('✅ 已移除高亮');
+                console.log('✅ 已移除高亮');
             } else {
-                showMessage('❌ 移除失败');
+                console.error('❌ 移除失败');
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
@@ -738,7 +735,7 @@ export class ToolbarHijacker {
             this.clearSelection();
 
         } catch (error) {
-            showMessage('❌ 移除高亮出错');
+            console.error('❌ 移除高亮出错:', error);
         }
     }
     
