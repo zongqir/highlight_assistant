@@ -5,7 +5,7 @@
   "version": "1.0.1",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,
-  "backends": "all",
+  "backends": ["all"],
   "frontends": [
     "desktop",
     "mobile",
