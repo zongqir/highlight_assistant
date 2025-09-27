@@ -28,7 +28,7 @@ jobs:
         uses: pnpm/action-setup@v4
         id: pnpm-install
         with:
-          # version: 8  <-- 第二个重要修改：删除这一行，让它自动读取 package.json 中的版本
+          version: 8
           run_install: false
 
       # Get pnpm store directory
