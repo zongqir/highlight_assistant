@@ -1,89 +1,89 @@
-# 高亮助手 / Highlight Assistant
+# Highlight Assistant
 
-一个专为思源笔记手机版设计的高亮工具，提供类似微信读书的文本高亮和备注功能。
+A highlight tool designed specifically for SiYuan mobile, providing WeChat Reading-style text highlighting and annotation features.
 
-## ✨ 功能特性
+## ✨ Features
 
-- 🎨 **多彩高亮**：4种颜色高亮选择（黄色、蓝色、绿色、粉色）
-- 💭 **智能备注**：为高亮文本添加个人备注
-- 📱 **移动优化**：专为手机版思源设计的浮动工具栏
-- 🔄 **状态管理**：支持修改、删除已有高亮和备注
-- 🌙 **主题适配**：完美适配明暗主题切换
-- ⚡ **性能优化**：轻量级实现，不影响编辑体验
+- 🎨 **Multi-color Highlighting**: 4 color options (yellow, blue, green, pink)
+- 💭 **Smart Annotations**: Add personal notes to highlighted text
+- 📱 **Mobile Optimized**: Floating toolbar designed for SiYuan mobile
+- 🔄 **State Management**: Support for modifying and deleting existing highlights and annotations
+- 🌙 **Theme Adaptive**: Perfect adaptation to light and dark theme switching
+- ⚡ **Performance Optimized**: Lightweight implementation that doesn't affect editing experience
 
-## 🚀 使用方法
+## 🚀 How to Use
 
-1. **选中文本**：在思源笔记手机版中选中任意文本
-2. **选择颜色**：在弹出的工具栏中点击颜色按钮进行高亮
-3. **添加备注**：点击备注按钮为高亮文本添加个人想法
-4. **管理高亮**：点击已高亮的文本可修改颜色或删除
+1. **Select Text**: Select any text in SiYuan mobile
+2. **Choose Color**: Click color buttons in the popup toolbar to highlight
+3. **Add Annotation**: Click the annotation button to add personal thoughts to highlighted text
+4. **Manage Highlights**: Click on already highlighted text to modify color or delete
 
-## 📋 系统要求
+## 📋 System Requirements
 
-- 思源笔记 v3.2.1+
-- 手机版环境（iOS/Android/移动浏览器）
-- 桌面版暂不支持
+- SiYuan v3.2.1+
+- Mobile environment (iOS/Android/mobile browser)
+- Desktop version not currently supported
 
-## 🛠 技术特性
+## 🛠 Technical Features
 
-- **智能劫持**：劫持思源原生工具栏，无缝集成
-- **Markdown兼容**：保留原始Markdown格式标记
-- **事件管理**：完善的事件监听器管理，避免内存泄漏
-- **状态重置**：每次使用自动重置工具栏状态
+- **Smart Hijacking**: Hijacks SiYuan native toolbar for seamless integration
+- **Markdown Compatible**: Preserves original Markdown format markers
+- **Event Management**: Comprehensive event listener management to avoid memory leaks
+- **State Reset**: Automatically resets toolbar state for each use
 
-## 📦 安装方式
+## 📦 Installation
 
-1. 下载最新版本的 `package.zip`
-2. 在思源笔记中打开 `设置` → `集市` → `已下载` → `插件`
-3. 点击 `从本地安装插件` 并选择下载的zip文件
-4. 启用插件并重启思源笔记
+1. Download the latest `package.zip`
+2. Open SiYuan → `Settings` → `Marketplace` → `Downloaded` → `Plugins`
+3. Click `Install plugin from local` and select the downloaded zip file
+4. Enable the plugin and restart SiYuan
 
-## 🔧 开发说明
+## 🔧 Development
 
 ```bash
-# 安装依赖
+# Install dependencies
 pnpm install
 
-# 开发模式
+# Development mode
 pnpm run dev
 
-# 构建插件
+# Build plugin
 pnpm run build
 
-# 安装到思源
+# Install to SiYuan
 pnpm run make-install
 ```
 
-## 📝 更新日志
+## 📝 Changelog
 
 ### v1.0.1
-- ✅ 修复工具栏只能使用一次的问题
-- ✅ 完善事件监听器管理
-- ✅ 优化Markdown格式保留逻辑
-- ✅ 清理无用代码，减少插件体积
+- ✅ Fixed toolbar only working once issue
+- ✅ Improved event listener management
+- ✅ Optimized Markdown format preservation logic
+- ✅ Cleaned up unused code, reduced plugin size
 
 ### v1.0.0
-- 🎉 初始版本发布
-- 🎨 支持4种颜色高亮
-- 💭 支持备注功能
-- 📱 手机版优化
+- 🎉 Initial release
+- 🎨 Support for 4 color highlighting
+- 💭 Support for annotation features
+- 📱 Mobile optimization
 
-## 💖 支持开发
+## 💖 Support Development
 
-如果这个插件对你有帮助，欢迎支持开发者！
+If this plugin helps you, welcome to support the developer!
 
 <div align="center">
-<img src="https://i0.hdslb.com/bfs/openplatform/3b4d37a5285096d3493d09ca88280d9acf90129e.png@1e_1c.webp" width="200" alt="赞助二维码"/>
+<img src="https://i0.hdslb.com/bfs/openplatform/3b4d37a5285096d3493d09ca88280d9acf90129e.png@1e_1c.webp" width="200" alt="Support QR Code"/>
 
-**扫码支持开发者** ☕
+**Scan to Support Developer** ☕
 </div>
 
-你的支持是我继续优化插件的动力！
+Your support is my motivation to continue optimizing the plugin!
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Welcome to submit Issues and Pull Requests!
 
-## 📄 许可证
+## 📄 License
 
 MIT License

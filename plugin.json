@@ -5,15 +5,7 @@
   "version": "1.0.1",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,
-  "backends": [
-    "windows",
-    "linux",
-    "darwin",
-    "ios",
-    "android",
-    "harmony",
-    "docker"
-  ],
+  "backends": "all",
   "frontends": [
     "desktop",
     "mobile",
@@ -22,15 +14,15 @@
     "desktop-window"
   ],
   "displayName": {
-    "en_US": "Highlight Assistant",
+    "default": "Highlight Assistant",
     "zh_CN": "高亮助手"
   },
   "description": {
-    "en_US": "WeChat Reading-style highlight tool for SiYuan. Select text to highlight with floating toolbar, optimized for mobile.",
+    "default": "WeChat Reading-style highlight tool for SiYuan. Select text to highlight with floating toolbar, optimized for mobile.",
     "zh_CN": "类似微信读书的高亮工具。选中文本即可高亮，浮动工具栏操作，移动端优化。"
   },
   "readme": {
-    "en_US": "README.md",
+    "default": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
@@ -39,11 +31,9 @@
     ]
   },
   "keywords": [
-    "highlight",
     "annotation",
     "mobile",
     "reading",
-    "高亮",
     "标注",
     "阅读"
   ]
