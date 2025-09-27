@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:      # <-- 第一个重要修改：添加此部分以授予发布权限
+      contents: write
+
     steps:
       # Checkout
       - name: Checkout
@@ -25,7 +28,7 @@ jobs:
         uses: pnpm/action-setup@v4
         id: pnpm-install
         with:
-          version: 8
+          # version: 8  <-- 第二个重要修改：删除这一行，让它自动读取 package.json 中的版本
           run_install: false
 
       # Get pnpm store directory
@@ -52,6 +55,7 @@ jobs:
       - name: Build for production
         run: pnpm build
 
+      # Release
       - name: Release
         uses: ncipollo/release-action@v1
         with:
