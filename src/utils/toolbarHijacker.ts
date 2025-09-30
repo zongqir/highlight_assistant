@@ -696,76 +696,23 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 移除高亮格式
+     * 移除高亮格式 - 调用统一的核心删除逻辑
      */
     private async removeHighlight(protyle: any, range: Range, nodeElement: Element): Promise<void> {
         try {
-            const selectedText = range.toString();
-            if (!selectedText) return;
-
-            // 找到真正的块元素
-            const blockElement = this.findBlockElement(range.startContainer);
-            if (!blockElement) return;
-
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) return;
-
-            // 保存原始内容
-            const oldContent = blockElement.innerHTML;
-
-            // 检查选中的内容是否包含高亮span
-            const tempRange = range.cloneRange();
-            const fragment = tempRange.cloneContents();
-            const hasHighlight = fragment.querySelector('span[data-type="text"]');
-
-            if (hasHighlight) {
-                // 移除高亮：将span替换为纯文本
-                const walker = document.createTreeWalker(
-                    range.commonAncestorContainer,
-                    NodeFilter.SHOW_ELEMENT,
-                    {
-                        acceptNode: (node) => {
-                            return (node as Element).tagName === 'SPAN' && 
-                                   (node as Element).getAttribute('data-type') === 'text' 
-                                   ? NodeFilter.FILTER_ACCEPT 
-                                   : NodeFilter.FILTER_SKIP;
-                        }
-                    }
-                );
-
-                const spansToRemove: Element[] = [];
-                let node;
-                while (node = walker.nextNode()) {
-                    spansToRemove.push(node as Element);
-                }
-
-                // 移除所有高亮span，保留文本内容
-                spansToRemove.forEach(span => {
-                    const textNode = document.createTextNode(span.textContent || '');
-                    span.parentNode?.replaceChild(textNode, span);
-                });
-            }
-
-            // 更新时间戳
-            const timestamp = new Date().getTime().toString().substring(0, 10);
-            blockElement.setAttribute("updated", timestamp);
-
-            // 提取并保存内容
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-
-            if (updateResult.code === 0) {
-                console.log('✅ 已移除高亮');
+            const success = await this.removeHighlightCore(range);
+            
+            if (success) {
                 // 恢复只读状态
-                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
-            } else {
-                console.error('❌ 移除失败');
-                this.restoreOriginalHTML(blockId, oldContent);
+                const blockElement = this.findBlockElement(range.startContainer);
+                const blockId = blockElement?.getAttribute("data-node-id");
+                if (blockId) {
+                    setTimeout(() => this.restoreReadOnlyState(blockId), 100);
+                }
+                
+                this.hideToolbar(toolbar);
+                this.clearSelection();
             }
-
-            this.hideToolbar(toolbar);
-            this.clearSelection();
-
         } catch (error) {
             console.error('❌ 移除高亮出错:', error);
         }
@@ -1870,6 +1817,11 @@ export class ToolbarHijacker {
                 font-size: 14px;
             `;
             
+            // 根据平台调整按钮样式
+            const isMobile = this.isMobile;
+            const buttonSize = isMobile ? '22px' : '28px';
+            const borderRadius = isMobile ? '50%' : '6px';
+            
             // 添加颜色按钮
             const colors = [
                 { name: 'yellow', bg: '#fff3cd', displayName: '黄色' },
@@ -1881,10 +1833,10 @@ export class ToolbarHijacker {
             colors.forEach(color => {
                 const btn = document.createElement('button');
                 btn.style.cssText = `
-                    width: 28px;
-                    height: 28px;
+                    width: ${buttonSize};
+                    height: ${buttonSize};
                     border: none;
-                    border-radius: 6px;
+                    border-radius: ${borderRadius};
                     background: ${color.bg};
                     cursor: pointer;
                     transition: all 0.2s ease;
@@ -1902,13 +1854,13 @@ export class ToolbarHijacker {
             // 添加删除按钮
             const removeBtn = document.createElement('button');
             removeBtn.style.cssText = `
-                width: 28px;
-                height: 28px;
+                width: ${buttonSize};
+                height: ${buttonSize};
                 border: 1px solid #ddd;
-                border-radius: 6px;
+                border-radius: ${borderRadius};
                 background: white;
                 cursor: pointer;
-                font-size: 12px;
+                font-size: ${isMobile ? '10px' : '12px'};
             `;
             removeBtn.textContent = '×';
             removeBtn.title = '删除高亮';
@@ -1923,13 +1875,13 @@ export class ToolbarHijacker {
             // 添加评论按钮
             const commentBtn = document.createElement('button');
             commentBtn.style.cssText = `
-                width: 28px;
-                height: 28px;
+                width: ${buttonSize};
+                height: ${buttonSize};
                 border: 1px solid #ddd;
-                border-radius: 6px;
+                border-radius: ${borderRadius};
                 background: #f8f9fa;
                 cursor: pointer;
-                font-size: 12px;
+                font-size: ${isMobile ? '10px' : '12px'};
                 color: #666;
             `;
             commentBtn.textContent = '💭';
@@ -2025,80 +1977,70 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 删除自定义高亮
+     * 删除自定义高亮 - 调用统一的核心删除逻辑
      */
     private async removeCustomHighlight(range: Range): Promise<void> {
+        await this.removeHighlightCore(range);
+    }
+    
+    /**
+     * 统一的高亮删除核心逻辑
+     */
+    private async removeHighlightCore(range: Range): Promise<boolean> {
         try {
             const selectedText = range.toString();
-            if (!selectedText) return;
+            if (!selectedText) return false;
             
             // 找到块元素
             const blockElement = this.findBlockElement(range.startContainer);
             if (!blockElement) {
-                return;
+                return false;
             }
             
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                return;
+                return false;
             }
             
-            // 使用 Range 来直接处理高亮删除
-            const startContainer = range.startContainer;
-            const endContainer = range.endContainer;
+            // 保存原始内容
+            const oldContent = blockElement.innerHTML;
             
-            // 如果选择范围跨越多个节点，需要特殊处理
-            if (startContainer === endContainer && startContainer.nodeType === Node.TEXT_NODE) {
-                // 单个文本节点的情况
-                const textNode = startContainer as Text;
-                const parent = textNode.parentElement;
-                
-                if (parent && parent.tagName === 'SPAN' && parent.getAttribute('data-type') === 'text') {
-                    // 如果文本节点在 highlight span 内，直接替换为文本节点
-                    const textContent = textNode.textContent || '';
-                    const newTextNode = document.createTextNode(textContent);
-                    parent.parentNode?.replaceChild(newTextNode, parent);
-                }
-            } else {
-                // 跨节点的情况，需要更复杂的处理
-                // 遍历选择范围内的所有节点
+            // 检查选中的内容是否包含高亮span
+            const tempRange = range.cloneRange();
+            const fragment = tempRange.cloneContents();
+            const hasHighlight = fragment.querySelector('span[data-type="text"]');
+            
+            if (hasHighlight) {
+                // 移除高亮：将span替换为纯文本
                 const walker = document.createTreeWalker(
-                    blockElement,
+                    range.commonAncestorContainer,
                     NodeFilter.SHOW_ELEMENT,
                     {
                         acceptNode: (node) => {
-                            if (node.nodeType === Node.ELEMENT_NODE) {
-                                const element = node as Element;
-                                if (element.tagName === 'SPAN' && element.getAttribute('data-type') === 'text') {
-                                    // 检查这个 span 是否在选择范围内
-                                    const spanRange = document.createRange();
-                                    spanRange.selectNodeContents(element);
-                                    
-                                    // 检查是否有重叠
-                                    if (range.compareBoundaryPoints(Range.START_TO_END, spanRange) > 0 &&
-                                        range.compareBoundaryPoints(Range.END_TO_START, spanRange) < 0) {
-                                        return NodeFilter.FILTER_ACCEPT;
-                                    }
-                                }
-                            }
-                            return NodeFilter.FILTER_SKIP;
+                            return (node as Element).tagName === 'SPAN' && 
+                                   (node as Element).getAttribute('data-type') === 'text' 
+                                   ? NodeFilter.FILTER_ACCEPT 
+                                   : NodeFilter.FILTER_SKIP;
                         }
                     }
                 );
-                
+
                 const spansToRemove: Element[] = [];
                 let node;
                 while (node = walker.nextNode()) {
                     spansToRemove.push(node as Element);
                 }
-                
-                // 移除找到的高亮 spans
+
+                // 移除所有高亮span，保留文本内容
                 spansToRemove.forEach(span => {
-                    const textContent = span.textContent || '';
-                    const textNode = document.createTextNode(textContent);
+                    const textNode = document.createTextNode(span.textContent || '');
                     span.parentNode?.replaceChild(textNode, span);
                 });
             }
+            
+            // 更新时间戳
+            const timestamp = new Date().getTime().toString().substring(0, 10);
+            blockElement.setAttribute("updated", timestamp);
             
             // 保存到思源
             const newContent = await this.extractMarkdownFromBlock(blockElement);
@@ -2106,12 +2048,17 @@ export class ToolbarHijacker {
             
             if (updateResult.code === 0) {
                 console.log('✅ 已删除高亮');
+                return true;
             } else {
                 console.log('❌ 删除高亮失败:', updateResult.msg);
+                // 恢复原始内容
+                blockElement.innerHTML = oldContent;
+                return false;
             }
             
         } catch (error) {
             console.error('删除高亮时出错:', error);
+            return false;
         }
     }
     
