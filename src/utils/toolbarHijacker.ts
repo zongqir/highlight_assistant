@@ -159,10 +159,230 @@ export class ToolbarHijacker {
     }
     
     /**
+     * 检查是否应该显示工具栏
+     */
+    private shouldShowToolbar(range: Range): boolean {
+        const selectedText = range.toString().trim();
+        if (!selectedText) {
+            return false;
+        }
+
+        // 检查是否在代码块中
+        if (this.isInCodeBlock(range)) {
+            console.log('[ToolbarHijacker] 在代码块中，不显示工具栏');
+            return false;
+        }
+
+        // 检查是否在表格中
+        if (this.isInTable(range)) {
+            console.log('[ToolbarHijacker] 在表格中，不显示工具栏');
+            return false;
+        }
+
+        // 检查是否在数学公式中
+        if (this.isInMathFormula(range)) {
+            console.log('[ToolbarHijacker] 在数学公式中，不显示工具栏');
+            return false;
+        }
+
+        // 检查是否在链接中
+        if (this.isInLink(range)) {
+            console.log('[ToolbarHijacker] 在链接中，不显示工具栏');
+            return false;
+        }
+
+        // 检查是否在特殊格式中（粗体、斜体、删除线等）
+        if (this.isInSpecialFormat(range)) {
+            console.log('[ToolbarHijacker] 在特殊格式中，不显示工具栏');
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 检查是否在代码块中
+     */
+    private isInCodeBlock(range: Range): boolean {
+        try {
+            let element = range.commonAncestorContainer;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentNode!;
+            }
+            
+            // 向上查找，检查是否在代码块中
+            while (element && element !== document.body) {
+                if (element.nodeType === Node.ELEMENT_NODE) {
+                    const el = element as HTMLElement;
+                    const className = el.className || '';
+                    const tagName = el.tagName.toLowerCase();
+                    
+                    // 检查代码块相关的类名和标签
+                    if (className.includes('code') || 
+                        className.includes('hljs') ||
+                        tagName === 'code' ||
+                        tagName === 'pre') {
+                        return true;
+                    }
+                }
+                element = element.parentNode!;
+            }
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查是否在表格中
+     */
+    private isInTable(range: Range): boolean {
+        try {
+            let element = range.commonAncestorContainer;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentNode!;
+            }
+            
+            // 向上查找，检查是否在表格中
+            while (element && element !== document.body) {
+                if (element.nodeType === Node.ELEMENT_NODE) {
+                    const el = element as HTMLElement;
+                    const tagName = el.tagName.toLowerCase();
+                    
+                    if (tagName === 'table' || tagName === 'tr' || tagName === 'td' || tagName === 'th') {
+                        return true;
+                    }
+                }
+                element = element.parentNode!;
+            }
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查是否在数学公式中
+     */
+    private isInMathFormula(range: Range): boolean {
+        try {
+            let element = range.commonAncestorContainer;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentNode!;
+            }
+            
+            // 向上查找，检查是否在数学公式中
+            while (element && element !== document.body) {
+                if (element.nodeType === Node.ELEMENT_NODE) {
+                    const el = element as HTMLElement;
+                    const className = el.className || '';
+                    const tagName = el.tagName.toLowerCase();
+                    
+                    if (className.includes('math') || 
+                        className.includes('katex') ||
+                        tagName === 'math') {
+                        return true;
+                    }
+                }
+                element = element.parentNode!;
+            }
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * 检查是否在链接中
+     */
+    private isInLink(range: Range): boolean {
+        try {
+            // 检查选中的文本是否包含链接相关的元素
+            const selectedText = range.toString().trim();
+            if (!selectedText) {
+                return false;
+            }
+
+            // 检查选中范围内是否有链接元素
+            const fragment = range.cloneContents();
+            const linkElements = fragment.querySelectorAll('a, [data-type*="a"]');
+            if (linkElements.length > 0) {
+                console.log('[ToolbarHijacker] 选中范围内包含链接元素:', linkElements.length);
+                return true;
+            }
+
+            // 检查选中文本的父元素是否在链接中
+            let element = range.commonAncestorContainer;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentNode!;
+            }
+            
+            // 向上查找，检查是否在链接中
+            while (element && element !== document.body) {
+                if (element.nodeType === Node.ELEMENT_NODE) {
+                    const el = element as HTMLElement;
+                    const tagName = el.tagName.toLowerCase();
+                    const dataType = el.getAttribute('data-type');
+                    
+                    if (tagName === 'a' || dataType === 'a' || (dataType && dataType.includes('a'))) {
+                        console.log('[ToolbarHijacker] 在链接元素中:', { tagName, dataType });
+                        return true;
+                    }
+                }
+                element = element.parentNode!;
+            }
+            return false;
+        } catch (error) {
+            console.error('[ToolbarHijacker] 检查链接时出错:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 检查是否在特殊格式中
+     */
+    private isInSpecialFormat(range: Range): boolean {
+        try {
+            let element = range.commonAncestorContainer;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentNode!;
+            }
+            
+            // 向上查找，检查是否在特殊格式中
+            while (element && element !== document.body) {
+                if (element.nodeType === Node.ELEMENT_NODE) {
+                    const el = element as HTMLElement;
+                    const dataType = el.getAttribute('data-type');
+                    const tagName = el.tagName.toLowerCase();
+                    
+                    // 检查是否在粗体、斜体、删除线等格式中
+                    if (dataType === 'strong' || dataType === 'em' || dataType === 'del' ||
+                        dataType === 'mark' || dataType === 'tag' ||
+                        tagName === 'strong' || tagName === 'em' || tagName === 'del' ||
+                        tagName === 'mark' || tagName === 's') {
+                        return true;
+                    }
+                }
+                element = element.parentNode!;
+            }
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
      * 增强工具栏（支持手机版和电脑版）
      */
     private enhanceToolbar(toolbar: any, range: Range, nodeElement: Element, protyle: any): void {
         try {
+            // 检查是否应该显示工具栏
+            if (!this.shouldShowToolbar(range)) {
+                console.log('[ToolbarHijacker] 不满足显示条件，隐藏工具栏');
+                this.hideToolbar(toolbar);
+                return;
+            }
+            
             const subElement = toolbar.subElement;
             if (!subElement) return;
             
@@ -680,6 +900,12 @@ export class ToolbarHijacker {
 
             if (updateResult.code === 0) {
                 console.log(`✅ 已应用${colorConfig.name}高亮`);
+                
+                // 打印界面显示效果
+                setTimeout(() => {
+                    this.printDisplayEffect(blockId);
+                }, 200);
+                
                 // 恢复只读状态
                 setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
@@ -875,6 +1101,158 @@ export class ToolbarHijacker {
     }
     
     /**
+     * 打印界面显示效果
+     */
+    private printDisplayEffect(blockId: string): void {
+        try {
+            console.log('🔍 ===== 打印界面显示效果 =====');
+            
+            // 查找块元素
+            const blockElement = document.querySelector(`[data-node-id="${blockId}"]`);
+            if (!blockElement) {
+                console.log('❌ 未找到块元素');
+                return;
+            }
+            
+            console.log('📄 块元素HTML:', blockElement.outerHTML);
+            
+            // 查找内容区域
+            let contentDiv = blockElement.querySelector('div[contenteditable]');
+            if (!contentDiv) {
+                contentDiv = blockElement.querySelector('div[contenteditable="true"]');
+            }
+            if (!contentDiv) {
+                contentDiv = blockElement.querySelector('div[contenteditable="false"]');
+            }
+            if (!contentDiv) {
+                contentDiv = blockElement.querySelector('div');
+            }
+            
+            if (contentDiv) {
+                console.log('📝 内容区域HTML:', contentDiv.outerHTML);
+                console.log('📝 内容区域文本:', contentDiv.textContent);
+                
+                // 查找所有span元素
+                const spans = contentDiv.querySelectorAll('span');
+                console.log('🎨 找到span元素数量:', spans.length);
+                
+                spans.forEach((span, index) => {
+                    const dataType = span.getAttribute('data-type');
+                    const text = span.textContent;
+                    const bgColor = span.style.backgroundColor;
+                    const href = span.getAttribute('data-href');
+                    
+                    console.log(`🎨 Span ${index}:`, {
+                        dataType,
+                        text,
+                        backgroundColor: bgColor,
+                        href,
+                        outerHTML: span.outerHTML
+                    });
+                });
+            }
+            
+            // 重新获取Markdown内容
+            this.api.getBlockKramdown(blockId).then(response => {
+                if (response && response.code === 0 && response.data && response.data.kramdown) {
+                    console.log('📄 当前保存的Markdown内容:', response.data.kramdown);
+                } else {
+                    console.log('❌ 获取Markdown内容失败:', response);
+                }
+            }).catch(error => {
+                console.log('❌ 获取Markdown内容出错:', error);
+            });
+            
+            console.log('🔍 ===== 界面显示效果打印完成 =====');
+            
+        } catch (error) {
+            console.error('❌ 打印界面显示效果失败:', error);
+        }
+    }
+    
+    /**
+     * 处理包含高亮的链接
+     */
+    private processLinkWithHighlights(linkSpan: HTMLElement): string {
+        try {
+            console.log('[ToolbarHijacker] ===== 开始处理链接高亮 =====');
+            console.log('[ToolbarHijacker] 输入链接span:', linkSpan.outerHTML);
+            
+            const href = linkSpan.getAttribute('data-href') || '';
+            console.log('[ToolbarHijacker] 链接href:', href);
+            
+            // 检查是否有高亮span
+            const highlightSpans = linkSpan.querySelectorAll('span[data-type="text"][style*="background-color"]');
+            console.log('[ToolbarHijacker] 找到高亮span数量:', highlightSpans.length);
+            
+            if (highlightSpans.length === 0) {
+                // 没有高亮，返回普通链接
+                const textContent = linkSpan.textContent || '';
+                const result = `[${textContent}](${href})`;
+                console.log('[ToolbarHijacker] 无高亮，返回普通链接:', result);
+                return result;
+            }
+            
+            // 有高亮，需要构建包含高亮的链接
+            // 思源笔记不支持在链接内部使用高亮语法，我们需要将链接和高亮分开
+            console.log('[ToolbarHijacker] 开始构建包含高亮的链接文本');
+            console.log('[ToolbarHijacker] 思源笔记不支持链接内部高亮，将链接和高亮分开处理');
+            
+            // 构建包含高亮的链接文本
+            let linkText = '';
+            const childNodes = Array.from(linkSpan.childNodes);
+            console.log('[ToolbarHijacker] 子节点数量:', childNodes.length);
+            
+            for (let i = 0; i < childNodes.length; i++) {
+                const node = childNodes[i];
+                console.log(`[ToolbarHijacker] 处理子节点 ${i}:`, {
+                    nodeType: node.nodeType,
+                    textContent: node.textContent,
+                    tagName: node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement).tagName : 'TEXT'
+                });
+                
+                if (node.nodeType === Node.TEXT_NODE) {
+                    // 纯文本节点
+                    const text = node.textContent || '';
+                    linkText += text;
+                    console.log('[ToolbarHijacker] 添加纯文本:', text, '当前linkText:', linkText);
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const element = node as HTMLElement;
+                    const dataType = element.getAttribute('data-type');
+                    console.log('[ToolbarHijacker] 处理元素节点:', {
+                        tagName: element.tagName,
+                        dataType: dataType,
+                        textContent: element.textContent,
+                        backgroundColor: element.style.backgroundColor
+                    });
+                    
+                    if (element.tagName === 'SPAN' && dataType === 'text') {
+                        // 高亮span，直接添加文本，不添加高亮语法
+                        const text = element.textContent || '';
+                        linkText += text;
+                        console.log('[ToolbarHijacker] 添加高亮文本(无语法):', text, '当前linkText:', linkText);
+                    } else {
+                        // 其他元素，保持原样
+                        const text = element.textContent || '';
+                        linkText += text;
+                        console.log('[ToolbarHijacker] 添加其他元素文本:', text, '当前linkText:', linkText);
+                    }
+                }
+            }
+            
+            // 使用普通链接格式，不包含高亮语法
+            const result = `[${linkText}](${href})`;
+            console.log('[ToolbarHijacker] 最终结果(普通链接):', result);
+            console.log('[ToolbarHijacker] ===== 链接高亮处理完成 =====');
+            return result;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] 处理包含高亮的链接失败:', error);
+            return linkSpan.outerHTML;
+        }
+    }
+    
+    /**
      * 将高亮 span 转换为 Markdown 语法
      */
     private convertHighlightSpansToMarkdown(html: string): string {
@@ -887,6 +1265,16 @@ export class ToolbarHijacker {
             const allSpans = tempDiv.querySelectorAll('span');
             allSpans.forEach(span => {
                 const dataType = span.getAttribute('data-type');
+                
+                // 跳过链接内部的子span，避免重复处理
+                const isInsideLink = span.closest('span[data-type="a"]');
+                const isLinkItself = dataType === 'a';
+                
+                if (isInsideLink && !isLinkItself) {
+                    console.log('[ToolbarHijacker] 跳过链接内部的子span:', span.textContent, 'data-type:', dataType);
+                    return;
+                }
+                
                 const text = span.textContent || '';
                 let markdownText = text;
                 let shouldReplace = false;
@@ -901,6 +1289,57 @@ export class ToolbarHijacker {
                         markdownText = `<span data-type="text" style="background-color: ${bgColor};">${text}</span>`;
                         shouldReplace = true;
                     }
+                } else if (dataType === 'em') {
+                    // 斜体类型，转换为Markdown斜体语法
+                    console.log('[ToolbarHijacker] 处理斜体span:', text, 'dataType:', dataType);
+                    if (text && text.trim()) {
+                        markdownText = `*${text}*`;
+                        shouldReplace = true;
+                    } else {
+                        // 空的斜体span，直接跳过
+                        console.log('[ToolbarHijacker] 跳过空的斜体span');
+                        shouldReplace = false;
+                    }
+                } else if (dataType === 'strong') {
+                    // 粗体类型，转换为Markdown粗体语法
+                    console.log('[ToolbarHijacker] 处理粗体span:', text, 'dataType:', dataType);
+                    if (text && text.trim()) {
+                        markdownText = `**${text}**`;
+                        shouldReplace = true;
+                    } else {
+                        // 空的粗体span，直接跳过
+                        console.log('[ToolbarHijacker] 跳过空的粗体span');
+                        shouldReplace = false;
+                    }
+                } else if (dataType === 'tag') {
+                    // 标签类型，转换为Markdown标签语法
+                    markdownText = `#${text}`;
+                    shouldReplace = true;
+                } else if (dataType === 'a') {
+                    // 链接类型，需要特殊处理
+                    console.log('[ToolbarHijacker] ===== 开始处理链接 =====');
+                    console.log('[ToolbarHijacker] 链接span:', span.outerHTML);
+                    
+                    const href = span.getAttribute('data-href') || '';
+                    const hasChildSpans = span.querySelector('span');
+                    
+                    console.log('[ToolbarHijacker] 链接href:', href);
+                    console.log('[ToolbarHijacker] 是否有子span:', !!hasChildSpans);
+                    
+                    if (hasChildSpans) {
+                        // 如果链接内部有子span（如高亮），需要特殊处理
+                        console.log('[ToolbarHijacker] 调用processLinkWithHighlights处理包含子span的链接');
+                        const processedInnerHTML = this.processLinkWithHighlights(span);
+                        markdownText = processedInnerHTML;
+                        shouldReplace = true;
+                        console.log('[ToolbarHijacker] 链接处理结果:', processedInnerHTML);
+                    } else {
+                        // 如果链接内部没有子span，转换为Markdown链接语法
+                        markdownText = `[${text}](${href})`;
+                        shouldReplace = true;
+                        console.log('[ToolbarHijacker] 无子span，返回普通链接:', markdownText);
+                    }
+                    console.log('[ToolbarHijacker] ===== 链接处理完成 =====');
                 } else if (dataType === 'mark') {
                     // 原有的mark类型，保持为高亮语法
                     markdownText = `==${text}==`;
