@@ -65,8 +65,6 @@ export class ToolbarHijacker {
             return;
         }
         
-        console.log('[ToolbarHijacker] 开始启动劫持...');
-        
         // 延迟执行，确保编辑器已加载
         setTimeout(() => {
             this.performHijack();
@@ -112,44 +110,23 @@ export class ToolbarHijacker {
             const editors = getAllEditor();
             
             if (editors.length === 0) {
-                console.log('[ToolbarHijacker] 未找到编辑器，2秒后重试...');
                 setTimeout(() => this.performHijack(), 2000);
                 return;
             }
             
-            console.log(`[ToolbarHijacker] 找到 ${editors.length} 个编辑器`);
-            
             let hijackSuccess = false;
             
             // 尝试劫持所有编辑器
-            editors.forEach((editor, index) => {
-                console.log(`[ToolbarHijacker] 检查编辑器 ${index}:`, {
-                    hasProtyle: !!editor.protyle,
-                    hasToolbar: !!(editor.protyle?.toolbar),
-                    hasShowContent: !!(editor.protyle?.toolbar?.showContent),
-                    isReadOnly: editor.protyle?.options?.readonly,
-                    toolbarKeys: editor.protyle?.toolbar ? Object.keys(editor.protyle.toolbar) : []
-                });
-                
+            editors.forEach((editor) => {
                 if (editor.protyle && editor.protyle.toolbar && editor.protyle.toolbar.showContent) {
                     // 保存原始方法（只保存一次）
                     if (!this.originalShowContent) {
                         this.originalShowContent = editor.protyle.toolbar.showContent;
-                        console.log('[ToolbarHijacker] 已保存原始 showContent 方法');
                     }
                     
                     // 劫持 showContent 方法
                     const hijacker = this;
                     editor.protyle.toolbar.showContent = function(protyle: any, range: Range, nodeElement: Element) {
-                        console.log('[ToolbarHijacker] showContent 被调用:', {
-                            hasRange: !!range,
-                            rangeText: range?.toString()?.substring(0, 20),
-                            isMobile: hijacker.isMobile,
-                            isDesktop: hijacker.isDesktop,
-                            protyleId: protyle?.id,
-                            nodeElement: nodeElement?.tagName
-                        });
-                        
                         // 先调用原始方法显示基础工具栏
                         hijacker.originalShowContent.call(this, protyle, range, nodeElement);
                         
@@ -158,30 +135,14 @@ export class ToolbarHijacker {
                             if ((hijacker.isMobile || hijacker.isDesktop) && range && range.toString().trim()) {
                                 // 检查是否跨块选择
                                 if (hijacker.isCrossBlockSelection(range)) {
-                                    console.log('[ToolbarHijacker] 检测到跨块选择，不显示高亮工具栏');
                                     return; // 跨块选择时不增强工具栏
                                 }
-                                console.log('[ToolbarHijacker] 开始增强工具栏...');
                                 hijacker.enhanceToolbar(this, range, nodeElement, protyle);
-                            } else {
-                                console.log('[ToolbarHijacker] 跳过工具栏增强:', {
-                                    isMobile: hijacker.isMobile,
-                                    isDesktop: hijacker.isDesktop,
-                                    hasRange: !!range,
-                                    rangeText: range?.toString()?.trim()
-                                });
                             }
-                        }, 100); // 增加延迟时间
+                        }, 50);
                     };
                     
                     hijackSuccess = true;
-                    console.log(`[ToolbarHijacker] 编辑器 ${index} 劫持成功`);
-                } else {
-                    console.log(`[ToolbarHijacker] 编辑器 ${index} 无法劫持:`, {
-                        hasProtyle: !!editor.protyle,
-                        hasToolbar: !!(editor.protyle?.toolbar),
-                        hasShowContent: !!(editor.protyle?.toolbar?.showContent)
-                    });
                 }
             });
             
@@ -189,14 +150,11 @@ export class ToolbarHijacker {
                 this.isHijacked = true;
                 console.log(`✅ ${this.isMobile ? '📱 手机版' : '💻 电脑版'}高亮功能已激活`);
             } else {
-                console.log('[ToolbarHijacker] 原生劫持失败，启用自定义工具栏模式');
-                this.isHijacked = true; // 即使原生劫持失败，也标记为已激活，使用自定义工具栏
+                setTimeout(() => this.performHijack(), 3000);
             }
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 劫持过程出错:', error);
-            // 即使出错也启用自定义工具栏
-            this.isHijacked = true;
+            setTimeout(() => this.performHijack(), 3000);
         }
     }
     
@@ -205,32 +163,21 @@ export class ToolbarHijacker {
      */
     private enhanceToolbar(toolbar: any, range: Range, nodeElement: Element, protyle: any): void {
         try {
-            console.log('[ToolbarHijacker] 开始增强工具栏...');
-            
             const subElement = toolbar.subElement;
-            if (!subElement) {
-                console.log('[ToolbarHijacker] 未找到 subElement');
-                return;
-            }
-            
-            console.log('[ToolbarHijacker] 找到 subElement:', subElement);
+            if (!subElement) return;
             
             // 确保工具栏可见（重置之前的隐藏状态）
             this.resetToolbarVisibility(toolbar);
             
             const flexContainer = subElement.querySelector('.fn__flex');
             if (!flexContainer) {
-                console.log('[ToolbarHijacker] 未找到 .fn__flex 容器');
                 // 尝试其他可能的选择器
                 const alternativeContainer = subElement.querySelector('.keyboard__action')?.parentElement;
                 if (alternativeContainer) {
-                    console.log('[ToolbarHijacker] 使用替代容器');
                     this.addHighlightButtons(alternativeContainer, range, nodeElement, protyle, toolbar);
                 }
                 return;
             }
-            
-            console.log('[ToolbarHijacker] 找到 flexContainer:', flexContainer);
             
             // 清理之前添加的按钮（避免重复添加）
             this.cleanupPreviousButtons(flexContainer);
@@ -244,10 +191,8 @@ export class ToolbarHijacker {
             // 添加自动隐藏机制
             this.setupAutoHide(toolbar);
             
-            console.log('[ToolbarHijacker] 工具栏增强完成');
-            
         } catch (error) {
-            console.error('[ToolbarHijacker] 增强工具栏出错:', error);
+            // 静默处理错误
         }
     }
     
@@ -255,26 +200,16 @@ export class ToolbarHijacker {
      * 添加高亮按钮组
      */
     private addHighlightButtons(container: HTMLElement, range: Range, nodeElement: Element, protyle: any, toolbar: any): void {
-        console.log('[ToolbarHijacker] 开始添加高亮按钮...');
-        console.log('[ToolbarHijacker] 容器:', container);
-        console.log('[ToolbarHijacker] 容器子元素:', container.children);
-        
         // 找到更多按钮，在它前面插入我们的按钮
         const moreBtn = container.querySelector('[data-action="more"]');
         const insertPoint = moreBtn || container.lastElementChild;
         
-        console.log('[ToolbarHijacker] 插入点:', insertPoint);
-        
-        if (!insertPoint) {
-            console.log('[ToolbarHijacker] 未找到插入点');
-            return;
-        }
+        if (!insertPoint) return;
         
         // 添加分隔符
         const separator = document.createElement('div');
         separator.className = 'keyboard__split';
         container.insertBefore(separator, insertPoint);
-        console.log('[ToolbarHijacker] 已添加分隔符');
         
         // 浅色系颜色配置（保持之前的颜色）
         const colors: Array<{name: HighlightColor, bg: string, displayName: string}> = [
@@ -285,23 +220,18 @@ export class ToolbarHijacker {
         ];
         
         // 为每种颜色创建按钮
-        colors.forEach((color, index) => {
-            console.log(`[ToolbarHijacker] 创建颜色按钮 ${index + 1}: ${color.displayName}`);
+        colors.forEach((color) => {
             const btn = this.createHighlightButton(color, range, nodeElement, protyle, toolbar);
             container.insertBefore(btn, insertPoint);
         });
         
         // 添加恢复按钮（白色小球）
-        console.log('[ToolbarHijacker] 创建恢复按钮');
         const removeBtn = this.createRemoveButton(range, nodeElement, protyle, toolbar);
         container.insertBefore(removeBtn, insertPoint);
         
         // 添加备注按钮
-        console.log('[ToolbarHijacker] 创建备注按钮');
         const commentBtn = this.createCommentButton(range, nodeElement, protyle, toolbar);
         container.insertBefore(commentBtn, insertPoint);
-        
-        console.log('[ToolbarHijacker] 所有按钮添加完成');
     }
     
     /**
@@ -1857,12 +1787,11 @@ export class ToolbarHijacker {
         }
     }
 
+    
     /**
      * 设置鼠标选择监听器（备用方案）
      */
     private setupMouseSelectionListener(): void {
-        console.log('[ToolbarHijacker] 设置鼠标选择监听器...');
-        
         let selectionTimeout: NodeJS.Timeout | null = null;
         let lastSelectionText = '';
         
@@ -1882,11 +1811,8 @@ export class ToolbarHijacker {
                     }
                     lastSelectionText = selectedText;
                     
-                    console.log('[ToolbarHijacker] 检测到鼠标选择:', selectedText.substring(0, 30));
-                    
                     // 检查是否跨块选择
                     if (this.isCrossBlockSelection(selection.getRangeAt(0))) {
-                        console.log('[ToolbarHijacker] 跨块选择，跳过');
                         return;
                     }
                     
@@ -1894,7 +1820,6 @@ export class ToolbarHijacker {
                     const range = selection.getRangeAt(0);
                     const blockElement = this.findBlockElement(range.startContainer);
                     if (!blockElement) {
-                        console.log('[ToolbarHijacker] 不在思源块中，跳过');
                         return;
                     }
                     
@@ -1905,7 +1830,7 @@ export class ToolbarHijacker {
                     // 清除选择时隐藏工具栏
                     this.hideCustomToolbar();
                 }
-            }, 300); // 增加延迟，避免频繁触发
+            }, 300);
         };
         
         // 监听选择变化
@@ -1940,8 +1865,6 @@ export class ToolbarHijacker {
      */
     private showCustomToolbar(selection: Selection): void {
         try {
-            console.log('[ToolbarHijacker] 显示自定义工具栏...');
-            
             // 先隐藏之前的工具栏
             this.hideCustomToolbar();
             
@@ -1950,7 +1873,6 @@ export class ToolbarHijacker {
             
             // 检查选择是否有效
             if (rect.width === 0 && rect.height === 0) {
-                console.log('[ToolbarHijacker] 选择区域无效，跳过显示工具栏');
                 return;
             }
             
@@ -1966,7 +1888,7 @@ export class ToolbarHijacker {
             let left = rect.left + scrollLeft + rect.width / 2;
             
             // 边界检查
-            const toolbarWidth = 200; // 估算工具栏宽度
+            const toolbarWidth = 200;
             const viewportWidth = window.innerWidth;
             
             if (left - toolbarWidth / 2 < 10) {
@@ -2019,7 +1941,6 @@ export class ToolbarHijacker {
                 btn.title = color.displayName;
                 
                 btn.addEventListener('click', () => {
-                    console.log(`选择颜色: ${color.displayName}`);
                     this.applyCustomHighlight(range, color);
                     this.hideCustomToolbar();
                 });
@@ -2042,7 +1963,6 @@ export class ToolbarHijacker {
             removeBtn.title = '删除高亮';
             
             removeBtn.addEventListener('click', () => {
-                console.log('删除高亮');
                 this.removeCustomHighlight(range);
                 this.hideCustomToolbar();
             });
@@ -2068,7 +1988,7 @@ export class ToolbarHijacker {
             }, 100);
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 显示自定义工具栏失败:', error);
+            // 静默处理错误
         }
     }
     
@@ -2100,13 +2020,11 @@ export class ToolbarHijacker {
             // 找到块元素
             const blockElement = this.findBlockElement(range.startContainer);
             if (!blockElement) {
-                console.error('未找到块元素');
                 return;
             }
             
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                console.error('未找到块ID');
                 return;
             }
             
@@ -2126,12 +2044,10 @@ export class ToolbarHijacker {
             
             if (updateResult.code === 0) {
                 console.log(`✅ 已应用${color.name}高亮`);
-            } else {
-                console.error('❌ 高亮失败');
             }
             
         } catch (error) {
-            console.error('应用自定义高亮失败:', error);
+            // 静默处理错误
         }
     }
     
@@ -2146,13 +2062,11 @@ export class ToolbarHijacker {
             // 找到块元素
             const blockElement = this.findBlockElement(range.startContainer);
             if (!blockElement) {
-                console.error('未找到块元素');
                 return;
             }
             
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                console.error('未找到块ID');
                 return;
             }
             
@@ -2171,12 +2085,10 @@ export class ToolbarHijacker {
             
             if (updateResult.code === 0) {
                 console.log('✅ 已删除高亮');
-            } else {
-                console.error('❌ 删除失败');
             }
             
         } catch (error) {
-            console.error('删除自定义高亮失败:', error);
+            // 静默处理错误
         }
     }
     
