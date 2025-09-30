@@ -659,12 +659,6 @@ export class ToolbarHijacker {
             range.deleteContents();
             range.insertNode(highlightSpan);
             
-            // 调试：检查span是否真的添加到了DOM中
-            console.log('[ToolbarHijacker] span添加后，blockElement的innerHTML:', blockElement.innerHTML);
-            
-            // 查找刚添加的span
-            const addedSpan = blockElement.querySelector('span[data-type="text"]');
-            console.log('[ToolbarHijacker] 找到的span元素:', addedSpan, '内容:', addedSpan?.textContent);
 
             // 更新时间戳
             const timestamp = new Date().getTime().toString().substring(0, 10);
@@ -678,24 +672,11 @@ export class ToolbarHijacker {
                 return;
             }
 
-            // 添加调试日志
-            console.log('[ToolbarHijacker] 保存块内容:', {
-                blockId,
-                dataType: "dom",
-                oldContentLength: oldContent.length,
-                newContentLength: newContent.length,
-                newContent: newContent
-            });
-
             // 提取markdown格式内容
             const markdownContent = await this.extractMarkdownFromBlock(blockElement);
-            
-            console.log('[ToolbarHijacker] 提取的markdown内容:', markdownContent);
 
             // 使用 updateBlock API 保存 - 保存markdown内容
             const updateResult = await this.api.updateBlock(blockId, markdownContent, "markdown");
-
-            console.log('[ToolbarHijacker] API保存结果:', updateResult);
 
             if (updateResult.code === 0) {
                 console.log(`✅ 已应用${colorConfig.name}高亮`);
@@ -1268,7 +1249,6 @@ export class ToolbarHijacker {
      * 拦截原生备注弹窗
      */
     private interceptNativeMemo(): void {
-        console.log('开始拦截原生备注弹窗...');
         
         // 拦截点击 inline-memo 元素的事件
         document.addEventListener('click', (e) => {
@@ -1276,7 +1256,6 @@ export class ToolbarHijacker {
             
             // 检查是否点击了备注元素
             if (target && target.getAttribute('data-type') === 'inline-memo') {
-                console.log('检测到备注元素点击，拦截原生弹窗');
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
@@ -1307,7 +1286,6 @@ export class ToolbarHijacker {
             // 检测是否为备注相关的弹窗
             window.prompt = (message?: string, defaultText?: string) => {
                 if (message && (message.includes('备注') || message.includes('memo') || message.includes('想法'))) {
-                    console.log('拦截了疑似备注的 prompt 弹窗');
                     return null; // 取消原生弹窗
                 }
                 return originalPrompt.call(window, message, defaultText);
