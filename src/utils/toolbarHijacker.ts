@@ -917,35 +917,8 @@ export class ToolbarHijacker {
             const processedHtml = this.convertHighlightSpansToMarkdown(modifiedHtml);
             console.log('[ToolbarHijacker] 处理后的HTML:', processedHtml);
             
-            // 提取原始 Markdown 的格式前缀（如 ###）
-            const lines = originalMarkdown.split('\n');
-            const contentLine = lines.find(line => !line.startsWith('{:') && line.trim());
-            
-            if (contentLine) {
-                // 提取格式前缀（如 ###, -, * 等）
-                const formatMatch = contentLine.match(/^(\s*#{1,6}\s*|\s*[-*+]\s*|\s*\d+\.\s*)/);
-                const formatPrefix = formatMatch ? formatMatch[1] : '';
-                
-                // 从处理后的HTML中提取纯文本内容（但保留HTML标签）
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = processedHtml;
-                const finalContent = tempDiv.innerHTML;
-                
-                // 构建新的内容行
-                const newContentLine = formatPrefix + finalContent;
-                console.log('[ToolbarHijacker] 最终内容行:', newContentLine);
-                
-                // 替换原内容行，保留其他行（如属性行）
-                const newLines = lines.map(line => {
-                    if (line === contentLine) {
-                        return newContentLine;
-                    }
-                    return line;
-                });
-                
-                return newLines.join('\n');
-            }
-            
+            // 直接返回处理后的HTML内容，不再尝试合并原始Markdown
+            // 这样可以避免重复内容的问题
             return processedHtml;
             
         } catch (error) {
