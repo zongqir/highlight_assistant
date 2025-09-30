@@ -2043,14 +2043,62 @@ export class ToolbarHijacker {
                 return;
             }
             
-            // 查找并移除高亮span
-            const spans = blockElement.querySelectorAll('span[data-type="text"]');
-            spans.forEach(span => {
-                if (span.textContent === selectedText) {
-                    const textNode = document.createTextNode(span.textContent || '');
-                    span.parentNode?.replaceChild(textNode, span);
+            // 使用 Range 来直接处理高亮删除
+            const startContainer = range.startContainer;
+            const endContainer = range.endContainer;
+            
+            // 如果选择范围跨越多个节点，需要特殊处理
+            if (startContainer === endContainer && startContainer.nodeType === Node.TEXT_NODE) {
+                // 单个文本节点的情况
+                const textNode = startContainer as Text;
+                const parent = textNode.parentElement;
+                
+                if (parent && parent.tagName === 'SPAN' && parent.getAttribute('data-type') === 'text') {
+                    // 如果文本节点在 highlight span 内，直接替换为文本节点
+                    const textContent = textNode.textContent || '';
+                    const newTextNode = document.createTextNode(textContent);
+                    parent.parentNode?.replaceChild(newTextNode, parent);
                 }
-            });
+            } else {
+                // 跨节点的情况，需要更复杂的处理
+                // 遍历选择范围内的所有节点
+                const walker = document.createTreeWalker(
+                    blockElement,
+                    NodeFilter.SHOW_ELEMENT,
+                    {
+                        acceptNode: (node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                const element = node as Element;
+                                if (element.tagName === 'SPAN' && element.getAttribute('data-type') === 'text') {
+                                    // 检查这个 span 是否在选择范围内
+                                    const spanRange = document.createRange();
+                                    spanRange.selectNodeContents(element);
+                                    
+                                    // 检查是否有重叠
+                                    if (range.compareBoundaryPoints(Range.START_TO_END, spanRange) > 0 &&
+                                        range.compareBoundaryPoints(Range.END_TO_START, spanRange) < 0) {
+                                        return NodeFilter.FILTER_ACCEPT;
+                                    }
+                                }
+                            }
+                            return NodeFilter.FILTER_SKIP;
+                        }
+                    }
+                );
+                
+                const spansToRemove: Element[] = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    spansToRemove.push(node as Element);
+                }
+                
+                // 移除找到的高亮 spans
+                spansToRemove.forEach(span => {
+                    const textContent = span.textContent || '';
+                    const textNode = document.createTextNode(textContent);
+                    span.parentNode?.replaceChild(textNode, span);
+                });
+            }
             
             // 保存到思源
             const newContent = await this.extractMarkdownFromBlock(blockElement);
@@ -2058,10 +2106,12 @@ export class ToolbarHijacker {
             
             if (updateResult.code === 0) {
                 console.log('✅ 已删除高亮');
+            } else {
+                console.log('❌ 删除高亮失败:', updateResult.msg);
             }
             
         } catch (error) {
-            // 静默处理错误
+            console.error('删除高亮时出错:', error);
         }
     }
     
