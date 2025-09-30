@@ -238,6 +238,49 @@
     }
 }
 
+/* 电脑版适配 */
+@media (min-width: 769px) {
+    .highlight-assistant-span {
+        padding: 2px 4px !important;
+        margin: 0 1px !important;
+        border-radius: 3px !important;
+    }
+    
+    .highlight-assistant-toolbar {
+        padding: 8px;
+        gap: 6px;
+        border-radius: 8px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+    
+    .highlight-assistant-toolbar-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+        border-radius: 6px;
+    }
+    
+    .highlight-with-comment::after {
+        font-size: 10px;
+        top: -4px;
+        right: -4px;
+        width: 14px;
+        height: 14px;
+    }
+    
+    /* 电脑版按钮悬停效果 */
+    .highlight-assistant-toolbar-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* 电脑版工具栏更精确的定位 */
+    .highlight-assistant-toolbar {
+        min-width: 200px;
+        max-width: 400px;
+    }
+}
+
 /* 动画效果 */
 .highlight-assistant-fade-in {
     animation: highlightFadeIn var(--animation-medium);
@@ -373,4 +416,52 @@
     cursor: pointer !important;
     user-select: text !important;
     transition: var(--animation-fast) !important;
+}
+
+/* 电脑版特殊优化 */
+@media (min-width: 769px) {
+    /* 电脑版高亮更精细的样式 */
+    .highlight-assistant-span {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* 电脑版工具栏按钮组 */
+    .highlight-assistant-toolbar .fn__flex {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* 电脑版分隔符 */
+    .keyboard__split {
+        width: 1px;
+        height: 20px;
+        background-color: var(--b3-theme-border);
+        margin: 0 4px;
+        opacity: 0.6;
+    }
+    
+    /* 电脑版按钮组样式 */
+    .highlight-assistant-toolbar .keyboard__action {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* 电脑版按钮点击效果 */
+    .highlight-assistant-toolbar .keyboard__action:active {
+        transform: scale(0.95);
+    }
+    
+    /* 电脑版备注输入框优化 */
+    .highlight-assistant-memo-dialog {
+        max-width: 500px;
+        width: 90vw;
+    }
+    
+    /* 电脑版备注输入框内容区域 */
+    .highlight-assistant-memo-dialog .content {
+        max-height: 300px;
+        overflow-y: auto;
+    }
 }

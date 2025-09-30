@@ -1,19 +1,20 @@
 # Highlight Assistant
 
-A highlight tool designed specifically for SiYuan mobile, providing WeChat Reading-style text highlighting and annotation features.
+A highlight tool designed for SiYuan mobile and desktop, providing WeChat Reading-style text highlighting and annotation features.
 
 ## ✨ Features
 
 - 🎨 **Multi-color Highlighting**: 4 color options (yellow, blue, green, pink)
 - 💭 **Smart Annotations**: Add personal notes to highlighted text
 - 📱 **Mobile Optimized**: Floating toolbar designed for SiYuan mobile
+- 💻 **Desktop Support**: Full support for desktop version in read-only mode
 - 🔄 **State Management**: Support for modifying and deleting existing highlights and annotations
 - 🌙 **Theme Adaptive**: Perfect adaptation to light and dark theme switching
 - ⚡ **Performance Optimized**: Lightweight implementation that doesn't affect editing experience
 
 ## 🚀 How to Use
 
-1. **Select Text**: Select any text in SiYuan mobile
+1. **Select Text**: Select any text in SiYuan (mobile or desktop)
 2. **Choose Color**: Click color buttons in the popup toolbar to highlight
 3. **Add Annotation**: Click the annotation button to add personal thoughts to highlighted text
 4. **Manage Highlights**: Click on already highlighted text to modify color or delete
@@ -21,8 +22,8 @@ A highlight tool designed specifically for SiYuan mobile, providing WeChat Readi
 ## 📋 System Requirements
 
 - SiYuan v3.2.1+
-- Mobile environment (iOS/Android/mobile browser)
-- Desktop version not currently supported
+- Mobile environment (iOS/Android/mobile browser) - Full support
+- Desktop environment (Windows/macOS/Linux) - Read-only mode support
 
 ## 🛠 Technical Features
 
@@ -55,6 +56,13 @@ pnpm run make-install
 ```
 
 ## 📝 Changelog
+
+### v1.1.0
+- ✅ Added desktop support for read-only mode
+- ✅ Enhanced platform detection (mobile/desktop)
+- ✅ Optimized UI for desktop environment
+- ✅ Improved button styling for different platforms
+- ✅ Added comprehensive testing tools
 
 ### v1.0.1
 - ✅ Fixed toolbar only working once issue

@@ -89,6 +89,33 @@ export class DOMUtils {
     }
 
     /**
+     * 检查是否在桌面端
+     */
+    static isDesktop(): boolean {
+        // 检查思源桌面端标识
+        const siyuanDesktop = document.querySelector('.fn__desktop') !== null;
+        // 检查屏幕宽度
+        const desktopWidth = window.innerWidth > 768;
+        // 检查非移动端用户代理
+        const desktopUA = !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        return siyuanDesktop || (desktopWidth && desktopUA);
+    }
+
+    /**
+     * 获取当前平台类型
+     */
+    static getPlatform(): 'mobile' | 'desktop' | 'unknown' {
+        if (this.isMobile()) {
+            return 'mobile';
+        } else if (this.isDesktop()) {
+            return 'desktop';
+        } else {
+            return 'unknown';
+        }
+    }
+
+    /**
      * 获取当前选择信息
      */
     static getSelectionInfo(): ISelectionInfo | null {
