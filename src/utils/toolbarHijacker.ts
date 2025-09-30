@@ -1947,6 +1947,28 @@ export class ToolbarHijacker {
             
             toolbar.appendChild(removeBtn);
             
+            // 添加评论按钮
+            const commentBtn = document.createElement('button');
+            commentBtn.style.cssText = `
+                width: 28px;
+                height: 28px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                background: #f8f9fa;
+                cursor: pointer;
+                font-size: 12px;
+                color: #666;
+            `;
+            commentBtn.textContent = '💭';
+            commentBtn.title = '添加备注';
+            
+            commentBtn.addEventListener('click', () => {
+                this.showCustomMemoDialogForRange(range);
+                this.hideCustomToolbar();
+            });
+            
+            toolbar.appendChild(commentBtn);
+            
             // 添加到页面
             document.body.appendChild(toolbar);
             
@@ -2070,6 +2092,173 @@ export class ToolbarHijacker {
         }
     }
     
+    /**
+     * 为自定义工具栏显示备注对话框
+     */
+    private showCustomMemoDialogForRange(range: Range): void {
+        const selectedText = range.toString().trim();
+        if (!selectedText) {
+            return;
+        }
+
+        // 创建对话框
+        const dialog = document.createElement('div');
+        dialog.className = 'highlight-assistant-memo-dialog';
+        dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--b3-theme-background, white);
+            border: 1px solid var(--b3-theme-border, #ddd);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 1000000;
+            min-width: 300px;
+            max-width: 500px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+
+        dialog.innerHTML = `
+            <div style="margin-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: var(--b3-theme-text, #333);">添加备注</h3>
+                <p style="margin: 0; font-size: 14px; color: var(--b3-theme-text, #666); background: #f5f5f5; padding: 8px; border-radius: 4px;">
+                    选中文本: "${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}"
+                </p>
+            </div>
+            <textarea 
+                placeholder="请输入备注内容..." 
+                style="
+                    width: 100%;
+                    height: 80px;
+                    padding: 10px;
+                    border: 1px solid var(--b3-theme-border, #ddd);
+                    border-radius: 4px;
+                    font-size: 14px;
+                    font-family: inherit;
+                    resize: vertical;
+                    box-sizing: border-box;
+                "
+            ></textarea>
+            <div style="margin-top: 15px; text-align: right;">
+                <button id="cancel-memo" style="
+                    margin-right: 10px;
+                    padding: 8px 16px;
+                    border: 1px solid var(--b3-theme-border, #ddd);
+                    border-radius: 4px;
+                    background: var(--b3-theme-background, white);
+                    cursor: pointer;
+                    font-size: 14px;
+                ">取消</button>
+                <button id="save-memo" style="
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    background: var(--b3-theme-primary, #007bff);
+                    color: white;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">保存</button>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // 聚焦到输入框
+        const textarea = dialog.querySelector('textarea') as HTMLTextAreaElement;
+        textarea.focus();
+
+        // 事件处理
+        const cancelBtn = dialog.querySelector('#cancel-memo') as HTMLButtonElement;
+        const saveBtn = dialog.querySelector('#save-memo') as HTMLButtonElement;
+
+        const closeDialog = () => {
+            if (dialog.parentNode) {
+                dialog.parentNode.removeChild(dialog);
+            }
+        };
+
+        cancelBtn.addEventListener('click', closeDialog);
+        
+        saveBtn.addEventListener('click', async () => {
+            const memoText = textarea.value.trim();
+            if (memoText) {
+                await this.addMemoToRange(range, memoText);
+            }
+            closeDialog();
+        });
+
+        // 点击外部关闭
+        const handleClickOutside = (e: Event) => {
+            if (!dialog.contains(e.target as Node)) {
+                closeDialog();
+                document.removeEventListener('click', handleClickOutside);
+            }
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', handleClickOutside);
+        }, 100);
+
+        // ESC键关闭
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                closeDialog();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+    }
+
+    /**
+     * 为范围添加备注
+     */
+    private async addMemoToRange(range: Range, memoText: string): Promise<void> {
+        try {
+            const selectedText = range.toString().trim();
+            if (!selectedText) return;
+
+            // 找到块元素
+            const blockElement = this.findBlockElement(range.startContainer);
+            if (!blockElement) {
+                return;
+            }
+
+            const blockId = blockElement.getAttribute("data-node-id");
+            if (!blockId) {
+                return;
+            }
+
+            // 创建备注span
+            const memoSpan = document.createElement("span");
+            memoSpan.setAttribute("data-type", "inline-memo");
+            memoSpan.setAttribute("data-inline-memo-content", memoText);
+            memoSpan.style.cssText = `
+                background: #fff3cd;
+                border-bottom: 2px solid #ffc107;
+                cursor: pointer;
+                position: relative;
+            `;
+            memoSpan.textContent = selectedText;
+
+            // 替换选中内容
+            range.deleteContents();
+            range.insertNode(memoSpan);
+
+            // 保存到思源
+            const newContent = await this.extractMarkdownFromBlock(blockElement);
+            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+
+            if (updateResult.code === 0) {
+                console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
+            }
+
+        } catch (error) {
+            console.error('添加备注出错:', error);
+        }
+    }
+
     /**
      * 获取劫持状态
      */
