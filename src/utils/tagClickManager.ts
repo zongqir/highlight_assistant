@@ -69,30 +69,95 @@ export class TagClickManager {
      * 设置标签点击监听
      */
     private setupTagClickListener(): void {
-        // 监听文档点击事件
+        // 监听文档点击事件（捕获阶段）- 限制在编辑区域
         document.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
+            
+            // 首先检查是否在编辑区域内
+            if (!this.isInEditArea(target)) {
+                return; // 不在编辑区域，直接返回
+            }
             
             // 查找标签元素
             const tagElement = this.findTagElement(target);
             
             if (tagElement) {
-                this.debugLog('[TagClickManager] 🏷️ 检测到标签点击');
+                this.debugLog('[TagClickManager] 🏷️ 检测到编辑区域内标签点击');
                 
-                // 阻止默认行为（原生搜索）
+                // 立即阻止所有传播
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
                 
                 // 获取标签内容
                 const tagText = tagElement.textContent?.trim() || '';
                 this.debugLog('[TagClickManager] 标签内容:', tagText);
                 
-                // 显示自定义搜索面板
-                this.showTagSearchPanel(tagText);
+                // 延迟执行，确保阻止了原生处理
+                setTimeout(() => {
+                    this.showTagSearchPanel(tagText);
+                }, 0);
+                
+                return false; // 额外确保阻止默认行为
             }
         }, true);
         
-        console.log('[TagClickManager] ✅ 标签点击监听已注册');
+        // 添加mousedown事件监听，提前拦截 - 同样限制在编辑区域
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target as HTMLElement;
+            
+            // 检查是否在编辑区域内
+            if (!this.isInEditArea(target)) {
+                return;
+            }
+            
+            const tagElement = this.findTagElement(target);
+            
+            if (tagElement) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        }, true);
+        
+        console.log('[TagClickManager] ✅ 标签点击监听已注册（限制在编辑区域）');
+    }
+    
+    /**
+     * 检查元素是否在编辑区域内
+     */
+    private isInEditArea(element: HTMLElement): boolean {
+        let current: HTMLElement | null = element;
+        let depth = 0;
+        const maxDepth = 15;
+        
+        while (current && depth < maxDepth) {
+            const className = current.className || '';
+            const id = current.id || '';
+            
+            // 检查是否在编辑区域容器内
+            if (className.includes('protyle-wysiwyg') ||           // 编辑区域
+                className.includes('protyle-content') ||          // 内容区域  
+                className.includes('protyle') && className.includes('fn__flex-1')) { // 编辑器主容器
+                return true;
+            }
+            
+            // 排除系统UI区域
+            if (className.includes('toolbar') ||                  // 工具栏
+                className.includes('dock') ||                     // dock面板
+                className.includes('fn__flex-shrink') ||          // 侧边栏
+                className.includes('layout__wnd') ||              // 窗口边框
+                className.includes('block__icon') ||              // 块图标
+                id.includes('toolbar') ||                        // ID中包含toolbar
+                id.includes('dock')) {                           // ID中包含dock
+                return false;
+            }
+            
+            current = current.parentElement;
+            depth++;
+        }
+        
+        return false; // 无法确定时，默认不处理
     }
     
     /**
@@ -101,17 +166,23 @@ export class TagClickManager {
     private findTagElement(element: HTMLElement): HTMLElement | null {
         let current: HTMLElement | null = element;
         let depth = 0;
-        const maxDepth = 3;
+        const maxDepth = 6; // 减少查找深度，更精确
         
         while (current && depth < maxDepth) {
             const dataType = current.getAttribute('data-type');
+            const className = current.className || '';
+            const textContent = current.textContent?.trim() || '';
             
-            // 检查是否是标签元素
-            if (dataType?.includes('tag')) {
-                this.debugLog('[TagClickManager] 找到标签元素:', {
+            // 更严格的标签识别条件
+            const isDocumentTag = this.isDocumentTag(current, dataType, className, textContent);
+            
+            if (isDocumentTag) {
+                this.debugLog('[TagClickManager] 找到文档标签元素:', {
                     tagName: current.tagName,
                     dataType,
-                    textContent: current.textContent
+                    className,
+                    textContent: textContent.substring(0, 50),
+                    depth
                 });
                 return current;
             }
@@ -121,6 +192,45 @@ export class TagClickManager {
         }
         
         return null;
+    }
+    
+    /**
+     * 判断是否是文档中的真实标签（而不是系统UI中的标签）
+     */
+    private isDocumentTag(element: HTMLElement, dataType: string | null, className: string, textContent: string): boolean {
+        // 1. 最可靠：SiYuan的标签data-type
+        if (dataType === 'tag') {
+            return true;
+        }
+        
+        // 2. 排除明显的系统UI元素
+        if (className.includes('toolbar') ||
+            className.includes('dock') ||
+            className.includes('menu') ||
+            className.includes('dialog') ||
+            className.includes('breadcrumb') ||
+            className.includes('tab')) {
+            return false;
+        }
+        
+        // 3. 检查#标签#格式（必须是SPAN且格式正确）
+        if (element.tagName === 'SPAN' && textContent.match(/^#[^#\s<>]+#$/)) {
+            // 进一步验证：检查父容器是否在文档内容中
+            const parentContainer = element.closest('.protyle-wysiwyg, .protyle-content');
+            if (parentContainer) {
+                return true;
+            }
+        }
+        
+        // 4. 其他className包含'tag'的情况需要更严格验证
+        if (className.includes('tag')) {
+            // 确保不是系统UI中的标签样式
+            if (element.closest('.protyle-wysiwyg, .protyle-content')) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -254,7 +364,7 @@ export class TagClickManager {
             height: 100vh;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(4px);
-            z-index: 99999;
+            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -716,7 +826,7 @@ export class TagClickManager {
             height: 100vh;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(4px);
-            z-index: 99999;
+            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -863,7 +973,7 @@ export class TagClickManager {
             this.currentScope = newScope;
             
             // 清理当前面板
-            const overlay = header.closest('[style*="z-index: 99999"]') as HTMLElement;
+            const overlay = header.closest('[style*="z-index: 1000"]') as HTMLElement;
             if (overlay && overlay.parentNode) {
                 overlay.parentNode.removeChild(overlay);
             }

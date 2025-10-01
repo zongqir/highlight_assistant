@@ -188,14 +188,10 @@ export class TagResultRenderer {
             <div style="
                 font-size: 11px; 
                 color: var(--b3-theme-on-surface-light); 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center;
+                text-align: right;
                 white-space: nowrap;
-                overflow: hidden;
             ">
-                <span style="overflow: hidden; text-overflow: ellipsis; min-width: 0;">${block.id}</span>
-                <span style="flex-shrink: 0; margin-left: 8px;">${timeDisplay}</span>
+                ${timeDisplay}
             </div>
         `;
         
