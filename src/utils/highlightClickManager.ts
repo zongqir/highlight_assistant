@@ -153,6 +153,16 @@ export class HighlightClickManager {
             return;
         }
 
+        // 🔒 检查文档是否处于锁定编辑状态（只读模式）
+        const isDocReadonly = this.checkDocumentReadonly();
+        
+        if (!isDocReadonly) {
+            console.log('[HighlightClickManager] ⛔ 文档未锁定（可编辑状态），不显示快速删除对话框');
+            return;
+        }
+        
+        console.log('[HighlightClickManager] ✅ 文档已锁定（只读状态），显示快速删除对话框');
+
         const selectedText = highlightElement.textContent || '';
         const backgroundColor = highlightElement.style.backgroundColor;
         
@@ -167,6 +177,46 @@ export class HighlightClickManager {
                 }
             );
         }
+    }
+    
+    /**
+     * 检查文档是否处于只读状态（锁定编辑）
+     */
+    private checkDocumentReadonly(): boolean {
+        // 查找面包屑锁按钮
+        const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+        
+        if (!readonlyBtn) {
+            this.debugLog('[HighlightClickManager] ⚠️ 未找到面包屑锁按钮');
+            return false;
+        }
+        
+        const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
+        const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
+        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+        
+        // 判断是否解锁状态
+        // 解锁状态的特征：
+        // 1. data-subtype="unlock" → 已解锁（可编辑）
+        // 2. aria-label 包含 "取消" → 已解锁（"取消临时解锁"）
+        // 3. 图标是 #iconUnlock → 已解锁
+        const isUnlocked = 
+            dataSubtype === 'unlock' || 
+            ariaLabel.includes('取消') ||
+            iconHref === '#iconUnlock';
+        
+        const isReadonly = !isUnlocked;
+        
+        this.debugLog('[HighlightClickManager] 🔐 文档状态检查:', {
+            '找到按钮': true,
+            'aria-label': ariaLabel,
+            'data-subtype': dataSubtype,
+            '图标href': iconHref,
+            '是否解锁': isUnlocked ? '✏️ 是（可编辑）' : '🔒 否（已锁定）',
+            '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+        });
+        
+        return isReadonly;
     }
     
     /**
