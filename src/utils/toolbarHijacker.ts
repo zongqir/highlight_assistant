@@ -57,7 +57,7 @@ export class ToolbarHijacker {
         console.log('[ToolbarHijacker] ✅ TagClickManager 已创建');
         
         // 初始化闪卡快切管理器
-        this.flashcardQuickSwitchManager = new FlashcardQuickSwitchManager('data/storage', {
+        this.flashcardQuickSwitchManager = new FlashcardQuickSwitchManager({
             enabled: true,
             maxHistory: 10,
             ballPosition: { x: 20, y: 100 },
@@ -2124,7 +2124,7 @@ export class ToolbarHijacker {
 
         console.log('✅ 删除自定义高亮完成');
     }
-    
+
     // 已移除旧的 restoreReadonlyModeEnhanced 方法，现在使用统一的操作包装器
 
     /**
