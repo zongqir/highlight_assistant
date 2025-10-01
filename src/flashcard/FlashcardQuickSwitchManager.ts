@@ -49,6 +49,7 @@ export class FlashcardQuickSwitchManager {
             
             // 设置UI管理器回调
             this.uiManager.setFilterSwitchCallback(this.handleFilterSwitch.bind(this));
+            this.uiManager.setOpenFlashcardCallback(this.openFlashcardReview.bind(this));
             
             // 设置监听器回调
             this.monitor.setFilterCallback(this.handleFilterEvent.bind(this));
@@ -87,7 +88,10 @@ export class FlashcardQuickSwitchManager {
             this.monitor.startMonitoring();
             this.isEnabled = true;
             
-            console.log('[FlashcardQuickSwitchManager] 功能已启用');
+            // 立即显示小圆球（无论是否有闪卡面板）
+            this.showQuickSwitchBallAlways();
+            
+            console.log('[FlashcardQuickSwitchManager] 功能已启用，小圆球已显示');
 
         } catch (error) {
             console.error('[FlashcardQuickSwitchManager] 启用功能失败:', error);
@@ -349,14 +353,42 @@ export class FlashcardQuickSwitchManager {
     }
 
     /**
+     * 始终显示小圆球（无论是否有闪卡面板）
+     */
+    private showQuickSwitchBallAlways(): void {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 显示小圆球（智能交互模式）');
+            
+            // 创建一个虚拟的面板引用用于位置定位，如果没有真实面板的话
+            let referenceElement: Element = document.body;
+            
+            // 尝试找到现有的闪卡面板作为参考
+            const existingPanel = document.querySelector('[data-key="dialog-opencard"], [data-key="dialog-viewcards"], .card__main');
+            if (existingPanel) {
+                referenceElement = existingPanel;
+                console.log('[FlashcardQuickSwitchManager] 找到现有闪卡面板作为参考位置');
+            } else {
+                console.log('[FlashcardQuickSwitchManager] 未找到闪卡面板，将小圆球定位到页面右侧');
+            }
+            
+            this.uiManager.showQuickSwitchBall(referenceElement);
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 显示小圆球失败:', error);
+        }
+    }
+
+    /**
      * 处理面板检测
      */
     private handlePanelDetected(panelInfo: FlashcardPanelInfo): void {
         try {
             console.log(`[FlashcardQuickSwitchManager] 检测到闪卡面板: ${panelInfo.type}`);
 
-            // 显示快切小圆球
+            // 如果小圆球还没显示，则显示它
+            // 注意：由于我们现在在启用时就显示小圆球，这里主要是确保位置更新
             if (this.config.enabled && this.isEnabled) {
+                // 更新小圆球的位置参考
                 this.uiManager.showQuickSwitchBall(panelInfo.panel);
             }
 
@@ -743,7 +775,62 @@ export class FlashcardQuickSwitchManager {
         }
     }
 
-
+    /**
+     * 打开闪卡复习
+     */
+    private openFlashcardReview(): void {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 打开闪卡复习');
+            
+            // 使用正确的Alt+0快捷键（基于思源源码分析）
+            const altZeroEvent = new KeyboardEvent('keydown', {
+                key: '0',
+                code: 'Digit0',
+                keyCode: 48,
+                altKey: true,
+                bubbles: true,
+                cancelable: true
+            });
+            
+            document.dispatchEvent(altZeroEvent);
+            console.log('[FlashcardQuickSwitchManager] Alt+0快捷键已发送，正在打开闪卡复习');
+            
+            // 备选方案：如果Alt+0没有效果，才尝试菜单点击
+            setTimeout(() => {
+                // 检查是否已经有闪卡面板打开了
+                const hasPanel = document.querySelector('[data-key="dialog-opencard"], [data-key="dialog-viewcards"], .card__main');
+                
+                if (!hasPanel) {
+                    console.log('[FlashcardQuickSwitchManager] Alt+0未生效，尝试菜单点击');
+                    
+                    const menuItems = document.querySelectorAll('.b3-menu__item');
+                    for (const menuItem of menuItems) {
+                        const text = menuItem.textContent?.trim() || '';
+                        const menuId = menuItem.getAttribute('id');
+                        
+                        if (menuId === 'spaceRepetition' || 
+                            text.includes('间隔重复') || 
+                            text.includes('Space Repetition') ||
+                            text.includes('复习')) {
+                            
+                            console.log(`[FlashcardQuickSwitchManager] 找到间隔重复菜单: "${text}"`);
+                            menuItem.dispatchEvent(new MouseEvent('click', { 
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            }));
+                            break;
+                        }
+                    }
+                } else {
+                    console.log('[FlashcardQuickSwitchManager] Alt+0成功，闪卡面板已打开');
+                }
+            }, 500); // 增加延迟，确保Alt+0有足够时间生效
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 打开闪卡复习失败:', error);
+        }
+    }
 
     /**
      * 显示切换通知

@@ -20,6 +20,9 @@ export class UIManager {
         elementStartY: number;
     } = { isDragging: false, startX: 0, startY: 0, elementStartX: 0, elementStartY: 0 };
 
+    // 闪卡面板检测回调
+    private onOpenFlashcard?: () => void;
+
     // 事件处理器
     private onFilterSwitch?: (filter: FlashcardFilter) => void;
     private eventListeners: Array<() => void> = [];
@@ -36,10 +39,43 @@ export class UIManager {
     }
 
     /**
+     * 检测当前是否有活动的闪卡面板
+     */
+    private hasActiveFlashcardPanel(): boolean {
+        // 检查多种可能的闪卡面板标识
+        const flashcardSelectors = [
+            '[data-key="dialog-opencard"]',
+            '[data-key="dialog-viewcards"]',
+            '.card__main',
+            '.b3-dialog--open:has([data-type="filter"])',
+            '.dialog:has(.protyle-content--transition)',
+            '.b3-dialog:has(.card)',
+        ];
+
+        for (const selector of flashcardSelectors) {
+            const panels = document.querySelectorAll(selector);
+            if (panels.length > 0) {
+                console.log(`[UIManager] 发现闪卡面板: ${selector} (${panels.length}个)`);
+                return true;
+            }
+        }
+
+        console.log('[UIManager] 未发现活动的闪卡面板');
+        return false;
+    }
+
+    /**
      * 设置筛选切换回调
      */
     setFilterSwitchCallback(callback: (filter: FlashcardFilter) => void): void {
         this.onFilterSwitch = callback;
+    }
+
+    /**
+     * 设置打开闪卡回调
+     */
+    setOpenFlashcardCallback(callback: () => void): void {
+        this.onOpenFlashcard = callback;
     }
 
     /**
@@ -218,16 +254,29 @@ export class UIManager {
             }
         });
 
-        // 点击事件
+        // 点击事件 - 智能交互逻辑
         ball.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             
             if (!this.dragData.isDragging) {
-                if (this.state.panelVisible) {
-                    this.hideHistoryPanel();
+                // 检测当前是否有闪卡面板打开
+                const hasFlashcardPanel = this.hasActiveFlashcardPanel();
+                
+                if (!hasFlashcardPanel) {
+                    // 没有闪卡面板 → 打开闪卡复习
+                    console.log('[UIManager] 未检测到闪卡面板，自动打开闪卡复习');
+                    if (this.onOpenFlashcard) {
+                        this.onOpenFlashcard();
+                    }
                 } else {
-                    this.showHistoryPanel();
+                    // 有闪卡面板 → 显示/隐藏快切面板
+                    console.log('[UIManager] 检测到闪卡面板，切换快切面板显示');
+                    if (this.state.panelVisible) {
+                        this.hideHistoryPanel();
+                    } else {
+                        this.showHistoryPanel();
+                    }
                 }
             }
         });
