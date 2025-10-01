@@ -23,35 +23,15 @@ export class ToolbarHijacker {
             this.interceptNativeMemo();
         }
         
-        // 设置API引用
+        // 保留 API 用于备注功能
         this.api = {
-            updateBlock: async (blockId: string, data: string, dataType: string) => {
-                const payload = {
-                    id: blockId,
-                    data: data,
-                    dataType: dataType
-                };
-                
-                
-                const response = await fetch('/api/block/updateBlock', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                return await response.json();
-            },
             getBlockKramdown: async (blockId: string) => {
-                const payload = {
-                    id: blockId
-                };
-                
+                const payload = { id: blockId };
                 const response = await fetch('/api/block/getBlockKramdown', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
                 return await response.json();
             }
         };
@@ -840,81 +820,44 @@ export class ToolbarHijacker {
     }
 
     /**
-     * 应用高亮 - 按照案例代码实现
+     * 应用高亮 - 使用思源原生 setInlineMark 方法
      */
     private async applyHighlight(protyle: any, range: Range, nodeElement: Element, colorConfig: {name: string, color: string}): Promise<void> {
         try {
-            // 添加空值检查
-            if (!colorConfig) {
-                console.error('applyHighlight: colorConfig is null or undefined');
+            // 检查参数
+            if (!colorConfig || !protyle || !range) {
+                console.error('applyHighlight: 参数缺失', { colorConfig, protyle, range });
                 return;
             }
             
-            const selectedText = range.toString();
-            if (!selectedText) return;
-
-            // 找到真正的块元素
-            const blockElement = this.findBlockElement(range.startContainer);
-            if (!blockElement) {
-                console.error("未找到块元素");
+            const selectedText = range.toString().trim();
+            if (!selectedText) {
+                console.warn('没有选中文本');
                 return;
             }
 
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
-                console.error("未找到块ID");
+            // 检查 protyle.toolbar 和 setInlineMark 方法是否存在
+            if (!protyle.toolbar || typeof protyle.toolbar.setInlineMark !== 'function') {
+                console.error('protyle.toolbar.setInlineMark 不可用');
                 return;
             }
 
-            // 保存原始内容用于对比 - 关键：使用innerHTML而不是outerHTML
-            const oldContent = blockElement.innerHTML;
+            console.log(`✨ 正在应用${colorConfig.name}高亮...`);
 
-            // 创建简单的高亮span元素
-            const highlightSpan = document.createElement("span");
-            highlightSpan.setAttribute("data-type", "text");
-            highlightSpan.style.backgroundColor = colorConfig.color;
-            highlightSpan.textContent = selectedText;
-            
-            // DOM操作 - 替换选中内容
-            range.deleteContents();
-            range.insertNode(highlightSpan);
-            
+            // ✅ 核心修改：直接调用思源原生的 setInlineMark 方法
+            // 这会自动处理：
+            // 1. 创建符合规范的 <span data-type="text" style="...">
+            // 2. 生成 IAL 属性
+            // 3. 调用 /api/transactions（包含 doOperations 和 undoOperations）
+            // 4. 更新数据库（blocks、spans、attributes 三个表）
+            // 5. 支持 Ctrl+Z 撤销
+            // 6. 处理所有边界情况（表格、代码块、零宽字符等）
+            protyle.toolbar.setInlineMark(protyle, "text", "range", {
+                type: "backgroundColor",
+                color: colorConfig.color
+            });
 
-            // 更新时间戳
-            const timestamp = new Date().getTime().toString().substring(0, 10);
-            blockElement.setAttribute("updated", timestamp);
-
-            // 关键修正：保存块的innerHTML内容，不是outerHTML
-            const newContent = blockElement.innerHTML;
-
-            // 检查是否真的有变化
-            if (newContent === oldContent) {
-                return;
-            }
-
-            // 提取markdown格式内容
-            const markdownContent = await this.extractMarkdownFromBlock(blockElement);
-
-            // 使用 updateBlock API 保存 - 保存markdown内容
-            const updateResult = await this.api.updateBlock(blockId, markdownContent, "markdown");
-
-            if (updateResult.code === 0) {
-                console.log(`✅ 已应用${colorConfig.name}高亮`);
-                
-                // 打印界面显示效果
-                setTimeout(() => {
-                    this.printDisplayEffect(blockId);
-                }, 200);
-                
-                // 恢复只读状态
-                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
-            } else {
-                console.error("❌ 高亮失败:", updateResult.msg);
-                this.restoreOriginalHTML(blockId, oldContent);
-            }
-
-            this.hideToolbar(toolbar);
-            this.clearSelection();
+            console.log(`✅ 已应用${colorConfig.name}高亮`);
 
         } catch (error) {
             console.error("高亮功能出错:", error);
@@ -922,23 +865,33 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 移除高亮格式 - 调用统一的核心删除逻辑
+     * 移除高亮格式 - 使用思源原生方法
      */
     private async removeHighlight(protyle: any, range: Range, nodeElement: Element): Promise<void> {
         try {
-            const success = await this.removeHighlightCore(range);
-            
-            if (success) {
-                // 恢复只读状态
-                const blockElement = this.findBlockElement(range.startContainer);
-                const blockId = blockElement?.getAttribute("data-node-id");
-                if (blockId) {
-                    setTimeout(() => this.restoreReadOnlyState(blockId), 100);
-                }
-                
-                this.hideToolbar(toolbar);
-                this.clearSelection();
+            const selectedText = range.toString().trim();
+            if (!selectedText) {
+                console.warn('没有选中文本');
+                return;
             }
+
+            // 检查 protyle.toolbar 是否存在
+            if (!protyle || !protyle.toolbar) {
+                console.error('protyle.toolbar 不可用');
+                return;
+            }
+
+            console.log('🗑️ 正在移除高亮...');
+
+            // ✅ 使用思源原生方法移除高亮
+            // 方法：将背景色设置为空/透明来移除高亮效果
+            protyle.toolbar.setInlineMark(protyle, "text", "range", {
+                type: "backgroundColor",
+                color: "" // 空字符串表示移除背景色
+            });
+
+            console.log('✅ 已移除高亮');
+
         } catch (error) {
             console.error('❌ 移除高亮出错:', error);
         }
@@ -979,6 +932,9 @@ export class ToolbarHijacker {
     
     /**
      * 从块元素提取markdown内容，并合并高亮修改
+     * 
+     * ⚠️ 遗留代码：此方法仅用于备注功能，高亮功能已改用思源原生API
+     * TODO: 备注功能也应该改用思源原生的 transactions API
      */
     private async extractMarkdownFromBlock(blockElement: HTMLElement): Promise<string> {
         try {
@@ -2374,130 +2330,74 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 应用自定义高亮
+     * 应用自定义高亮 - 使用思源原生方法
      */
     private async applyCustomHighlight(range: Range, color: {name: string, bg: string}): Promise<void> {
         try {
-            const selectedText = range.toString();
+            const selectedText = range.toString().trim();
             if (!selectedText) return;
             
-            // 找到块元素
-            const blockElement = this.findBlockElement(range.startContainer);
-            if (!blockElement) {
+            // 获取当前编辑器的protyle对象
+            const editors = getAllEditor();
+            if (editors.length === 0) {
+                console.warn('没有可用的编辑器');
                 return;
             }
             
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
+            const currentEditor = editors[0];
+            if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
+                console.warn('编辑器toolbar不可用');
                 return;
             }
-            
-            // 创建高亮span
-            const highlightSpan = document.createElement("span");
-            highlightSpan.setAttribute("data-type", "text");
-            highlightSpan.style.backgroundColor = color.bg;
-            highlightSpan.textContent = selectedText;
-            
-            // 替换选中内容
-            range.deleteContents();
-            range.insertNode(highlightSpan);
-            
-            // 保存到思源
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-            
-            if (updateResult.code === 0) {
-                console.log(`✅ 已应用${color.name}高亮`);
-            }
+
+            console.log(`✨ 应用${color.name}高亮...`);
+
+            // ✅ 使用思源原生方法
+            currentEditor.protyle.toolbar.setInlineMark(currentEditor.protyle, "text", "range", {
+                type: "backgroundColor",
+                color: color.bg
+            });
+
+            console.log(`✅ 已应用${color.name}高亮`);
             
         } catch (error) {
-            // 静默处理错误
+            console.error('应用自定义高亮出错:', error);
         }
     }
     
     /**
-     * 删除自定义高亮 - 调用统一的核心删除逻辑
+     * 删除自定义高亮 - 使用思源原生方法
      */
     private async removeCustomHighlight(range: Range): Promise<void> {
-        await this.removeHighlightCore(range);
-    }
-    
-    /**
-     * 统一的高亮删除核心逻辑
-     */
-    private async removeHighlightCore(range: Range): Promise<boolean> {
         try {
-            const selectedText = range.toString();
-            if (!selectedText) return false;
-            
-            // 找到块元素
-            const blockElement = this.findBlockElement(range.startContainer);
-            if (!blockElement) {
-                return false;
-            }
-            
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
-                return false;
-            }
-            
-            // 保存原始内容
-            const oldContent = blockElement.innerHTML;
-            
-            // 检查选中的内容是否包含高亮span
-            const tempRange = range.cloneRange();
-            const fragment = tempRange.cloneContents();
-            const hasHighlight = fragment.querySelector('span[data-type="text"]');
-            
-            if (hasHighlight) {
-                // 移除高亮：将span替换为纯文本
-                const walker = document.createTreeWalker(
-                    range.commonAncestorContainer,
-                    NodeFilter.SHOW_ELEMENT,
-                    {
-                        acceptNode: (node) => {
-                            return (node as Element).tagName === 'SPAN' && 
-                                   (node as Element).getAttribute('data-type') === 'text' 
-                                   ? NodeFilter.FILTER_ACCEPT 
-                                   : NodeFilter.FILTER_SKIP;
-                        }
-                    }
-                );
+            const selectedText = range.toString().trim();
+            if (!selectedText) return;
 
-                const spansToRemove: Element[] = [];
-                let node;
-                while (node = walker.nextNode()) {
-                    spansToRemove.push(node as Element);
-                }
+            // 获取当前编辑器的protyle对象
+            const editors = getAllEditor();
+            if (editors.length === 0) {
+                console.warn('没有可用的编辑器');
+                return;
+            }
+            
+            const currentEditor = editors[0];
+            if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
+                console.warn('编辑器toolbar不可用');
+                return;
+            }
 
-                // 移除所有高亮span，保留文本内容
-                spansToRemove.forEach(span => {
-                    const textNode = document.createTextNode(span.textContent || '');
-                    span.parentNode?.replaceChild(textNode, span);
-                });
-            }
-            
-            // 更新时间戳
-            const timestamp = new Date().getTime().toString().substring(0, 10);
-            blockElement.setAttribute("updated", timestamp);
-            
-            // 保存到思源
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-            
-            if (updateResult.code === 0) {
-                console.log('✅ 已删除高亮');
-                return true;
-            } else {
-                console.log('❌ 删除高亮失败:', updateResult.msg);
-                // 恢复原始内容
-                blockElement.innerHTML = oldContent;
-                return false;
-            }
-            
+            console.log('🗑️ 删除高亮...');
+
+            // ✅ 使用思源原生方法移除高亮
+            currentEditor.protyle.toolbar.setInlineMark(currentEditor.protyle, "text", "range", {
+                type: "backgroundColor",
+                color: "" // 空字符串表示移除背景色
+            });
+
+            console.log('✅ 已删除高亮');
+
         } catch (error) {
             console.error('删除高亮时出错:', error);
-            return false;
         }
     }
     
