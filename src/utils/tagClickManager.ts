@@ -132,8 +132,9 @@ export class TagClickManager {
         const maxDepth = 15;
         
         while (current && depth < maxDepth) {
-            const className = current.className || '';
-            const id = current.id || '';
+            // 确保className和id都是字符串类型
+            const className = String(current.className || '');
+            const id = String(current.id || '');
             
             // 检查是否在编辑区域容器内
             if (className.includes('protyle-wysiwyg') ||           // 编辑区域
@@ -170,7 +171,7 @@ export class TagClickManager {
         
         while (current && depth < maxDepth) {
             const dataType = current.getAttribute('data-type');
-            const className = current.className || '';
+            const className = String(current.className || '');
             const textContent = current.textContent?.trim() || '';
             
             // 更严格的标签识别条件
