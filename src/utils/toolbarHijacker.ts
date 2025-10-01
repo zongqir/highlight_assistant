@@ -31,7 +31,6 @@ export class ToolbarHijacker {
     private buttonFactory: ToolbarButtonFactory;
     private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
-    private recheckInterval: number | null = null; // 定期重新检查劫持状态
     private isInitialized: boolean = false; // 🔑 添加初始化完成标记
     
     constructor(isMobile: boolean = false, isDesktop: boolean = false) {
@@ -156,11 +155,11 @@ export class ToolbarHijacker {
         // 同时添加鼠标选择监听作为备用方案（使用 customToolbarManager）
         this.customToolbarManager.setupMouseSelectionListener();
         
-        // 🔄 启动定期检查，确保劫持持续有效
-        this.startRecheckInterval();
-        
         // 🎯 设置tab切换监听器，解决编辑状态识别问题
         this.setupTabSwitchListener();
+        
+        // 🎯 设置锁按钮点击监听器，实时响应状态变化
+        this.setupReadonlyButtonListener();
         
         // 🔑 初始化公共操作包装器
         operationWrapper.initialize();
@@ -180,9 +179,6 @@ export class ToolbarHijacker {
             return;
         }
         
-        // 停止定期检查
-        this.stopRecheckInterval();
-        
         try {
             const editors = getAllEditor();
             editors.forEach(editor => {
@@ -199,48 +195,6 @@ export class ToolbarHijacker {
             
         } catch (error) {
             // 静默处理错误
-        }
-    }
-    
-    /**
-     * 启动定期检查，确保劫持持续有效
-     */
-    private startRecheckInterval(): void {
-        console.log('[ToolbarHijacker] 🔄 启动定期检查（每3秒检查一次劫持状态）');
-        
-        // 每3秒检查一次
-        this.recheckInterval = window.setInterval(() => {
-            const editors = getAllEditor();
-            let needReHijack = false;
-            
-            editors.forEach((editor) => {
-                if (editor.protyle && editor.protyle.toolbar && editor.protyle.toolbar.showContent) {
-                    // 检查是否是我们劫持的方法（通过检查函数内容）
-                    const funcStr = editor.protyle.toolbar.showContent.toString();
-                    
-                    // 如果不包含我们的标记，说明被覆盖了
-                    if (!funcStr.includes('ToolbarHijacker') && !funcStr.includes('工具栏 showContent 被触发')) {
-                        console.warn('[ToolbarHijacker] ⚠️ 检测到劫持失效，准备重新劫持...');
-                        needReHijack = true;
-                    }
-                }
-            });
-            
-            if (needReHijack) {
-                console.log('[ToolbarHijacker] 🔄 重新执行劫持...');
-                this.performHijack();
-            }
-        }, 3000);
-    }
-    
-    /**
-     * 停止定期检查
-     */
-    private stopRecheckInterval(): void {
-        if (this.recheckInterval !== null) {
-            console.log('[ToolbarHijacker] 🛑 停止定期检查');
-            clearInterval(this.recheckInterval);
-            this.recheckInterval = null;
         }
     }
     
@@ -2160,6 +2114,31 @@ export class ToolbarHijacker {
      */
     public getTagClickManager(): any {
         return this.tagClickManager;
+    }
+    
+    /**
+     * 设置锁按钮点击监听器，实时响应用户的锁定/解锁操作
+     * 修复：用事件驱动代替愚蠢的定时轮询
+     */
+    private setupReadonlyButtonListener(): void {
+        console.log('[ToolbarHijacker] 🔒 设置锁按钮点击监听器，实时响应状态变化...');
+        
+        // 监听所有锁按钮的点击事件
+        document.addEventListener('click', (event) => {
+            const target = event.target as HTMLElement;
+            
+            // 检查是否点击了锁按钮
+            if (target.closest('button[data-type="readonly"]')) {
+                console.log('[ToolbarHijacker] 🔒 检测到锁按钮点击，延迟刷新状态...');
+                
+                // 延迟一下让按钮状态更新完成
+                setTimeout(() => {
+                    this.refreshEditingStateCache();
+                }, 100);
+            }
+        });
+        
+        console.log('[ToolbarHijacker] ✅ 锁按钮点击监听器已设置');
     }
     
     /**
