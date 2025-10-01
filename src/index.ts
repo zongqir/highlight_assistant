@@ -48,9 +48,9 @@ export default class HighlightAssistantPlugin extends Plugin {
     onLayoutReady() {
         // 在 onLayoutReady 中启动工具栏劫持（确保编辑器完全加载）
         if ((this.isMobile || this.isDesktop) && this.toolbarHijacker) {
-            setTimeout(() => {
+            setTimeout(async () => {
                 console.log('[Plugin] 在 onLayoutReady 中启动工具栏劫持...');
-                this.toolbarHijacker.hijack();
+                await this.toolbarHijacker.hijack();
                 
                 // 静默确认劫持状态（仅在控制台记录）
                 setTimeout(() => {

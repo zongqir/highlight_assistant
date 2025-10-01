@@ -5,6 +5,7 @@
 
 import { getAllEditor } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
+import { isSystemReadOnly, debugEnvironmentInfo, isDocumentReadOnlyFromRange } from './readonlyChecker';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -13,6 +14,7 @@ export class ToolbarHijacker {
     private isDesktop: boolean = false;
     private api: any;
     private activeEventListeners: (() => void)[] = [];
+    private recheckInterval: number | null = null; // 定期重新检查劫持状态
     
     constructor(isMobile: boolean = false, isDesktop: boolean = false) {
         this.isMobile = isMobile;
@@ -40,10 +42,26 @@ export class ToolbarHijacker {
     /**
      * 启动劫持
      */
-    public hijack(): void {
+    public async hijack(): Promise<void> {
         if (this.isHijacked) {
             return;
         }
+        
+        console.log('\n[ToolbarHijacker] 🚀 ========== 启动工具栏劫持 ==========');
+        console.log('[ToolbarHijacker] 环境:', {
+            isMobile: this.isMobile,
+            isDesktop: this.isDesktop
+        });
+        
+        // 检查系统只读模式
+        console.log('[ToolbarHijacker] 🔐 检查系统只读状态...');
+        const readOnly = await isSystemReadOnly();
+        console.log(`[ToolbarHijacker] 系统状态: ${readOnly ? '🔒 只读模式（这是正常状态）' : '✏️ 可写模式'}`);
+        
+        // 打印环境信息
+        await debugEnvironmentInfo();
+        
+        console.log('[ToolbarHijacker] 📝 准备劫持工具栏...');
         
         // 延迟执行，确保编辑器已加载
         setTimeout(() => {
@@ -52,6 +70,9 @@ export class ToolbarHijacker {
         
         // 同时添加鼠标选择监听作为备用方案
         this.setupMouseSelectionListener();
+        
+        // 🔄 启动定期检查，确保劫持持续有效
+        this.startRecheckInterval();
     }
     
     /**
@@ -62,6 +83,8 @@ export class ToolbarHijacker {
             return;
         }
         
+        // 停止定期检查
+        this.stopRecheckInterval();
         
         try {
             const editors = getAllEditor();
@@ -79,6 +102,48 @@ export class ToolbarHijacker {
             
         } catch (error) {
             // 静默处理错误
+        }
+    }
+    
+    /**
+     * 启动定期检查，确保劫持持续有效
+     */
+    private startRecheckInterval(): void {
+        console.log('[ToolbarHijacker] 🔄 启动定期检查（每3秒检查一次劫持状态）');
+        
+        // 每3秒检查一次
+        this.recheckInterval = window.setInterval(() => {
+            const editors = getAllEditor();
+            let needReHijack = false;
+            
+            editors.forEach((editor) => {
+                if (editor.protyle && editor.protyle.toolbar && editor.protyle.toolbar.showContent) {
+                    // 检查是否是我们劫持的方法（通过检查函数内容）
+                    const funcStr = editor.protyle.toolbar.showContent.toString();
+                    
+                    // 如果不包含我们的标记，说明被覆盖了
+                    if (!funcStr.includes('ToolbarHijacker') && !funcStr.includes('工具栏 showContent 被触发')) {
+                        console.warn('[ToolbarHijacker] ⚠️ 检测到劫持失效，准备重新劫持...');
+                        needReHijack = true;
+                    }
+                }
+            });
+            
+            if (needReHijack) {
+                console.log('[ToolbarHijacker] 🔄 重新执行劫持...');
+                this.performHijack();
+            }
+        }, 3000);
+    }
+    
+    /**
+     * 停止定期检查
+     */
+    private stopRecheckInterval(): void {
+        if (this.recheckInterval !== null) {
+            console.log('[ToolbarHijacker] 🛑 停止定期检查');
+            clearInterval(this.recheckInterval);
+            this.recheckInterval = null;
         }
     }
     
@@ -107,7 +172,11 @@ export class ToolbarHijacker {
                     // 劫持 showContent 方法
                     const hijacker = this;
                     editor.protyle.toolbar.showContent = function(protyle: any, range: Range, nodeElement: Element) {
+                        console.log('\n[ToolbarHijacker] 🎯 ========== 工具栏 showContent 被触发 ==========');
+                        console.log('[ToolbarHijacker] 选中文本:', range?.toString()?.substring(0, 50));
+                        
                         // 先调用原始方法显示基础工具栏
+                        console.log('[ToolbarHijacker] 📋 调用原始 showContent...');
                         hijacker.originalShowContent.call(this, protyle, range, nodeElement);
                         
                         // 延迟一点再增强，确保原始工具栏已显示
@@ -115,10 +184,15 @@ export class ToolbarHijacker {
                             if ((hijacker.isMobile || hijacker.isDesktop) && range && range.toString().trim()) {
                                 // 检查是否跨块选择
                                 if (hijacker.isCrossBlockSelection(range)) {
+                                    console.log('[ToolbarHijacker] ⚠️ 跨块选择，不增强工具栏');
                                     return; // 跨块选择时不增强工具栏
                                 }
+                                console.log('[ToolbarHijacker] ✨ 准备增强工具栏...');
                                 hijacker.enhanceToolbar(this, range, nodeElement, protyle);
+                            } else {
+                                console.log('[ToolbarHijacker] ⚠️ 不满足增强条件，跳过');
                             }
+                            console.log('[ToolbarHijacker] ========== showContent 流程结束 ==========\n');
                         }, 50);
                     };
                     
@@ -356,12 +430,101 @@ export class ToolbarHijacker {
      */
     private enhanceToolbar(toolbar: any, range: Range, nodeElement: Element, protyle: any): void {
         try {
-            // 检查是否应该显示工具栏
-            if (!this.shouldShowToolbar(range)) {
-                console.log('[ToolbarHijacker] 不满足显示条件，隐藏工具栏');
-                this.hideToolbar(toolbar);
+            console.log('\n[ToolbarHijacker] 🚀 ========== 准备增强高亮工具栏（这是你说的弹窗！）==========');
+            
+            // 🔍 实时检查只读状态 - 使用面包屑锁按钮（宽松检查，更稳定）
+            let isDocReadonly = false;
+            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+            
+            if (readonlyBtn) {
+                const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
+                const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
+                const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                
+                // 宽松判断（多条件检查，更稳定）：
+                // 1. data-subtype="unlock" → 解锁状态（可编辑）
+                // 2. aria-label 包含 "取消" → 解锁状态（"取消临时解锁"）
+                // 3. 图标是 #iconUnlock → 解锁状态
+                // 注意："临时解锁"表示点击后会解锁，说明当前是锁定状态！
+                const isUnlocked = 
+                    dataSubtype === 'unlock' || 
+                    ariaLabel.includes('取消') ||   // "取消临时解锁" → 当前已解锁
+                    iconHref === '#iconUnlock';
+                
+                isDocReadonly = !isUnlocked;  // 只读 = 非解锁
+                
+                console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（宽松检查）:', {
+                    '找到按钮': !!readonlyBtn,
+                    'aria-label': ariaLabel,
+                    'data-subtype': dataSubtype,
+                    '图标href': iconHref,
+                    '是否解锁': isUnlocked ? '✏️ 是（可编辑）' : '🔒 否（已锁定）',
+                    '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+                });
+            } else {
+                console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮！');
+            }
+            
+            // 作为参考，也检查 protyle.disabled 和 DOM 属性
+            const isProtyleDisabled = protyle?.disabled === true;
+            console.log('[ToolbarHijacker] 📋 其他状态（参考）:', {
+                'protyle.disabled': isProtyleDisabled ? '🔒 禁用' : '✏️ 启用'
+            });
+            
+            let wysiwyg: HTMLElement | null = null;
+            if (range) {
+                let element = range.startContainer as HTMLElement;
+                if (element.nodeType === Node.TEXT_NODE) {
+                    element = element.parentElement;
+                }
+                while (element && !element.classList?.contains('protyle-wysiwyg')) {
+                    element = element.parentElement;
+                }
+                wysiwyg = element;
+            }
+            
+            if (wysiwyg) {
+                console.log('[ToolbarHijacker] 📋 DOM 属性（参考）:', {
+                    'custom-sy-readonly': wysiwyg.getAttribute('custom-sy-readonly'),
+                    'data-readonly': wysiwyg.getAttribute('data-readonly'),
+                    'contenteditable': wysiwyg.getAttribute('contenteditable')
+                });
+            }
+            
+            // 打印所有参数和条件
+            console.log('[ToolbarHijacker] 📊 工具栏增强条件检查:', {
+                '有toolbar': !!toolbar,
+                '有range': !!range,
+                '有nodeElement': !!nodeElement,
+                '有protyle': !!protyle,
+                '选中文本': range?.toString()?.substring(0, 30),
+                '文本长度': range?.toString()?.length,
+                '是否手机版': this.isMobile,
+                '是否电脑版': this.isDesktop,
+                '文档是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+            });
+            
+            // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
+            if (!isDocReadonly) {
+                console.log('[ToolbarHijacker] ⛔ 文档未加锁（可编辑状态），不显示高亮工具栏');
+                console.log('[ToolbarHijacker] ========== 工具栏增强结束（文档未加锁）==========\n');
                 return;
             }
+            
+            console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示高亮工具栏');
+            
+            // 检查是否应该显示工具栏
+            const shouldShow = this.shouldShowToolbar(range);
+            console.log(`[ToolbarHijacker] shouldShowToolbar 返回: ${shouldShow ? '✅ 应该显示' : '❌ 不应该显示'}`);
+            
+            if (!shouldShow) {
+                console.log('[ToolbarHijacker] ❌ 不满足显示条件，隐藏工具栏');
+                this.hideToolbar(toolbar);
+                console.log('[ToolbarHijacker] ========== 工具栏增强结束（隐藏）==========\n');
+                return;
+            }
+            
+            console.log('[ToolbarHijacker] ✅ 满足显示条件，继续增强工具栏...');
             
             const subElement = toolbar.subElement;
             if (!subElement) return;
@@ -383,16 +546,22 @@ export class ToolbarHijacker {
             this.cleanupPreviousButtons(flexContainer);
             
             // 添加高亮按钮组
+            console.log('[ToolbarHijacker] 🎨 添加高亮按钮组...');
             this.addHighlightButtons(flexContainer, range, nodeElement, protyle, toolbar);
             
             // 添加按钮后调整工具栏位置，确保完整显示
+            console.log('[ToolbarHijacker] 📐 调整工具栏位置...');
             this.adjustToolbarPosition(toolbar, range);
             
             // 添加自动隐藏机制
+            console.log('[ToolbarHijacker] 👁️ 设置自动隐藏机制...');
             this.setupAutoHide(toolbar);
             
+            console.log('[ToolbarHijacker] ✅ ========== 高亮工具栏增强成功！==========\n');
+            
         } catch (error) {
-            // 静默处理错误
+            console.error('[ToolbarHijacker] ❌ 工具栏增强失败:', error);
+            console.log('[ToolbarHijacker] ========== 工具栏增强结束（失败）==========\n');
         }
     }
     
@@ -824,6 +993,46 @@ export class ToolbarHijacker {
      */
     private async applyHighlight(protyle: any, range: Range, nodeElement: Element, colorConfig: {name: string, color: string}): Promise<void> {
         try {
+            console.log('\n[ToolbarHijacker] 🎨 ========== 应用高亮操作 ==========');
+            
+            // 🔍 实时检查文档只读状态 - 从 range 参数查找
+            let wysiwyg: HTMLElement | null = null;
+            
+            // 从传入的 range 参数查找（最准确）
+            if (range) {
+                let element = range.startContainer as HTMLElement;
+                if (element.nodeType === Node.TEXT_NODE) {
+                    element = element.parentElement;
+                }
+                while (element && !element.classList?.contains('protyle-wysiwyg')) {
+                    element = element.parentElement;
+                }
+                wysiwyg = element;
+            }
+            
+            // 备用方案
+            if (!wysiwyg) {
+                wysiwyg = document.querySelector('.protyle-wysiwyg.protyle-wysiwyg--attr') as HTMLElement;
+            }
+            
+            if (wysiwyg) {
+                const customReadonly = wysiwyg.getAttribute('custom-sy-readonly');
+                const isDocReadonly = customReadonly === 'true';
+                console.log('[ToolbarHijacker] 📋 当前文档只读状态 (实时检查):', {
+                    'custom-sy-readonly': customReadonly,
+                    '是否只读': isDocReadonly ? '是🔒（锁已锁定）' : '否✏️（锁已解锁）',
+                    '操作': '即将应用高亮'
+                });
+                
+                if (isDocReadonly) {
+                    console.log('[ToolbarHijacker] 🔒 文档处于只读模式，继续执行高亮操作');
+                } else {
+                    console.log('[ToolbarHijacker] ✏️ 文档处于可写模式，继续执行高亮操作');
+                }
+            } else {
+                console.warn('[ToolbarHijacker] ⚠️ 未找到 protyle-wysiwyg 元素');
+            }
+            
             // 检查参数
             if (!colorConfig || !protyle || !range) {
                 console.error('applyHighlight: 参数缺失', { colorConfig, protyle, range });
@@ -835,6 +1044,11 @@ export class ToolbarHijacker {
                 console.warn('没有选中文本');
                 return;
             }
+            
+            console.log('[ToolbarHijacker] 🎨 高亮参数:', {
+                color: colorConfig.name,
+                text: selectedText.substring(0, 30)
+            });
 
             // 检查 protyle.toolbar 和 setInlineMark 方法是否存在
             if (!protyle.toolbar || typeof protyle.toolbar.setInlineMark !== 'function') {
@@ -1616,25 +1830,41 @@ export class ToolbarHijacker {
      * 显示自定义备注对话框
      */
     private async showCustomMemoDialog(memoElement?: HTMLElement): Promise<void> {
+        console.log('\n[ToolbarHijacker] 💬 ========== 显示备注弹窗 ==========');
+        
+        // 检查系统只读模式
+        const readOnly = await isSystemReadOnly();
+        console.log(`[ToolbarHijacker] 📋 系统状态: ${readOnly ? '🔒 只读模式' : '✏️ 可写模式'}`);
+        console.log('[ToolbarHijacker] 📝 备注元素信息:', {
+            hasElement: !!memoElement,
+            textContent: memoElement?.textContent?.substring(0, 50),
+            existingMemo: memoElement?.getAttribute('data-inline-memo-content')
+        });
+        
         const existingContent = memoElement?.getAttribute('data-inline-memo-content') || '';
         const selectedText = memoElement?.textContent || '';
         
+        console.log('[ToolbarHijacker] 🎨 准备显示备注输入对话框...');
         const memoText = await this.showEnhancedMemoInput(selectedText, existingContent);
+        console.log('[ToolbarHijacker] 📤 用户输入结果:', memoText ? '有内容' : '取消或为空');
         
         if (memoText !== null && memoElement) {
             if (memoText === '__DELETE_MEMO__') {
                 // 删除备注操作
-                console.log('删除备注');
+                console.log('[ToolbarHijacker] 🗑️ 执行删除备注操作');
                 this.deleteMemoFromElement(memoElement);
             } else {
                 // 更新备注内容
                 memoElement.setAttribute('data-inline-memo-content', memoText);
-                console.log('备注已更新:', memoText);
+                console.log('[ToolbarHijacker] ✅ 备注已更新:', memoText);
                 
                 // 触发保存到思源
+                console.log('[ToolbarHijacker] 💾 保存备注到思源...');
                 this.saveMemoToSiYuan(memoElement, memoText);
             }
         }
+        
+        console.log('[ToolbarHijacker] ========== 备注弹窗流程结束 ==========\n');
     }
 
     /**
@@ -1720,6 +1950,60 @@ export class ToolbarHijacker {
      */
     private showEnhancedMemoInput(selectedText: string = '', existingContent: string = ''): Promise<string | null> {
         return new Promise((resolve) => {
+            console.log('\n[ToolbarHijacker] 🎨 ========== 准备显示备注输入弹窗 ==========');
+            
+            // 🔍 实时检查文档只读状态 - 多种方式查找
+            let wysiwyg: HTMLElement | null = null;
+            
+            // 方式1: 从当前选区查找
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                let element = range.startContainer as HTMLElement;
+                if (element.nodeType === Node.TEXT_NODE) {
+                    element = element.parentElement;
+                }
+                while (element && !element.classList?.contains('protyle-wysiwyg')) {
+                    element = element.parentElement;
+                }
+                wysiwyg = element;
+            }
+            
+            // 方式2: 查找带 attr 属性的
+            if (!wysiwyg) {
+                wysiwyg = document.querySelector('.protyle-wysiwyg.protyle-wysiwyg--attr') as HTMLElement;
+            }
+            
+            // 方式3: 查找任意可见的
+            if (!wysiwyg) {
+                const allWysiwyg = document.querySelectorAll('.protyle-wysiwyg');
+                for (const elem of allWysiwyg) {
+                    if ((elem as HTMLElement).offsetParent !== null) {
+                        wysiwyg = elem as HTMLElement;
+                        break;
+                    }
+                }
+            }
+            
+            if (wysiwyg) {
+                const customReadonly = wysiwyg.getAttribute('custom-sy-readonly');
+                const isDocReadonly = customReadonly === 'true';
+                console.log('[ToolbarHijacker] 📋 当前文档只读状态 (实时检查):', {
+                    'custom-sy-readonly': customReadonly,
+                    '是否只读': isDocReadonly ? '是🔒（锁已锁定）' : '否✏️（锁已解锁）',
+                    '查找方式': wysiwyg.classList.contains('protyle-wysiwyg--attr') ? '从当前文档' : '从可见编辑器',
+                    '弹窗状态': '即将显示'
+                });
+            } else {
+                console.warn('[ToolbarHijacker] ⚠️ 未找到 protyle-wysiwyg 元素，无法检查只读状态');
+            }
+            
+            console.log('[ToolbarHijacker] 📝 弹窗参数:', {
+                selectedText: selectedText?.substring(0, 30),
+                existingContent: existingContent?.substring(0, 30),
+                hasExisting: !!existingContent
+            });
+            
             // 创建底部弹出层（Bottom Sheet 风格）
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -2103,6 +2387,46 @@ export class ToolbarHijacker {
                         return;
                     }
                     lastSelectionText = selectedText;
+                    
+                    console.log('\n[ToolbarHijacker] 📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
+                    console.log('[ToolbarHijacker] 选中文本:', selectedText.substring(0, 50));
+                    
+                    // 🔍 在工具栏显示之前检查只读状态 - 使用面包屑锁按钮（宽松检查）
+                    const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+                    let isDocReadonly = false;
+                    
+                    if (readonlyBtn) {
+                        const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
+                        const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
+                        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                        
+                        // 宽松判断（多条件检查，更稳定）：
+                        // 注意："临时解锁"表示点击后会解锁，说明当前是锁定状态！
+                        const isUnlocked = 
+                            dataSubtype === 'unlock' || 
+                            ariaLabel.includes('取消') ||   // "取消临时解锁" → 当前已解锁
+                            iconHref === '#iconUnlock';
+                        
+                        isDocReadonly = !isUnlocked;
+                        
+                        console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（工具栏显示前-宽松检查）:', {
+                            'aria-label': ariaLabel,
+                            'data-subtype': dataSubtype,
+                            '图标href': iconHref,
+                            '是否解锁': isUnlocked ? '✏️ 是' : '🔒 否',
+                            '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+                        });
+                    } else {
+                        console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮');
+                    }
+                    
+                    // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
+                    if (!isDocReadonly) {
+                        console.log('[ToolbarHijacker] ⛔ 文档未加锁（可编辑状态），不显示自定义工具栏');
+                        return;
+                    }
+                    
+                    console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示自定义工具栏');
                     
                     // 检查是否跨块选择
                     if (this.isCrossBlockSelection(selection.getRangeAt(0))) {
