@@ -2,23 +2,24 @@
  * 标签点击管理器 - 自定义标签搜索面板
  */
 
-import { fetchSyncPost } from 'siyuan';
-
-interface TagSearchResult {
-    id: string;
-    content: string;
-    hpath: string;
-    box: string;
-    created: string;
-    updated: string;
-}
+import { 
+    TagSearchManager, 
+    TagSearchResult, 
+    SearchScope, 
+    GroupedResults 
+} from './tagSearchManager';
+import { TagResultRenderer } from './tagResultRenderer';
 
 export class TagClickManager {
     private isInitialized: boolean = false;
     private debugMode: boolean = false;
+    private currentScope: SearchScope = 'notebook';
+    private searchManager: TagSearchManager;
+    private renderer: TagResultRenderer;
     
     constructor() {
-        // 初始化
+        this.searchManager = new TagSearchManager();
+        this.renderer = new TagResultRenderer();
     }
     
     /**
@@ -26,6 +27,7 @@ export class TagClickManager {
      */
     public enableDebug(): void {
         this.debugMode = true;
+        this.searchManager.enableDebug();
         console.log('[TagClickManager] ✅ 调试模式已开启');
     }
     
@@ -34,6 +36,7 @@ export class TagClickManager {
      */
     public disableDebug(): void {
         this.debugMode = false;
+        this.searchManager.disableDebug();
         console.log('[TagClickManager] ❌ 调试模式已关闭');
     }
     
@@ -123,116 +126,32 @@ export class TagClickManager {
     /**
      * 显示标签搜索面板
      */
-    private async showTagSearchPanel(tagText: string): Promise<void> {
+    private async showTagSearchPanel(tagText: string, scope: SearchScope = this.currentScope): Promise<void> {
         console.log('[TagClickManager] 🔍 ========== 开始标签搜索 ==========');
         console.log('[TagClickManager] 原始标签文本:', tagText);
-        console.log('[TagClickManager] 标签文本长度:', tagText.length);
-        console.log('[TagClickManager] 标签字符码:', Array.from(tagText).map(c => c.charCodeAt(0)));
+        console.log('[TagClickManager] 搜索范围:', scope);
         
-        // 搜索包含该标签的块
-        const results = await this.searchBlocksByTag(tagText);
+        // 使用搜索管理器搜索
+        const results = await this.searchManager.searchByTag(tagText, scope);
         
         console.log('[TagClickManager] 搜索结果数量:', results.length);
-        console.log('[TagClickManager] 搜索结果:', results);
+        
+        // 按文档分组
+        const groupedResults = this.searchManager.groupByDocument(results);
         
         // 显示结果面板
-        this.showResultsPanel(tagText, results);
+        this.showResultsPanel(tagText, groupedResults, scope);
         
         console.log('[TagClickManager] ========== 标签搜索结束 ==========');
     }
     
     /**
-     * 搜索包含指定标签的块
-     */
-    private async searchBlocksByTag(tagText: string): Promise<TagSearchResult[]> {
-        try {
-            console.log('[TagClickManager] 📋 准备搜索...');
-            
-            // 清理零宽字符和其他不可见字符
-            let cleanedText = tagText
-                .replace(/[\u200B-\u200D\uFEFF]/g, '')  // 移除零宽字符
-                .replace(/\u00A0/g, ' ')                 // 替换不间断空格
-                .trim();
-            
-            console.log('[TagClickManager] 清理后的文本:', cleanedText);
-            console.log('[TagClickManager] 清理后的字符码:', Array.from(cleanedText).map(c => c.charCodeAt(0)));
-            
-            // 确保标签格式正确：#标签#
-            let searchQuery = cleanedText;
-            if (!searchQuery.startsWith('#')) {
-                searchQuery = '#' + searchQuery;
-            }
-            if (!searchQuery.endsWith('#')) {
-                searchQuery = searchQuery + '#';
-            }
-            
-            console.log('[TagClickManager] 最终搜索查询:', searchQuery);
-            console.log('[TagClickManager] 查询字符码:', Array.from(searchQuery).map(c => c.charCodeAt(0)));
-            
-            // 使用思源的全文搜索API
-            const requestBody = {
-                query: searchQuery,
-                method: 0,  // 关键字搜索
-                types: {
-                    document: true,
-                    heading: true,
-                    list: true,
-                    listItem: true,
-                    codeBlock: true,
-                    htmlBlock: true,
-                    mathBlock: true,
-                    table: true,
-                    blockquote: true,
-                    superBlock: true,
-                    paragraph: true,
-                    video: true,
-                    audio: true,
-                    iframe: true,
-                    widget: true,
-                    thematicBreak: true,
-                },
-                page: 1,
-                pageSize: 100
-            };
-            
-            console.log('[TagClickManager] 请求体:', JSON.stringify(requestBody, null, 2));
-            
-            const response = await fetchSyncPost('/api/search/fullTextSearchBlock', requestBody);
-            
-            console.log('[TagClickManager] API 响应:', response);
-            console.log('[TagClickManager] 响应 code:', response?.code);
-            console.log('[TagClickManager] 响应 data:', response?.data);
-            
-            if (response.code === 0 && response.data && response.data.blocks) {
-                const blocks = response.data.blocks.map((block: any) => ({
-                    id: block.id,
-                    content: block.content || block.markdown || '',
-                    hpath: block.hPath || '',
-                    box: block.box || '',
-                    created: block.created || '',
-                    updated: block.updated || block.ial?.updated || ''
-                }));
-                
-                console.log('[TagClickManager] ✅ 处理后的块数据:', blocks);
-                return blocks;
-            }
-            
-            console.log('[TagClickManager] ⚠️ 没有找到匹配的块');
-            return [];
-        } catch (error) {
-            console.error('[TagClickManager] ❌ 搜索失败:', error);
-            return [];
-        }
-    }
-    
-    /**
      * 显示搜索结果面板
      */
-    private showResultsPanel(tagText: string, results: TagSearchResult[]): void {
+    private showResultsPanel(tagText: string, groupedResults: GroupedResults, scope: SearchScope): void {
         console.log('[TagClickManager] 🎨 开始渲染面板...');
         console.log('[TagClickManager] 标签文本:', tagText);
-        console.log('[TagClickManager] 结果数量:', results.length);
-        console.log('[TagClickManager] 结果详情:', results);
+        console.log('[TagClickManager] 分组结果:', groupedResults);
         
         // 添加动画样式
         const style = document.createElement('style');
@@ -296,6 +215,10 @@ export class TagClickManager {
             background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-background) 100%);
         `;
         
+        // 计算总结果数
+        const totalResults = Object.values(groupedResults).reduce((sum, doc) => sum + doc.blocks.length, 0);
+        const docCount = Object.keys(groupedResults).length;
+        
         const titleDiv = document.createElement('div');
         titleDiv.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -315,11 +238,19 @@ export class TagClickManager {
                     color: var(--b3-theme-on-surface-light);
                     font-size: 14px;
                 ">
-                    共 ${results.length} 个结果
+                    ${docCount} 个文档，共 ${totalResults} 个结果
                 </div>
             </div>
         `;
         header.appendChild(titleDiv);
+        
+        // 搜索范围选择器
+        const scopeSelector = this.createScopeSelector(scope, (newScope) => {
+            console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
+            cleanup(); // 关闭当前面板
+            this.showTagSearchPanel(tagText, newScope); // 重新搜索
+        });
+        header.appendChild(scopeSelector);
         
         // 结果列表容器
         const resultsList = document.createElement('div');
@@ -329,35 +260,11 @@ export class TagClickManager {
             padding: 16px 28px;
         `;
         
-        if (results.length === 0) {
-            // 空状态
-            const emptyState = document.createElement('div');
-            emptyState.innerHTML = `
-                <div style="
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 60px 20px;
-                    color: var(--b3-theme-on-surface-light);
-                ">
-                    <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.5;">🔍</div>
-                    <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">未找到相关内容</div>
-                    <div style="font-size: 14px;">标签 "${tagText}" 没有被使用</div>
-                </div>
-            `;
-            resultsList.appendChild(emptyState);
-        } else {
-            // 显示结果
-            console.log('[TagClickManager] 📝 开始渲染 ' + results.length + ' 个结果项...');
-            results.forEach((result, index) => {
-                console.log('[TagClickManager] 渲染结果项 #' + index + ':', result);
-                const item = this.createResultItem(result, index);
-                console.log('[TagClickManager] 结果项元素创建完成:', item);
-                resultsList.appendChild(item);
-            });
-            console.log('[TagClickManager] ✅ 所有结果项渲染完成');
-        }
+        // 使用渲染器渲染分组结果
+        this.renderer.renderGroupedResults(resultsList, groupedResults, tagText, (blockId) => {
+            this.navigateToBlock(blockId);
+            cleanup();
+        });
         
         // 底部按钮栏
         const footer = document.createElement('div');
@@ -560,6 +467,87 @@ export class TagClickManager {
         return `${year}-${month}-${day} ${hour}:${minute}`;
     }
     
+    /**
+     * 创建搜索范围选择器
+     */
+    private createScopeSelector(currentScope: SearchScope, onScopeChange: (scope: SearchScope) => void): HTMLElement {
+        const container = document.createElement('div');
+        container.style.cssText = `
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        const label = document.createElement('span');
+        label.textContent = '搜索范围：';
+        label.style.cssText = `
+            color: var(--b3-theme-on-surface-light);
+            font-size: 14px;
+            font-weight: 500;
+        `;
+        
+        const scopes = [
+            { value: 'doc' as SearchScope, label: '📄 本文档' },
+            { value: 'subdocs' as SearchScope, label: '📁 文档及子文档' },
+            { value: 'notebook' as SearchScope, label: '📚 本笔记本' },
+            { value: 'global' as SearchScope, label: '🌐 全局搜索' }
+        ];
+        
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = `
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--b3-theme-surface-lighter);
+        `;
+        
+        scopes.forEach((scopeOption, index) => {
+            const button = document.createElement('button');
+            const isActive = scopeOption.value === currentScope;
+            
+            button.textContent = scopeOption.label;
+            button.style.cssText = `
+                border: none;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: ${isActive ? 'var(--b3-theme-primary)' : 'var(--b3-theme-surface)'};
+                color: ${isActive ? 'var(--b3-theme-on-primary)' : 'var(--b3-theme-on-surface)'};
+                border-right: ${index < scopes.length - 1 ? '1px solid var(--b3-theme-surface-lighter)' : 'none'};
+            `;
+            
+            // 悬停效果
+            button.addEventListener('mouseenter', () => {
+                if (!isActive) {
+                    button.style.background = 'var(--b3-theme-surface-light)';
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                if (!isActive) {
+                    button.style.background = 'var(--b3-theme-surface)';
+                }
+            });
+            
+            // 点击事件
+            button.addEventListener('click', () => {
+                if (scopeOption.value !== currentScope) {
+                    onScopeChange(scopeOption.value);
+                }
+            });
+            
+            buttonsContainer.appendChild(button);
+        });
+        
+        container.appendChild(label);
+        container.appendChild(buttonsContainer);
+        
+        return container;
+    }
+
     /**
      * 跳转到指定块
      */
