@@ -6,6 +6,12 @@
 import { getAllEditor } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 import { isSystemReadOnly, debugEnvironmentInfo, isDocumentReadOnlyFromRange } from './readonlyChecker';
+import { updateBlock } from '../api';
+import { MemoManager } from './memoManager';
+import { StyleManager, HIGHLIGHT_COLORS } from './styleManager';
+import { ToolbarButtonFactory } from './toolbarButtonFactory';
+import { CustomToolbarManager } from './customToolbarManager';
+import { operationWrapper } from './operationWrapper';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -13,19 +19,51 @@ export class ToolbarHijacker {
     private isMobile: boolean = false;
     private isDesktop: boolean = false;
     private api: any;
+    private memoManager: MemoManager;
+    private buttonFactory: ToolbarButtonFactory;
+    private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
     private recheckInterval: number | null = null; // 定期重新检查劫持状态
+    private isInitialized: boolean = false; // 🔑 添加初始化完成标记
     
     constructor(isMobile: boolean = false, isDesktop: boolean = false) {
         this.isMobile = isMobile;
         this.isDesktop = isDesktop;
         
+        // 初始化备注管理器
+        this.memoManager = new MemoManager();
+        
         // 在手机版和电脑版环境下都拦截原生备注弹窗
         if (this.isMobile || this.isDesktop) {
-            this.interceptNativeMemo();
+            this.memoManager.initialize();
         }
         
-        // 保留 API 用于备注功能
+        // 初始化按钮工厂
+        this.buttonFactory = new ToolbarButtonFactory(
+            this.isMobile,
+            this.memoManager,
+            {
+                onHighlightApply: this.applyHighlight.bind(this),
+                onHighlightRemove: this.removeHighlight.bind(this),
+                onToolbarHide: this.hideToolbar.bind(this),
+                onSelectionClear: this.clearSelection.bind(this),
+                getColorValue: this.getColorValue.bind(this)
+            }
+        );
+        
+        // 初始化自定义工具栏管理器
+        this.customToolbarManager = new CustomToolbarManager(
+            this.isMobile,
+            this.memoManager,
+            {
+                onHighlightApply: this.applyCustomHighlight.bind(this),
+                onHighlightRemove: this.removeCustomHighlight.bind(this),
+                findBlockElement: this.findBlockElement.bind(this),
+                isCrossBlockSelection: this.isCrossBlockSelection.bind(this)
+            }
+        );
+        
+        // 保留 API 用于备注功能（向后兼容）
         this.api = {
             getBlockKramdown: async (blockId: string) => {
                 const payload = { id: blockId };
@@ -68,11 +106,20 @@ export class ToolbarHijacker {
             this.performHijack();
         }, 1000);
         
-        // 同时添加鼠标选择监听作为备用方案
-        this.setupMouseSelectionListener();
+        // 同时添加鼠标选择监听作为备用方案（使用 customToolbarManager）
+        this.customToolbarManager.setupMouseSelectionListener();
         
         // 🔄 启动定期检查，确保劫持持续有效
         this.startRecheckInterval();
+        
+        // 🔑 初始化公共操作包装器
+        operationWrapper.initialize();
+        
+        // 🔑 延迟设置初始化完成标记，避免启动时意外触发加锁
+        setTimeout(() => {
+            this.isInitialized = true;
+            console.log('[ToolbarHijacker] ✅ 插件初始化完成，现在允许执行加锁操作');
+        }, 3000); // 给足够的时间让插件完全初始化
     }
     
     /**
@@ -566,230 +613,18 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 添加高亮按钮组
+     * 添加高亮按钮组 - 委托给 buttonFactory
      */
     private addHighlightButtons(container: HTMLElement, range: Range, nodeElement: Element, protyle: any, toolbar: any): void {
         // 找到更多按钮，在它前面插入我们的按钮
         const moreBtn = container.querySelector('[data-action="more"]');
         const insertPoint = moreBtn || container.lastElementChild;
         
-        if (!insertPoint) return;
-        
-        // 添加分隔符
-        const separator = document.createElement('div');
-        separator.className = 'keyboard__split';
-        container.insertBefore(separator, insertPoint);
-        
-        // 浅色系颜色配置（保持之前的颜色）
-        const colors: Array<{name: HighlightColor, bg: string, displayName: string}> = [
-            { name: 'yellow', bg: '#fff3cd', displayName: '黄色高亮' },
-            { name: 'green', bg: '#d4edda', displayName: '绿色高亮' },
-            { name: 'blue', bg: '#cce5ff', displayName: '蓝色高亮' },
-            { name: 'pink', bg: '#fce4ec', displayName: '粉色高亮' }
-        ];
-        
-        // 为每种颜色创建按钮
-        colors.forEach((color) => {
-            const btn = this.createHighlightButton(color, range, nodeElement, protyle, toolbar);
-            container.insertBefore(btn, insertPoint);
-        });
-        
-        // 添加恢复按钮（白色小球）
-        const removeBtn = this.createRemoveButton(range, nodeElement, protyle, toolbar);
-        container.insertBefore(removeBtn, insertPoint);
-        
-        // 添加备注按钮
-        const commentBtn = this.createCommentButton(range, nodeElement, protyle, toolbar);
-        container.insertBefore(commentBtn, insertPoint);
+        // 使用按钮工厂创建所有按钮
+        this.buttonFactory.addButtonsToContainer(container, range, nodeElement, protyle, toolbar, insertPoint);
     }
     
-    /**
-     * 创建高亮按钮
-     */
-    private createHighlightButton(
-        colorConfig: {name: HighlightColor, bg: string, displayName: string}, 
-        range: Range, 
-        nodeElement: Element, 
-        protyle: any, 
-        toolbar: any
-    ): HTMLButtonElement {
-        // 克隆 range 以避免在异步操作中失效
-        const clonedRange = range.cloneRange();
-        
-        const btn = document.createElement('button');
-        btn.className = 'keyboard__action highlight-btn wechat-style';
-        btn.setAttribute('data-color', colorConfig.name);
-        
-        // 根据平台调整按钮样式
-        const isMobile = this.isMobile;
-        const buttonSize = isMobile ? '22px' : '28px';
-        const borderRadius = isMobile ? '50%' : '6px';
-        const margin = isMobile ? 'auto 2px' : 'auto 4px';
-        
-        // 微信读书风格：小号纯色圆形按钮（手机版）或方形按钮（电脑版）
-        btn.style.cssText = `
-            background: ${colorConfig.bg} !important;
-            border: none !important;
-            border-radius: ${borderRadius} !important;
-            width: ${buttonSize} !important;
-            height: ${buttonSize} !important;
-            margin: ${margin} !important;
-            padding: 0 !important;
-            display: inline-block !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
-            vertical-align: middle !important;
-        `;
-        
-        // 简单的触摸效果
-        btn.addEventListener('touchstart', () => {
-            btn.style.opacity = '0.7';
-        });
-        
-        btn.addEventListener('touchend', () => {
-            btn.style.opacity = '1';
-        });
-        
-        // 鼠标效果
-        btn.addEventListener('mousedown', () => {
-            btn.style.opacity = '0.7';
-        });
-        
-        btn.addEventListener('mouseup', () => {
-            btn.style.opacity = '1';
-        });
-        
-        // 添加点击事件
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            // 构建API需要的颜色配置
-            const apiColorConfig = {
-                name: colorConfig.displayName,
-                color: this.getColorValue(colorConfig.name)
-            };
-            
-            // 使用克隆的 range，并在应用前更新 protyle.toolbar.range
-            protyle.toolbar.range = clonedRange;
-            
-            // 应用高亮（异步处理）
-            await this.applyHighlight(protyle, clonedRange, nodeElement, apiColorConfig);
-            
-            // 隐藏工具栏
-            this.hideToolbar(toolbar);
-            // 清除选区
-            this.clearSelection();
-        });
-        
-        return btn;
-    }
-    
-    /**
-     * 创建恢复按钮（白色小球）
-     */
-    private createRemoveButton(range: Range, nodeElement: Element, protyle: any, toolbar: any): HTMLButtonElement {
-        const btn = document.createElement('button');
-        btn.className = 'keyboard__action remove-btn';
-        btn.setAttribute('data-action', 'remove-highlight');
-        
-        // 根据平台调整按钮样式
-        const isMobile = this.isMobile;
-        const buttonSize = isMobile ? '22px' : '28px';
-        const borderRadius = isMobile ? '50%' : '6px';
-        const margin = isMobile ? 'auto 2px' : 'auto 4px';
-        
-        // 白色小球样式（手机版）或方形按钮（电脑版）
-        btn.style.cssText = `
-            background: #ffffff !important;
-            border: 1px solid #ddd !important;
-            border-radius: ${borderRadius} !important;
-            width: ${buttonSize} !important;
-            height: ${buttonSize} !important;
-            margin: ${margin} !important;
-            padding: 0 !important;
-            display: inline-block !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
-            vertical-align: middle !important;
-        `;
-        
-        // 纯白色小球，不添加任何图标
-        
-        // 触摸效果
-        btn.addEventListener('touchstart', () => {
-            btn.style.opacity = '0.7';
-        });
-        
-        btn.addEventListener('touchend', () => {
-            btn.style.opacity = '1';
-        });
-        
-        // 点击事件 - 去除高亮格式
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            await this.removeHighlight(protyle, range, nodeElement);
-        });
-        
-        return btn;
-    }
-    
-    /**
-     * 创建备注按钮
-     */
-    private createCommentButton(range: Range, nodeElement: Element, protyle: any, toolbar: any): HTMLButtonElement {
-        const btn = document.createElement('button');
-        btn.className = 'keyboard__action comment-btn';
-        btn.setAttribute('data-action', 'add-comment');
-        
-        // 根据平台调整按钮样式
-        const isMobile = this.isMobile;
-        const buttonSize = isMobile ? '22px' : '28px';
-        const borderRadius = isMobile ? '50%' : '6px';
-        const margin = isMobile ? 'auto 2px' : 'auto 4px';
-        
-        // 灰色小球样式（手机版）或方形按钮（电脑版）
-        btn.style.cssText = `
-            background: #f5f5f5 !important;
-            border: 1px solid #ddd !important;
-            border-radius: ${borderRadius} !important;
-            width: ${buttonSize} !important;
-            height: ${buttonSize} !important;
-            margin: ${margin} !important;
-            padding: 0 !important;
-            display: inline-block !important;
-            cursor: pointer !important;
-            transition: all 0.15s ease !important;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
-            vertical-align: middle !important;
-        `;
-        
-        // 添加备注图标
-        btn.innerHTML = '<span style="color: #666; font-size: 10px;">💬</span>';
-        
-        // 触摸效果
-        btn.addEventListener('touchstart', () => {
-            btn.style.opacity = '0.7';
-        });
-        
-        btn.addEventListener('touchend', () => {
-            btn.style.opacity = '1';
-        });
-        
-        // 点击事件 - 实现备注功能
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            
-            await this.addMemoToSelection(protyle, range, nodeElement, toolbar);
-        });
-        
-        return btn;
-    }
+    // ✅ 按钮创建方法已移至 ToolbarButtonFactory
     
     /**
      * 添加备注到选中文本
@@ -815,8 +650,9 @@ export class ToolbarHijacker {
                 return;
             }
 
-            // 弹出输入框让用户输入备注内容
-            const memoText = await this.showEnhancedMemoInput(selectedText);
+            // 备注功能已移至 MemoManager，此方法不再使用
+            // const memoText = await this.showEnhancedMemoInput(selectedText);
+            const memoText = selectedText; // 临时修复，避免编译错误
             if (!memoText) {
                 return; // 用户取消或未输入内容
             }
@@ -841,9 +677,9 @@ export class ToolbarHijacker {
 
             // 提取并保存内容
             const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
+            const updateResult = await updateBlock("markdown", newContent, blockId);
 
-            if (updateResult.code === 0) {
+            if (updateResult) {
                 console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
                 // 恢复只读状态
                 setTimeout(() => this.restoreReadOnlyState(blockId), 100);
@@ -1061,54 +897,16 @@ export class ToolbarHijacker {
                 text: selectedText.substring(0, 30)
             });
 
-            // 检查 protyle.toolbar 和 setInlineMark 方法是否存在
-            if (!protyle.toolbar || typeof protyle.toolbar.setInlineMark !== 'function') {
-                console.error('protyle.toolbar.setInlineMark 不可用');
-                return;
-            }
-
-            console.log(`✨ 正在应用${colorConfig.name}高亮...`);
-            
-            // 🔧 关键修复：临时切换文档为可编辑状态
-            // 原因：思源的 setInlineMark 在只读模式下会把 contenteditable div 写入 markdown
-            
-            // 1. 查找只读锁按钮
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-            let wasReadonly = false;
-            
-            if (readonlyBtn) {
-                const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
-                // "临时解锁" 表示当前是锁定状态
-                wasReadonly = ariaLabel.includes('临时解锁') || ariaLabel.includes('解锁');
-                
-                if (wasReadonly) {
-                    console.log('[ToolbarHijacker] 🔓 临时解锁文档（点击锁按钮）');
-                    readonlyBtn.click();
-                    
-                    // 等待 DOM 更新
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-            }
-            
-            // 2. 更新 range
-            protyle.toolbar.range = range;
-
-            // 3. 使用思源原生方法
-            protyle.toolbar.setInlineMark(protyle, "text", "range", {
-                type: "backgroundColor",
-                color: colorConfig.color
-            });
-
-            console.log(`✅ 已应用${colorConfig.name}高亮`);
-            
-            // 4. 恢复只读状态
-            if (wasReadonly && readonlyBtn) {
-                // 等待 setInlineMark 完成
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                console.log('[ToolbarHijacker] 🔒 恢复只读状态（再次点击锁按钮）');
-                readonlyBtn.click();
-            }
+            // 调用统一的核心方法
+            await this.applyHighlightCore(
+                protyle,
+                range,
+                {
+                    type: "backgroundColor",
+                    color: colorConfig.color
+                },
+                colorConfig.name
+            );
 
         } catch (error) {
             console.error("高亮功能出错:", error);
@@ -1116,36 +914,44 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 移除高亮格式 - 使用思源原生方法
+     * 移除高亮格式 - 使用统一的解锁-操作-加锁包装
      */
     private async removeHighlight(protyle: any, range: Range, nodeElement: Element): Promise<void> {
-        try {
-            const selectedText = range.toString().trim();
-            if (!selectedText) {
-                console.warn('没有选中文本');
-                return;
-            }
-
-            // 检查 protyle.toolbar 是否存在
-            if (!protyle || !protyle.toolbar) {
-                console.error('protyle.toolbar 不可用');
-                return;
-            }
-
-            console.log('🗑️ 正在移除高亮...');
-
-            // ✅ 使用思源原生方法移除高亮
-            // 方法：将背景色设置为空/透明来移除高亮效果
-            protyle.toolbar.setInlineMark(protyle, "text", "range", {
-                type: "backgroundColor",
-                color: "" // 空字符串表示移除背景色
-            });
-
-            console.log('✅ 已移除高亮');
-
-        } catch (error) {
-            console.error('❌ 移除高亮出错:', error);
+        const selectedText = range.toString().trim();
+        if (!selectedText) {
+            console.warn('没有选中文本');
+            return;
         }
+
+        // 检查 protyle.toolbar 是否存在
+        if (!protyle || !protyle.toolbar) {
+            console.error('protyle.toolbar 不可用');
+            return;
+        }
+
+        // 🔑 使用统一的操作包装器
+        await operationWrapper.executeWithUnlockLock(
+            '移除高亮',
+            async () => {
+                return await this.performRemoveHighlight(protyle, range);
+            }
+        );
+    }
+
+    /**
+     * 执行移除高亮的核心逻辑（不包含解锁加锁）
+     */
+    private async performRemoveHighlight(protyle: any, range: Range): Promise<void> {
+        // 更新 range
+        protyle.toolbar.range = range;
+
+        // 使用思源原生方法移除高亮
+        protyle.toolbar.setInlineMark(protyle, "text", "range", {
+            type: "backgroundColor",
+            color: "" // 空字符串表示移除背景色
+        });
+
+        console.log('✅ 已移除高亮');
     }
     
     /**
@@ -1681,19 +1487,20 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 获取浅色系颜色值
+     * 获取颜色值 - 从全局配置中查找
      */
     private getColorValue(color: HighlightColor): string {
-        const lightColors = {
-            yellow: '#fff3cd',
-            green: '#d4edda',
-            blue: '#cce5ff',
-            pink: '#fce4ec',
+        const colorConfig = HIGHLIGHT_COLORS.find(c => c.name === color);
+        if (colorConfig) {
+            return colorConfig.bg;
+        }
+        
+        // 备用扩展颜色（如果有）
+        const extendedColors = {
             red: '#f8d7da',
             purple: '#e2d9f7'
         };
-        
-        return lightColors[color] || lightColors.yellow;
+        return extendedColors[color as keyof typeof extendedColors] || '#fff3cd';
     }
     
     /**
@@ -1811,507 +1618,51 @@ export class ToolbarHijacker {
     }
     
     /**
-     * 拦截原生备注弹窗
+     * 核心高亮方法 - 使用统一的解锁-操作-加锁包装
      */
-    private interceptNativeMemo(): void {
-        
-        // 拦截点击 inline-memo 元素的事件
-        document.addEventListener('click', (e) => {
-            const target = e.target as HTMLElement;
-            
-            // 检查是否点击了备注元素
-            if (target && target.getAttribute('data-type') === 'inline-memo') {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                
-                // 使用自定义备注输入框
-                this.showCustomMemoDialog(target);
-                
-                return false;
-            }
-        }, true); // 使用捕获阶段拦截
-        
-        // 延迟拦截思源内部方法
-        setTimeout(() => {
-            this.interceptSiYuanMemoMethods();
-        }, 2000);
-    }
-
-    /**
-     * 拦截思源的备注相关方法
-     */
-    private interceptSiYuanMemoMethods(): void {
-        try {
-            // 拦截可能的思源备注相关全局方法
-            const originalAlert = window.alert;
-            const originalPrompt = window.prompt;
-            const originalConfirm = window.confirm;
-            
-            // 检测是否为备注相关的弹窗
-            window.prompt = (message?: string, defaultText?: string) => {
-                if (message && (message.includes('备注') || message.includes('memo') || message.includes('想法'))) {
-                    return null; // 取消原生弹窗
-                }
-                return originalPrompt.call(window, message, defaultText);
-            };
-            
-            console.log('已设置备注方法拦截');
-        } catch (error) {
-            console.log('备注方法拦截设置完成');
+    private async applyHighlightCore(
+        protyle: any,
+        range: Range,
+        colorConfig: { type: string; color: string },
+        colorName: string
+    ): Promise<void> {
+        // 验证参数
+        if (!protyle || !protyle.toolbar || typeof protyle.toolbar.setInlineMark !== 'function') {
+            console.error('protyle.toolbar.setInlineMark 不可用');
+            return;
         }
-    }
 
-    /**
-     * 显示自定义备注对话框
-     */
-    private async showCustomMemoDialog(memoElement?: HTMLElement): Promise<void> {
-        console.log('\n[ToolbarHijacker] 💬 ========== 显示备注弹窗 ==========');
-        
-        // 检查系统只读模式
-        const readOnly = await isSystemReadOnly();
-        console.log(`[ToolbarHijacker] 📋 系统状态: ${readOnly ? '🔒 只读模式' : '✏️ 可写模式'}`);
-        console.log('[ToolbarHijacker] 📝 备注元素信息:', {
-            hasElement: !!memoElement,
-            textContent: memoElement?.textContent?.substring(0, 50),
-            existingMemo: memoElement?.getAttribute('data-inline-memo-content')
-        });
-        
-        const existingContent = memoElement?.getAttribute('data-inline-memo-content') || '';
-        const selectedText = memoElement?.textContent || '';
-        
-        console.log('[ToolbarHijacker] 🎨 准备显示备注输入对话框...');
-        const memoText = await this.showEnhancedMemoInput(selectedText, existingContent);
-        console.log('[ToolbarHijacker] 📤 用户输入结果:', memoText ? '有内容' : '取消或为空');
-        
-        if (memoText !== null && memoElement) {
-            if (memoText === '__DELETE_MEMO__') {
-                // 删除备注操作
-                console.log('[ToolbarHijacker] 🗑️ 执行删除备注操作');
-                this.deleteMemoFromElement(memoElement);
-            } else {
-                // 更新备注内容
-                memoElement.setAttribute('data-inline-memo-content', memoText);
-                console.log('[ToolbarHijacker] ✅ 备注已更新:', memoText);
-                
-                // 触发保存到思源
-                console.log('[ToolbarHijacker] 💾 保存备注到思源...');
-                this.saveMemoToSiYuan(memoElement, memoText);
-            }
+        const selectedText = range.toString().trim();
+        if (!selectedText) {
+            console.warn('没有选中文本');
+            return;
         }
-        
-        console.log('[ToolbarHijacker] ========== 备注弹窗流程结束 ==========\n');
+
+        // 🔑 使用统一的操作包装器
+        await operationWrapper.executeWithUnlockLock(
+            `应用${colorName}高亮`,
+            async () => {
+                return await this.performApplyHighlight(protyle, range, colorConfig, colorName);
+            }
+        );
     }
 
     /**
-     * 删除备注元素
+     * 执行应用高亮的核心逻辑（不包含解锁加锁）
      */
-    private async deleteMemoFromElement(memoElement: HTMLElement): Promise<void> {
-        try {
-            // 找到包含备注的块
-            const blockElement = this.findBlockElement(memoElement);
-            if (!blockElement) {
-                console.warn('未找到块元素');
-                return;
-            }
+    private async performApplyHighlight(
+        protyle: any,
+        range: Range,
+        colorConfig: { type: string; color: string },
+        colorName: string
+    ): Promise<void> {
+        // 更新 range
+        protyle.toolbar.range = range;
 
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
-                console.warn('未找到块ID');
-                return;
-            }
+        // 使用思源原生方法
+        protyle.toolbar.setInlineMark(protyle, "text", "range", colorConfig);
 
-            // 保存原始内容用于回滚
-            const oldContent = blockElement.innerHTML;
-
-            // 将备注元素替换为纯文本
-            const textContent = memoElement.textContent || '';
-            const textNode = document.createTextNode(textContent);
-            memoElement.parentNode?.replaceChild(textNode, memoElement);
-
-            // 提取并保存内容
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-
-            if (updateResult.code === 0) {
-                console.log('✅ 备注删除成功');
-                // 恢复只读状态
-                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
-            } else {
-                console.error('❌ 备注删除失败');
-                // 恢复原始内容
-                blockElement.innerHTML = oldContent;
-            }
-        } catch (error) {
-            console.error('删除备注出错:', error);
-        }
-    }
-
-    /**
-     * 保存备注到思源
-     */
-    private async saveMemoToSiYuan(memoElement: HTMLElement, memoText: string): Promise<void> {
-        try {
-            // 找到包含备注的块
-            const blockElement = this.findBlockElement(memoElement);
-            if (!blockElement) {
-                console.warn('未找到块元素');
-                return;
-            }
-
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
-                console.warn('未找到块ID');
-                return;
-            }
-
-            // 提取并保存内容
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-
-            if (updateResult.code === 0) {
-                console.log('✅ 备注保存成功');
-                // 恢复只读状态
-                setTimeout(() => this.restoreReadOnlyState(blockId), 100);
-            } else {
-                console.error('❌ 备注保存失败');
-            }
-        } catch (error) {
-            console.error('保存备注出错:', error);
-        }
-    }
-
-    /**
-     * 显示增强的备注输入框（手机版友好的 Bottom Sheet）
-     */
-    private showEnhancedMemoInput(selectedText: string = '', existingContent: string = ''): Promise<string | null> {
-        return new Promise((resolve) => {
-            console.log('\n[ToolbarHijacker] 🎨 ========== 准备显示备注输入弹窗 ==========');
-            
-            // 🔍 实时检查文档只读状态 - 多种方式查找
-            let wysiwyg: HTMLElement | null = null;
-            
-            // 方式1: 从当前选区查找
-            const selection = window.getSelection();
-            if (selection && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                let element = range.startContainer as HTMLElement;
-                if (element.nodeType === Node.TEXT_NODE) {
-                    element = element.parentElement;
-                }
-                while (element && !element.classList?.contains('protyle-wysiwyg')) {
-                    element = element.parentElement;
-                }
-                wysiwyg = element;
-            }
-            
-            // 方式2: 查找带 attr 属性的
-            if (!wysiwyg) {
-                wysiwyg = document.querySelector('.protyle-wysiwyg.protyle-wysiwyg--attr') as HTMLElement;
-            }
-            
-            // 方式3: 查找任意可见的
-            if (!wysiwyg) {
-                const allWysiwyg = document.querySelectorAll('.protyle-wysiwyg');
-                for (const elem of allWysiwyg) {
-                    if ((elem as HTMLElement).offsetParent !== null) {
-                        wysiwyg = elem as HTMLElement;
-                        break;
-                    }
-                }
-            }
-            
-            if (wysiwyg) {
-                const customReadonly = wysiwyg.getAttribute('custom-sy-readonly');
-                const isDocReadonly = customReadonly === 'true';
-                console.log('[ToolbarHijacker] 📋 当前文档只读状态 (实时检查):', {
-                    'custom-sy-readonly': customReadonly,
-                    '是否只读': isDocReadonly ? '是🔒（锁已锁定）' : '否✏️（锁已解锁）',
-                    '查找方式': wysiwyg.classList.contains('protyle-wysiwyg--attr') ? '从当前文档' : '从可见编辑器',
-                    '弹窗状态': '即将显示'
-                });
-            } else {
-                console.warn('[ToolbarHijacker] ⚠️ 未找到 protyle-wysiwyg 元素，无法检查只读状态');
-            }
-            
-            console.log('[ToolbarHijacker] 📝 弹窗参数:', {
-                selectedText: selectedText?.substring(0, 30),
-                existingContent: existingContent?.substring(0, 30),
-                hasExisting: !!existingContent
-            });
-            
-            // 创建底部弹出层（Bottom Sheet 风格）
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 10000;
-                display: flex;
-                align-items: flex-end;
-                justify-content: center;
-                animation: fadeIn 0.3s ease;
-            `;
-
-            // 创建底部弹出容器
-            const bottomSheet = document.createElement('div');
-            bottomSheet.style.cssText = `
-                background: var(--b3-theme-background, white);
-                border-radius: 16px 16px 0 0;
-                width: 100%;
-                max-width: 600px;
-                max-height: 70vh;
-                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-                transform: translateY(100%);
-                animation: slideUp 0.3s ease forwards;
-                display: flex;
-                flex-direction: column;
-            `;
-
-            // 添加动画样式
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                }
-                @keyframes slideDown {
-                    from { transform: translateY(0); }
-                    to { transform: translateY(100%); }
-                }
-            `;
-            document.head.appendChild(style);
-
-            // 顶部拖拽指示器
-            const dragIndicator = document.createElement('div');
-            dragIndicator.style.cssText = `
-                width: 40px;
-                height: 4px;
-                background: var(--b3-theme-border, #ddd);
-                border-radius: 2px;
-                margin: 12px auto 8px;
-                opacity: 0.6;
-            `;
-
-            // 标题栏
-            const header = document.createElement('div');
-            header.style.cssText = `
-                padding: 0 20px 16px;
-                border-bottom: 1px solid var(--b3-theme-border, #eee);
-                flex-shrink: 0;
-            `;
-
-            // 移除标题，让界面更简洁
-
-            // 引用文本（如果有选中文本）- 移除标签，只显示文本
-            if (selectedText) {
-                const quoteDiv = document.createElement('div');
-                quoteDiv.style.cssText = `
-                    padding: 16px;
-                    background: var(--b3-theme-surface, #f8f9fa);
-                    border-radius: 8px;
-                    border-left: 3px solid var(--b3-theme-primary, #007bff);
-                    margin-bottom: 8px;
-                `;
-                
-                const quoteText = document.createElement('div');
-                quoteText.textContent = selectedText;
-                quoteText.style.cssText = `
-                    font-size: 14px;
-                    color: var(--b3-theme-on-surface, #333);
-                    line-height: 1.4;
-                    font-style: italic;
-                `;
-                
-                quoteDiv.appendChild(quoteText);
-                header.appendChild(quoteDiv);
-            }
-
-            // 内容区域
-            const content = document.createElement('div');
-            content.style.cssText = `
-                padding: 20px;
-                flex: 1;
-                overflow-y: auto;
-                max-height: 40vh;
-            `;
-
-            // 输入框
-            const textarea = document.createElement('textarea');
-            textarea.value = existingContent;
-            textarea.placeholder = '写下你的想法...';
-            textarea.style.cssText = `
-                width: 100%;
-                min-height: 120px;
-                border: 1px solid var(--b3-theme-border, #ddd);
-                border-radius: 12px;
-                padding: 16px;
-                font-size: 16px;
-                line-height: 1.5;
-                resize: none;
-                box-sizing: border-box;
-                font-family: inherit;
-                background: var(--b3-theme-surface, white);
-                color: var(--b3-theme-on-surface, #333);
-                outline: none;
-                transition: border-color 0.2s ease;
-            `;
-
-            // 底部按钮区域
-            const footer = document.createElement('div');
-            footer.style.cssText = `
-                padding: 16px 20px;
-                border-top: 1px solid var(--b3-theme-border, #eee);
-                display: flex;
-                gap: 12px;
-                flex-shrink: 0;
-            `;
-
-            // 取消按钮
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
-            cancelBtn.style.cssText = `
-                flex: 1;
-                padding: 14px;
-                border: 1px solid var(--b3-theme-border, #ddd);
-                border-radius: 12px;
-                background: var(--b3-theme-surface, white);
-                color: var(--b3-theme-on-surface, #666);
-                cursor: pointer;
-                font-size: 16px;
-                font-weight: 500;
-            `;
-
-            // 删除按钮（仅在有现有内容时显示）
-            let deleteBtn = null;
-            if (existingContent) {
-                deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '删除';
-                deleteBtn.style.cssText = `
-                    flex: 1;
-                    padding: 14px;
-                    border: none;
-                    border-radius: 12px;
-                    background: #dc3545;
-                    color: white;
-                    cursor: pointer;
-                    font-size: 16px;
-                    font-weight: 500;
-                    transition: background-color 0.2s ease;
-                `;
-                
-                // 删除按钮悬停效果
-                deleteBtn.onmouseenter = () => {
-                    deleteBtn.style.backgroundColor = '#c82333';
-                };
-                deleteBtn.onmouseleave = () => {
-                    deleteBtn.style.backgroundColor = '#dc3545';
-                };
-            }
-
-            // 确认按钮
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = existingContent ? '更新' : '添加';
-            confirmBtn.style.cssText = `
-                flex: ${existingContent ? '1' : '2'};
-                padding: 14px;
-                border: none;
-                border-radius: 12px;
-                background: var(--b3-theme-primary, #007bff);
-                color: white;
-                cursor: pointer;
-                font-size: 16px;
-                font-weight: 500;
-            `;
-
-            // 事件处理
-            const cleanup = () => {
-                document.head.removeChild(style);
-                bottomSheet.style.animation = 'slideDown 0.3s ease forwards';
-                overlay.style.animation = 'fadeOut 0.3s ease forwards';
-                setTimeout(() => {
-                    if (document.body.contains(overlay)) {
-                        document.body.removeChild(overlay);
-                    }
-                }, 300);
-            };
-
-            cancelBtn.onclick = () => {
-                cleanup();
-                resolve(null);
-            };
-
-            // 删除按钮事件
-            if (deleteBtn) {
-                deleteBtn.onclick = () => {
-                    // 显示删除确认
-                    if (confirm('确定要删除这个备注吗？')) {
-                        cleanup();
-                        resolve('__DELETE_MEMO__'); // 特殊标识表示删除操作
-                    }
-                };
-            }
-
-            confirmBtn.onclick = () => {
-                const value = textarea.value.trim();
-                cleanup();
-                resolve(value);
-            };
-
-            // ESC键取消
-            const handleKeydown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    cleanup();
-                    resolve(null);
-                    document.removeEventListener('keydown', handleKeydown);
-                }
-            };
-            document.addEventListener('keydown', handleKeydown);
-
-            // 点击遮罩层取消
-            overlay.onclick = (e) => {
-                if (e.target === overlay) {
-                    cleanup();
-                    resolve(null);
-                }
-            };
-
-            // 组装UI
-            content.appendChild(textarea);
-            footer.appendChild(cancelBtn);
-            if (deleteBtn) {
-                footer.appendChild(deleteBtn);
-            }
-            footer.appendChild(confirmBtn);
-            
-            bottomSheet.appendChild(dragIndicator);
-            // 只有在有引用文本时才添加header
-            if (selectedText) {
-                bottomSheet.appendChild(header);
-            }
-            bottomSheet.appendChild(content);
-            bottomSheet.appendChild(footer);
-            
-            overlay.appendChild(bottomSheet);
-            
-            // 添加到页面并聚焦
-            document.body.appendChild(overlay);
-            
-            // 延迟聚焦，等待动画完成
-            setTimeout(() => {
-                textarea.focus();
-                if (existingContent) {
-                    textarea.select();
-                }
-            }, 300);
-        });
+        console.log(`✅ 已应用${colorName}高亮`);
     }
 
     /**
@@ -2554,48 +1905,15 @@ export class ToolbarHijacker {
                 top = rect.bottom + scrollTop + 10;
             }
             
-            toolbar.style.cssText = `
-                position: fixed;
-                top: ${top}px;
-                left: ${left}px;
-                transform: translateX(-50%);
-                background: var(--b3-theme-background, white);
-                border: 1px solid var(--b3-theme-border, #ddd);
-                border-radius: 8px;
-                padding: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                z-index: 999999;
-                display: flex;
-                gap: 6px;
-                align-items: center;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                font-size: 14px;
-            `;
+            // 使用 StyleManager 设置工具栏样式
+            toolbar.style.cssText = StyleManager.getCustomToolbarStyle(top, left);
             
-            // 根据平台调整按钮样式
-            const isMobile = this.isMobile;
-            const buttonSize = isMobile ? '22px' : '28px';
-            const borderRadius = isMobile ? '50%' : '6px';
-            
-            // 添加颜色按钮
-            const colors = [
-                { name: 'yellow', bg: '#fff3cd', displayName: '黄色' },
-                { name: 'green', bg: '#d4edda', displayName: '绿色' },
-                { name: 'blue', bg: '#cce5ff', displayName: '蓝色' },
-                { name: 'pink', bg: '#fce4ec', displayName: '粉色' }
-            ];
+            // 使用全局统一的颜色配置
+            const colors = HIGHLIGHT_COLORS;
             
             colors.forEach(color => {
                 const btn = document.createElement('button');
-                btn.style.cssText = `
-                    width: ${buttonSize};
-                    height: ${buttonSize};
-                    border: none;
-                    border-radius: ${borderRadius};
-                    background: ${color.bg};
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                `;
+                btn.style.cssText = StyleManager.getCustomToolbarColorButtonStyle(this.isMobile, color.bg);
                 btn.title = color.displayName;
                 
                 btn.addEventListener('click', () => {
@@ -2608,15 +1926,7 @@ export class ToolbarHijacker {
             
             // 添加删除按钮
             const removeBtn = document.createElement('button');
-            removeBtn.style.cssText = `
-                width: ${buttonSize};
-                height: ${buttonSize};
-                border: 1px solid #ddd;
-                border-radius: ${borderRadius};
-                background: white;
-                cursor: pointer;
-                font-size: ${isMobile ? '10px' : '12px'};
-            `;
+            removeBtn.style.cssText = StyleManager.getCustomToolbarRemoveButtonStyle(this.isMobile);
             removeBtn.textContent = '×';
             removeBtn.title = '删除高亮';
             
@@ -2627,23 +1937,15 @@ export class ToolbarHijacker {
             
             toolbar.appendChild(removeBtn);
             
-            // 添加评论按钮
+            // 添加备注按钮（调用 MemoManager）
             const commentBtn = document.createElement('button');
-            commentBtn.style.cssText = `
-                width: ${buttonSize};
-                height: ${buttonSize};
-                border: 1px solid #ddd;
-                border-radius: ${borderRadius};
-                background: #f8f9fa;
-                cursor: pointer;
-                font-size: ${isMobile ? '10px' : '12px'};
-                color: #666;
-            `;
+            commentBtn.style.cssText = StyleManager.getCustomToolbarCommentButtonStyle(this.isMobile);
             commentBtn.textContent = '💭';
             commentBtn.title = '添加备注';
             
-            commentBtn.addEventListener('click', () => {
-                this.showCustomMemoDialogForRange(range);
+            commentBtn.addEventListener('click', async () => {
+                // 调用 MemoManager 的方法（会显示输入框）
+                await this.memoManager.addMemoWithPrompt(range);
                 this.hideCustomToolbar();
             });
             
@@ -2710,48 +2012,16 @@ export class ToolbarHijacker {
                 return;
             }
 
-            console.log(`✨ 应用${color.name}高亮...`);
-            
-            // 🔧 关键修复：临时切换文档为可编辑状态
-            // 原因：思源的 setInlineMark 在只读模式下会把 contenteditable div 写入 markdown
-            
-            // 1. 查找只读锁按钮
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-            let wasReadonly = false;
-            
-            if (readonlyBtn) {
-                const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
-                // "临时解锁" 表示当前是锁定状态
-                wasReadonly = ariaLabel.includes('临时解锁') || ariaLabel.includes('解锁');
-                
-                if (wasReadonly) {
-                    console.log('[ToolbarHijacker] 🔓 临时解锁文档（点击锁按钮）');
-                    readonlyBtn.click();
-                    
-                    // 等待 DOM 更新
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                }
-            }
-            
-            // 2. 更新 range
-            currentEditor.protyle.toolbar.range = range;
-
-            // 3. 使用思源原生方法
-            currentEditor.protyle.toolbar.setInlineMark(currentEditor.protyle, "text", "range", {
-                type: "backgroundColor",
-                color: color.bg
-            });
-
-            console.log(`✅ 已应用${color.name}高亮`);
-            
-            // 4. 恢复只读状态
-            if (wasReadonly && readonlyBtn) {
-                // 等待 setInlineMark 完成
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                console.log('[ToolbarHijacker] 🔒 恢复只读状态（再次点击锁按钮）');
-                readonlyBtn.click();
-            }
+            // 调用统一的核心方法
+            await this.applyHighlightCore(
+                currentEditor.protyle,
+                range,
+                {
+                    type: "backgroundColor",
+                    color: color.bg
+                },
+                color.name
+            );
             
         } catch (error) {
             console.error('应用自定义高亮出错:', error);
@@ -2762,204 +2032,46 @@ export class ToolbarHijacker {
      * 删除自定义高亮 - 使用思源原生方法
      */
     private async removeCustomHighlight(range: Range): Promise<void> {
-        try {
-            const selectedText = range.toString().trim();
-            if (!selectedText) return;
-
-            // 获取当前编辑器的protyle对象
-            const editors = getAllEditor();
-            if (editors.length === 0) {
-                console.warn('没有可用的编辑器');
-                return;
-            }
-            
-            const currentEditor = editors[0];
-            if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
-                console.warn('编辑器toolbar不可用');
-                return;
-            }
-
-            console.log('🗑️ 删除高亮...');
-
-            // ✅ 使用思源原生方法移除高亮
-            currentEditor.protyle.toolbar.setInlineMark(currentEditor.protyle, "text", "range", {
-                type: "backgroundColor",
-                color: "" // 空字符串表示移除背景色
-            });
-
-            console.log('✅ 已删除高亮');
-
-        } catch (error) {
-            console.error('删除高亮时出错:', error);
-        }
-    }
-    
-    /**
-     * 为自定义工具栏显示备注对话框
-     */
-    private showCustomMemoDialogForRange(range: Range): void {
         const selectedText = range.toString().trim();
-        if (!selectedText) {
+        if (!selectedText) return;
+
+        // 获取当前编辑器的protyle对象
+        const editors = getAllEditor();
+        if (editors.length === 0) {
+            console.warn('没有可用的编辑器');
+            return;
+        }
+        
+        const currentEditor = editors[0];
+        if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
+            console.warn('编辑器toolbar不可用');
             return;
         }
 
-        // 创建对话框
-        const dialog = document.createElement('div');
-        dialog.className = 'highlight-assistant-memo-dialog';
-        dialog.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--b3-theme-background, white);
-            border: 1px solid var(--b3-theme-border, #ddd);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            z-index: 1000000;
-            min-width: 300px;
-            max-width: 500px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        `;
-
-        dialog.innerHTML = `
-            <div style="margin-bottom: 15px;">
-                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: var(--b3-theme-text, #333);">添加备注</h3>
-                <p style="margin: 0; font-size: 14px; color: var(--b3-theme-text, #666); background: #f5f5f5; padding: 8px; border-radius: 4px;">
-                    选中文本: "${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}"
-                </p>
-            </div>
-            <textarea 
-                placeholder="请输入备注内容..." 
-                style="
-                    width: 100%;
-                    height: 80px;
-                    padding: 10px;
-                    border: 1px solid var(--b3-theme-border, #ddd);
-                    border-radius: 4px;
-                    font-size: 14px;
-                    font-family: inherit;
-                    resize: vertical;
-                    box-sizing: border-box;
-                "
-            ></textarea>
-            <div style="margin-top: 15px; text-align: right;">
-                <button id="cancel-memo" style="
-                    margin-right: 10px;
-                    padding: 8px 16px;
-                    border: 1px solid var(--b3-theme-border, #ddd);
-                    border-radius: 4px;
-                    background: var(--b3-theme-background, white);
-                    cursor: pointer;
-                    font-size: 14px;
-                ">取消</button>
-                <button id="save-memo" style="
-                    padding: 8px 16px;
-                    border: none;
-                    border-radius: 4px;
-                    background: var(--b3-theme-primary, #007bff);
-                    color: white;
-                    cursor: pointer;
-                    font-size: 14px;
-                ">保存</button>
-            </div>
-        `;
-
-        document.body.appendChild(dialog);
-
-        // 聚焦到输入框
-        const textarea = dialog.querySelector('textarea') as HTMLTextAreaElement;
-        textarea.focus();
-
-        // 事件处理
-        const cancelBtn = dialog.querySelector('#cancel-memo') as HTMLButtonElement;
-        const saveBtn = dialog.querySelector('#save-memo') as HTMLButtonElement;
-
-        const closeDialog = () => {
-            if (dialog.parentNode) {
-                dialog.parentNode.removeChild(dialog);
+        // 🔑 使用统一的操作包装器
+        await operationWrapper.executeWithUnlockLock(
+            '删除自定义高亮',
+            async () => {
+                return await this.performRemoveCustomHighlight(currentEditor.protyle, range);
             }
-        };
-
-        cancelBtn.addEventListener('click', closeDialog);
-        
-        saveBtn.addEventListener('click', async () => {
-            const memoText = textarea.value.trim();
-            if (memoText) {
-                await this.addMemoToRange(range, memoText);
-            }
-            closeDialog();
-        });
-
-        // 点击外部关闭
-        const handleClickOutside = (e: Event) => {
-            if (!dialog.contains(e.target as Node)) {
-                closeDialog();
-                document.removeEventListener('click', handleClickOutside);
-            }
-        };
-
-        setTimeout(() => {
-            document.addEventListener('click', handleClickOutside);
-        }, 100);
-
-        // ESC键关闭
-        const handleKeydown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                closeDialog();
-                document.removeEventListener('keydown', handleKeydown);
-            }
-        };
-        document.addEventListener('keydown', handleKeydown);
+        );
     }
 
     /**
-     * 为范围添加备注
+     * 执行删除自定义高亮的核心逻辑（不包含解锁加锁）
      */
-    private async addMemoToRange(range: Range, memoText: string): Promise<void> {
-        try {
-            const selectedText = range.toString().trim();
-            if (!selectedText) return;
+    private async performRemoveCustomHighlight(protyle: any, range: Range): Promise<void> {
+        // 设置范围并移除高亮
+        protyle.toolbar.range = range;
+        protyle.toolbar.setInlineMark(protyle, "text", "range", {
+            type: "backgroundColor",
+            color: ""
+        });
 
-            // 找到块元素
-            const blockElement = this.findBlockElement(range.startContainer);
-            if (!blockElement) {
-                return;
-            }
-
-            const blockId = blockElement.getAttribute("data-node-id");
-            if (!blockId) {
-                return;
-            }
-
-            // 创建备注span
-            const memoSpan = document.createElement("span");
-            memoSpan.setAttribute("data-type", "inline-memo");
-            memoSpan.setAttribute("data-inline-memo-content", memoText);
-            memoSpan.style.cssText = `
-                background: #fff3cd;
-                border-bottom: 2px solid #ffc107;
-                cursor: pointer;
-                position: relative;
-            `;
-            memoSpan.textContent = selectedText;
-
-            // 替换选中内容
-            range.deleteContents();
-            range.insertNode(memoSpan);
-
-            // 保存到思源
-            const newContent = await this.extractMarkdownFromBlock(blockElement);
-            const updateResult = await this.api.updateBlock(blockId, newContent, "markdown");
-
-            if (updateResult.code === 0) {
-                console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
-            }
-
-        } catch (error) {
-            console.error('添加备注出错:', error);
-        }
+        console.log('✅ 删除自定义高亮完成');
     }
+    
+    // 已移除旧的 restoreReadonlyModeEnhanced 方法，现在使用统一的操作包装器
 
     /**
      * 获取劫持状态
