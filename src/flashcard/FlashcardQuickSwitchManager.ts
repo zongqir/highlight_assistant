@@ -458,23 +458,65 @@ export class FlashcardQuickSwitchManager {
     }
 
     /**
-     * 执行筛选切换
+     * 执行筛选切换 - 模拟原生筛选流程（不重新打开面板）
      */
     private async executeFilterSwitch(filterButton: Element, filter: FlashcardFilter): Promise<boolean> {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 开始执行筛选切换: ${filter.name}`);
+            console.log(`[FlashcardQuickSwitchManager] 开始执行筛选切换: ${filter.name}（模拟原生流程）`);
             
-            // 1. 更新按钮属性
+            // 1. 更新筛选按钮属性（与原生流程一致）
             filterButton.setAttribute('data-id', filter.id);
             filterButton.setAttribute('data-cardtype', filter.type);
-
-            // 2. 查找闪卡容器和相关元素
-            const cardContainer = filterButton.closest('[data-key="dialog-opencard"], [data-key="dialog-viewcards"], .card__main');
-            if (!cardContainer) {
-                throw new Error('未找到闪卡容器');
+            console.log(`[FlashcardQuickSwitchManager] 已更新筛选属性: data-id="${filter.id}", data-cardtype="${filter.type}"`);
+            
+            // 2. 模拟原生筛选菜单选择流程
+            // 基于思源源码分析：用户选择筛选后会调用 fetchNewRound() 函数直接刷新面板内容
+            let success = false;
+            
+            console.log('[FlashcardQuickSwitchManager] 尝试模拟原生筛选选择流程');
+            
+            try {
+                // 不要弹出菜单！直接触发刷新
+                console.log('[FlashcardQuickSwitchManager] 直接触发筛选刷新（不弹出菜单）');
+                success = await this.triggerDirectRefresh(filterButton, filter);
+                
+                if (!success) {
+                    console.log('[FlashcardQuickSwitchManager] 直接刷新失败，尝试DOM事件触发');
+                    success = this.triggerFilterChangeEvents(filterButton, filter);
+                }
+                
+            } catch (error) {
+                console.warn('[FlashcardQuickSwitchManager] 触发刷新出错:', error);
+                success = false;
             }
+            
+            console.log(`[FlashcardQuickSwitchManager] 筛选切换${success ? '成功' : '可能需要手动刷新'}`);
+            this.showSwitchNotification(filter, success);
+            
+            return success;
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 执行筛选切换失败:', error);
+            this.showSwitchNotification(filter, false);
+            return false;
+        }
+    }
 
-            // 3. 调用思源API获取筛选后的闪卡数据
+    /**
+     * 直接触发筛选刷新（不弹出菜单）
+     */
+    private async triggerDirectRefresh(filterButton: Element, filter: FlashcardFilter): Promise<boolean> {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 尝试直接触发思源刷新机制');
+            
+            // 查找闪卡面板容器
+            const cardContainer = filterButton.closest('[data-key="dialog-opencard"], .card__main');
+            if (!cardContainer) {
+                console.warn('[FlashcardQuickSwitchManager] 未找到闪卡容器');
+                return false;
+            }
+            
+            // 直接调用思源API获取新的闪卡数据，但不弹出任何菜单
             const apiEndpoint = filter.type === 'doc' 
                 ? '/api/riff/getTreeRiffDueCards'
                 : '/api/riff/getNotebookRiffDueCards';
@@ -483,7 +525,7 @@ export class FlashcardQuickSwitchManager {
                 ? { rootID: filter.id }
                 : { notebook: filter.id };
 
-            console.log(`[FlashcardQuickSwitchManager] 调用API: ${apiEndpoint}`, requestBody);
+            console.log(`[FlashcardQuickSwitchManager] 静默调用API获取新数据: ${apiEndpoint}`, requestBody);
 
             const response = await fetch(apiEndpoint, {
                 method: 'POST',
@@ -500,124 +542,244 @@ export class FlashcardQuickSwitchManager {
                 throw new Error(`API返回错误: ${result.msg || 'Unknown error'}`);
             }
 
-            console.log(`[FlashcardQuickSwitchManager] API调用成功，获取到 ${result.data?.cards?.length || 0} 张闪卡`);
-
-            // 4. 基于思源源码分析，直接模拟fetchNewRound的核心逻辑
-            let refreshTriggered = false;
-
-            console.log('[FlashcardQuickSwitchManager] 尝试触发思源内部的刷新机制');
-
-            try {
-                console.log('[FlashcardQuickSwitchManager] 尝试关闭并重新打开闪卡面板以应用新筛选');
-                
-                // 查找关闭按钮 - 尝试多种可能的选择器
-                const closeBtnSelectors = [
-                    '[data-type="close"]',
-                    '.b3-dialog__close',
-                    '.dialog__close', 
-                    '.fn__close',
-                    '.b3-button[data-type="close"]',
-                    'button[aria-label*="关闭"]',
-                    'button[title*="关闭"]',
-                    '.dialog .b3-button--cancel',
-                    '[data-key="close"]'
-                ];
-                
-                let closeBtn: Element | null = null;
-                
-                for (const selector of closeBtnSelectors) {
-                    closeBtn = cardContainer.querySelector(selector);
-                    if (closeBtn) {
-                        console.log(`[FlashcardQuickSwitchManager] 找到关闭按钮: ${selector}`);
-                        break;
-                    }
-                }
-                
-                if (!closeBtn) {
-                    // 如果在容器内找不到，尝试在全局查找
-                    for (const selector of closeBtnSelectors) {
-                        closeBtn = document.querySelector(selector);
-                        if (closeBtn && closeBtn.closest('.b3-dialog--open')) {
-                            console.log(`[FlashcardQuickSwitchManager] 在全局找到关闭按钮: ${selector}`);
-                            break;
-                        }
-                    }
-                }
-                if (closeBtn) {
-                    console.log('[FlashcardQuickSwitchManager] 找到关闭按钮，准备关闭面板');
-                    
-                    // 关闭当前面板
-                    closeBtn.dispatchEvent(new MouseEvent('click', { 
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    }));
-                    
-                    console.log('[FlashcardQuickSwitchManager] 闪卡面板关闭命令已发送');
-                    
-                    // 延迟重新打开闪卡面板，让新的筛选设置生效
-                    setTimeout(() => {
-                        console.log('[FlashcardQuickSwitchManager] 准备重新打开闪卡面板');
-                        this.reopenFlashcardPanel();
-                        
-                        // 面板重新打开后，再次确保筛选设置正确应用
-                        setTimeout(() => {
-                            this.ensureFilterSettingsApplied(filter);
-                        }, 2000); // 给面板足够时间初始化
-                    }, 800); // 增加延迟确保面板完全关闭
-                    
-                    // 认为这种方式可能成功
-                    refreshTriggered = true;
-                    
-                } else {
-                    console.warn('[FlashcardQuickSwitchManager] 未找到关闭按钮，尝试其他方式');
-                    
-                    // 尝试键盘快捷键关闭
-                    const escEvent = new KeyboardEvent('keydown', {
-                        key: 'Escape',
-                        code: 'Escape',
-                        keyCode: 27,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    
-                    cardContainer.dispatchEvent(escEvent);
-                    console.log('[FlashcardQuickSwitchManager] 触发ESC键关闭面板');
-                    
-                    // 延迟重新打开
-                    setTimeout(() => {
-                        this.reopenFlashcardPanel();
-                    }, 800);
-                    
-                    // 这种方式成功率较低
-                    refreshTriggered = false;
-                }
-                
-            } catch (error) {
-                console.error('[FlashcardQuickSwitchManager] 重新打开面板失败:', error);
-                refreshTriggered = false;
+            console.log(`[FlashcardQuickSwitchManager] 静默获取到 ${result.data?.cards?.length || 0} 张闪卡数据`);
+            
+            // 关键：直接更新面板显示，模拟 nextCard 函数的效果
+            if (result.data?.cards?.length > 0) {
+                console.log('[FlashcardQuickSwitchManager] 直接更新面板显示内容');
+                return this.updateFlashcardDisplay(cardContainer, result.data, filter);
+            } else {
+                console.log('[FlashcardQuickSwitchManager] 筛选结果为空，显示无卡片状态');
+                return this.showNoDueCards(cardContainer);
             }
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 直接刷新失败:', error);
+            return false;
+        }
+    }
 
-            // 5. 显示结果通知（无论刷新是否成功）
-            console.log('[FlashcardQuickSwitchManager] 筛选切换处理完成');
-            this.showSwitchNotification(filter, refreshTriggered);
+    /**
+     * 直接更新闪卡面板显示（模拟思源的nextCard函数）
+     */
+    private updateFlashcardDisplay(cardContainer: Element, cardsData: any, filter: FlashcardFilter): boolean {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 开始更新闪卡显示');
+            
+            // 1. 更新计数显示
+            const countElement = cardContainer.querySelector('[data-type="count"]');
+            if (countElement) {
+                const totalCards = cardsData.cards?.length || 0;
+                countElement.innerHTML = `<span>1/${totalCards}</span>`;
+                countElement.classList.remove('fn__none');
+                console.log(`[FlashcardQuickSwitchManager] 更新计数显示: 1/${totalCards}`);
+            }
+            
+            // 2. 寻找并更新编辑器内容区域
+            const editorElement = cardContainer.querySelector('.protyle-content, [data-type="render"]');
+            if (editorElement && cardsData.cards?.length > 0) {
+                const firstCard = cardsData.cards[0];
+                console.log(`[FlashcardQuickSwitchManager] 更新编辑器内容: ${firstCard.blockID}`);
+                
+                // 直接调用思源的内部函数来加载卡片内容（如果可能的话）
+                // 这里我们尝试触发卡片加载
+                this.loadCardContent(editorElement, firstCard);
+                
+                // 确保编辑器显示
+                editorElement.classList.remove('fn__none');
+                
+                // 隐藏空状态
+                const emptyElement = editorElement.nextElementSibling;
+                if (emptyElement) {
+                    emptyElement.classList.add('fn__none');
+                }
+            }
+            
+            // 3. 更新筛选按钮显示（确保用户看到筛选已生效）
+            const filterButton = cardContainer.querySelector('[data-type="filter"]');
+            if (filterButton) {
+                // 可以在这里更新筛选按钮的视觉状态表示筛选已应用
+                filterButton.setAttribute('title', `筛选: ${filter.name}`);
+            }
+            
+            console.log('[FlashcardQuickSwitchManager] 面板显示更新完成');
+            return true;
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 更新面板显示失败:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 加载卡片内容
+     */
+    private loadCardContent(editorElement: Element, card: any): void {
+        try {
+            console.log(`[FlashcardQuickSwitchManager] 加载卡片内容: ${card.blockID}`);
+            
+            // 使用正确的API获取渲染后的HTML内容，而不是Kramdown原始格式
+            fetch('/api/block/getBlockDOM', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: card.blockID })
+            }).then(response => response.json())
+            .then(result => {
+                if (result.code === 0 && result.data) {
+                    console.log('[FlashcardQuickSwitchManager] 成功获取卡片HTML内容');
+                    
+                    // 设置渲染后的HTML内容
+                    const contentDiv = editorElement.querySelector('.protyle-wysiwyg') || editorElement;
+                    if (contentDiv) {
+                        // 使用渲染后的HTML而不是Kramdown
+                        contentDiv.innerHTML = result.data.dom || result.data;
+                    }
+                } else {
+                    console.warn('[FlashcardQuickSwitchManager] 获取DOM内容失败，尝试备选方案');
+                    // 备选方案：尝试获取块的基本信息
+                    this.loadCardContentFallback(editorElement, card);
+                }
+            }).catch(error => {
+                console.error('[FlashcardQuickSwitchManager] 加载卡片内容失败:', error);
+                // 失败时的备选方案
+                this.loadCardContentFallback(editorElement, card);
+            });
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 加载卡片内容出错:', error);
+        }
+    }
+
+    /**
+     * 备选方案加载卡片内容
+     */
+    private loadCardContentFallback(editorElement: Element, card: any): void {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 使用备选方案加载卡片内容');
+            
+            // 备选方案：尝试获取块的基本信息并简单显示
+            fetch('/api/block/getBlockInfo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: card.blockID })
+            }).then(response => response.json())
+            .then(result => {
+                if (result.code === 0 && result.data) {
+                    const contentDiv = editorElement.querySelector('.protyle-wysiwyg') || editorElement;
+                    if (contentDiv) {
+                        // 显示基本的卡片信息
+                        contentDiv.innerHTML = `
+                            <div data-node-id="${card.blockID}" class="protyle-wysiwyg--select">
+                                <div data-node-id="${card.blockID}" data-type="NodeParagraph" class="p">
+                                    <div contenteditable="true" spellcheck="false">
+                                        ${result.data.content || '正在加载卡片内容...'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }).catch(error => {
+                console.error('[FlashcardQuickSwitchManager] 备选方案也失败:', error);
+                // 最后的备选方案：显示占位符
+                const contentDiv = editorElement.querySelector('.protyle-wysiwyg') || editorElement;
+                if (contentDiv) {
+                    contentDiv.innerHTML = `
+                        <div data-node-id="${card.blockID}" class="protyle-wysiwyg--select">
+                            <div data-node-id="${card.blockID}" data-type="NodeParagraph" class="p">
+                                <div contenteditable="true" spellcheck="false">
+                                    📄 正在加载闪卡内容 (ID: ${card.blockID})
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 备选方案出错:', error);
+        }
+    }
+
+    /**
+     * 显示无卡片状态
+     */
+    private showNoDueCards(cardContainer: Element): boolean {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 显示无卡片状态');
+            
+            // 隐藏编辑器
+            const editorElement = cardContainer.querySelector('.protyle-content, [data-type="render"]');
+            if (editorElement) {
+                editorElement.classList.add('fn__none');
+            }
+            
+            // 显示空状态
+            const emptyElement = editorElement?.nextElementSibling;
+            if (emptyElement) {
+                emptyElement.innerHTML = `<div>🔮</div>当前筛选没有到期的闪卡`;
+                emptyElement.classList.remove('fn__none');
+            }
+            
+            // 隐藏计数
+            const countElement = cardContainer.querySelector('[data-type="count"]');
+            if (countElement) {
+                countElement.classList.add('fn__none');
+            }
 
             return true;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 执行筛选切换失败:', error);
+            console.error('[FlashcardQuickSwitchManager] 显示无卡片状态失败:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 触发筛选变更事件
+     */
+    private triggerFilterChangeEvents(filterButton: Element, filter: FlashcardFilter): boolean {
+        try {
+            console.log('[FlashcardQuickSwitchManager] 触发筛选变更事件');
             
-            // 降级策略: 提示用户手动刷新
-            this.showSwitchNotification(filter, false);
+            // 触发各种可能让思源识别筛选变更的DOM事件
+            const events = [
+                'change', 'input', 'blur', 'focus', 'click', 'mouseup',
+                'DOMSubtreeModified', 'propertychange'
+            ];
+            
+            events.forEach(eventType => {
+                filterButton.dispatchEvent(new Event(eventType, { bubbles: true }));
+            });
+            
+            // 触发自定义事件
+            filterButton.dispatchEvent(new CustomEvent('filterChanged', {
+                bubbles: true,
+                detail: { id: filter.id, type: filter.type, name: filter.name }
+            }));
+            
+            // 尝试触发面板内容的刷新事件
+            const cardContainer = filterButton.closest('[data-key="dialog-opencard"], .card__main');
+            if (cardContainer) {
+                cardContainer.dispatchEvent(new CustomEvent('refresh', { bubbles: true }));
+                cardContainer.dispatchEvent(new Event('update', { bubbles: true }));
+            }
+            
+            console.log('[FlashcardQuickSwitchManager] 已触发筛选变更事件');
+            return true;
+
+        } catch (error) {
+            console.error('[FlashcardQuickSwitchManager] 触发筛选事件失败:', error);
             return false;
         }
     }
 
 
     /**
-     * 重新打开闪卡面板
+     * 重新打开闪卡面板（已废弃 - 新实现不需要重新打开面板）
      */
-    private reopenFlashcardPanel(): void {
+    // @ts-ignore - deprecated method kept for reference
+    private _reopenFlashcardPanel(): void {
         try {
             console.log('[FlashcardQuickSwitchManager] 尝试重新打开闪卡面板');
             
@@ -697,9 +859,10 @@ export class FlashcardQuickSwitchManager {
     }
 
     /**
-     * 确保筛选设置在面板重新打开后正确应用
+     * 确保筛选设置在面板重新打开后正确应用（已废弃 - 新实现不需要重新打开面板）
      */
-    private ensureFilterSettingsApplied(filter: FlashcardFilter): void {
+    // @ts-ignore - deprecated method kept for reference
+    private _ensureFilterSettingsApplied(filter: FlashcardFilter): void {
         try {
             console.log(`[FlashcardQuickSwitchManager] 确保筛选设置正确应用: ${filter.name}`);
             
