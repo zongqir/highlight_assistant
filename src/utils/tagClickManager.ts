@@ -126,10 +126,16 @@ export class TagClickManager {
     /**
      * 显示标签搜索面板
      */
-    private async showTagSearchPanel(tagText: string, scope: SearchScope = this.currentScope): Promise<void> {
+    private async showTagSearchPanel(tagText: string, scope: SearchScope = this.currentScope, availableTags?: string[]): Promise<void> {
         console.log('[TagClickManager] 🔍 ========== 开始标签搜索 ==========');
         console.log('[TagClickManager] 原始标签文本:', tagText);
         console.log('[TagClickManager] 搜索范围:', scope);
+        
+        // 如果没有传入可用标签，先获取
+        if (!availableTags) {
+            console.log('[TagClickManager] 📋 获取可用标签...');
+            availableTags = await this.searchManager.getAllAvailableTags(scope);
+        }
         
         // 使用搜索管理器搜索
         const results = await this.searchManager.searchByTag(tagText, scope);
@@ -139,7 +145,7 @@ export class TagClickManager {
         // 根据搜索范围选择分组和渲染方式
         // 按文档分组展示结果
         const groupedResults = this.searchManager.groupByDocument(results);
-        this.showDocumentResultsPanel(tagText, groupedResults, scope);
+        this.showDocumentResultsPanel(tagText, groupedResults, scope, availableTags);
         
         console.log('[TagClickManager] ========== 标签搜索结束 ==========');
     }
@@ -213,7 +219,7 @@ export class TagClickManager {
     /**
      * 显示文档级分组搜索结果面板
      */
-    private showDocumentResultsPanel(tagText: string, groupedResults: GroupedResults, scope: SearchScope): void {
+    private showDocumentResultsPanel(tagText: string, groupedResults: GroupedResults, scope: SearchScope, availableTags?: string[]): void {
         console.log('[TagClickManager] 🎨 开始渲染面板...');
         console.log('[TagClickManager] 标签文本:', tagText);
         console.log('[TagClickManager] 分组结果:', groupedResults);
@@ -257,15 +263,16 @@ export class TagClickManager {
             animation: tagSearchFadeIn 0.2s ease-out;
         `;
         
-        // 创建面板
+        // 创建面板（优化移动端）
+        const isMobile = window.innerWidth <= 768;
         const panel = document.createElement('div');
         panel.style.cssText = `
             background: var(--b3-theme-background);
-            border-radius: 16px;
+            border-radius: ${isMobile ? '12px' : '16px'};
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            max-width: 90vw;
-            width: 800px;
-            max-height: 80vh;
+            max-width: ${isMobile ? '95vw' : '90vw'};
+            width: ${isMobile ? '100%' : '800px'};
+            max-height: ${isMobile ? '85vh' : '80vh'};
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -275,7 +282,7 @@ export class TagClickManager {
         // 标题栏
         const header = document.createElement('div');
         header.style.cssText = `
-            padding: 24px 28px;
+            padding: ${isMobile ? '16px' : '24px 28px'};
             border-bottom: 1px solid var(--b3-theme-surface-lighter);
             background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-background) 100%);
         `;
@@ -284,36 +291,109 @@ export class TagClickManager {
         const totalResults = Object.values(groupedResults).reduce((sum, doc) => sum + doc.blocks.length, 0);
         const docCount = Object.keys(groupedResults).length;
         
+        // 标题区域
         const titleDiv = document.createElement('div');
+        titleDiv.style.cssText = `
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            flex-wrap: ${isMobile ? 'wrap' : 'nowrap'};
+            gap: ${isMobile ? '8px' : '12px'};
+            margin-bottom: 16px;
+        `;
+        
         titleDiv.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 24px;">🔍</span>
-                    <span style="font-size: 20px; font-weight: 600;">标签搜索</span>
-                    <span style="
-                        padding: 6px 14px;
-                        background: var(--b3-theme-primary-lighter);
-                        color: var(--b3-theme-primary);
-                        border-radius: 20px;
-                        font-size: 14px;
-                        font-weight: 600;
-                    ">${tagText}</span>
-                </div>
-                <div style="
-                    color: var(--b3-theme-on-surface-light);
-                    font-size: 14px;
-                ">
-                    ${docCount} 个文档，共 ${totalResults} 个结果
-                </div>
+            <div style="display: flex; align-items: center; gap: ${isMobile ? '8px' : '12px'}; flex: 1;">
+                <span style="font-size: ${isMobile ? '20px' : '24px'};">🔍</span>
+                <span style="font-size: ${isMobile ? '16px' : '20px'}; font-weight: 600;">标签搜索</span>
+                <span style="
+                    padding: ${isMobile ? '4px 10px' : '6px 14px'};
+                    background: var(--b3-theme-primary-lighter);
+                    color: var(--b3-theme-primary);
+                    border-radius: 20px;
+                    font-size: ${isMobile ? '12px' : '14px'};
+                    font-weight: 600;
+                    word-break: break-all;
+                ">${tagText}</span>
+            </div>
+            <div style="
+                color: var(--b3-theme-on-surface-light);
+                font-size: ${isMobile ? '12px' : '14px'};
+                white-space: nowrap;
+            ">
+                ${docCount} 个文档，共 ${totalResults} 个结果
             </div>
         `;
         header.appendChild(titleDiv);
+        
+        // 标签筛选器
+        if (availableTags && availableTags.length > 0) {
+            const tagFilterContainer = document.createElement('div');
+            tagFilterContainer.style.cssText = `
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: ${isMobile ? '8px' : '12px'};
+                flex-wrap: wrap;
+            `;
+            
+            const filterLabel = document.createElement('span');
+            filterLabel.textContent = '🏷️ 筛选标签:';
+            filterLabel.style.cssText = `
+                font-size: ${isMobile ? '12px' : '14px'};
+                color: var(--b3-theme-on-surface-light);
+                white-space: nowrap;
+            `;
+            
+            const tagSelect = document.createElement('select');
+            tagSelect.style.cssText = `
+                padding: ${isMobile ? '4px 8px' : '6px 12px'};
+                border: 1px solid var(--b3-theme-border);
+                border-radius: 6px;
+                background: var(--b3-theme-background);
+                color: var(--b3-theme-on-background);
+                font-size: ${isMobile ? '12px' : '14px'};
+                min-width: ${isMobile ? '120px' : '150px'};
+                flex: 1;
+                max-width: ${isMobile ? '200px' : '250px'};
+            `;
+            
+            // 添加选项
+            const currentOption = document.createElement('option');
+            currentOption.value = tagText;
+            currentOption.textContent = tagText;
+            currentOption.selected = true;
+            tagSelect.appendChild(currentOption);
+            
+            availableTags.forEach(tag => {
+                if (tag !== tagText) {
+                    const option = document.createElement('option');
+                    option.value = tag;
+                    option.textContent = tag;
+                    tagSelect.appendChild(option);
+                }
+            });
+            
+            // 监听选择变化
+            tagSelect.addEventListener('change', (e) => {
+                const newTag = (e.target as HTMLSelectElement).value;
+                if (newTag && newTag !== tagText) {
+                    console.log('[TagClickManager] 🔄 切换标签:', newTag);
+                    cleanup(); // 关闭当前面板
+                    this.showTagSearchPanel(newTag, scope, availableTags); // 重新搜索
+                }
+            });
+            
+            tagFilterContainer.appendChild(filterLabel);
+            tagFilterContainer.appendChild(tagSelect);
+            header.appendChild(tagFilterContainer);
+        }
         
         // 搜索范围选择器
         const scopeSelector = this.createScopeSelector(scope, (newScope) => {
             console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
             cleanup(); // 关闭当前面板
-            this.showTagSearchPanel(tagText, newScope); // 重新搜索
+            this.showTagSearchPanel(tagText, newScope, availableTags); // 重新搜索，保持标签列表
         });
         header.appendChild(scopeSelector);
         
@@ -322,7 +402,7 @@ export class TagClickManager {
         resultsList.style.cssText = `
             flex: 1;
             overflow-y: auto;
-            padding: 16px 28px;
+            padding: ${isMobile ? '12px 16px' : '16px 28px'};
         `;
         
         // 使用渲染器渲染分组结果
@@ -334,7 +414,7 @@ export class TagClickManager {
         // 底部按钮栏
         const footer = document.createElement('div');
         footer.style.cssText = `
-            padding: 20px 28px;
+            padding: ${isMobile ? '16px' : '20px 28px'};
             border-top: 1px solid var(--b3-theme-surface-lighter);
             background: var(--b3-theme-surface);
         `;
@@ -343,13 +423,13 @@ export class TagClickManager {
         closeButton.textContent = '关闭';
         closeButton.style.cssText = `
             width: 100%;
-            padding: 14px;
+            padding: ${isMobile ? '12px' : '14px'};
             border: 2px solid var(--b3-theme-surface-lighter);
             background: var(--b3-theme-background);
             color: var(--b3-theme-on-background);
-            border-radius: 10px;
+            border-radius: ${isMobile ? '8px' : '10px'};
             cursor: pointer;
-            font-size: 15px;
+            font-size: ${isMobile ? '14px' : '15px'};
             font-weight: 600;
             transition: all 0.2s;
         `;

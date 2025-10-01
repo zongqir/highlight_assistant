@@ -314,10 +314,101 @@ export class TagSearchManager {
     }
 
     /**
+     * 获取当前文档中所有可用的标签
+     */
+    public async getAllAvailableTags(scope: SearchScope = 'notebook'): Promise<string[]> {
+        console.log('[TagSearchManager] 📋 ========== 获取可用标签 ==========');
+        
+        try {
+            const paths = await this.getSearchPaths(scope);
+            console.log('[TagSearchManager] 🔍 搜索路径:', paths);
+            
+            // 搜索所有标签（使用通配符）
+            const requestBody = {
+                query: "#", // 搜索所有标签
+                method: 0,
+                types: {
+                    document: true,
+                    heading: true,
+                    list: true,
+                    listItem: true,
+                    codeBlock: false,
+                    htmlBlock: false,
+                    mathBlock: true,
+                    table: true,
+                    blockquote: true,
+                    superBlock: true,
+                    paragraph: true,
+                    video: false,
+                    audio: false,
+                    iframe: false,
+                    widget: false,
+                    thematicBreak: false
+                },
+                page: 1,
+                pageSize: 100,
+                groupBy: 1
+            };
+            
+            if (paths.length > 0) {
+                requestBody.paths = paths;
+            }
+            
+            console.log('[TagSearchManager] 📤 发起标签搜索请求');
+            const response = await fetchSyncPost('/api/search/fullTextSearchBlock', requestBody);
+            
+            if (!response || response.code !== 0) {
+                console.error('[TagSearchManager] ❌ 标签搜索失败:', response);
+                return [];
+            }
+            
+            // 提取所有标签
+            const blocks = this.flattenBlocks(response.data.blocks || []);
+            const tagSet = new Set<string>();
+            
+            blocks.forEach(block => {
+                // 优先使用markdown格式，避免HTML标记干扰
+                let content = block.markdown || block.content || '';
+                
+                // 如果使用content字段，先清理HTML标记
+                if (!block.markdown && block.content) {
+                    content = this.extractTextContent(block.content);
+                }
+                
+                console.log(`[TagSearchManager] 🔍 处理块内容:`, content.substring(0, 100) + '...');
+                
+                // 匹配标签格式：#标签名#
+                const tagMatches = content.match(/#[^#\s<>]+#/g);
+                if (tagMatches) {
+                    tagMatches.forEach(tag => {
+                        const cleanTag = tag.replace(/^#|#$/g, ''); // 去掉前后的#
+                        // 进一步清理可能的HTML实体或特殊字符
+                        const finalTag = cleanTag.replace(/&[^;]+;/g, '').trim();
+                        if (finalTag && !finalTag.includes('<') && !finalTag.includes('>')) {
+                            tagSet.add(finalTag);
+                            console.log(`[TagSearchManager] ✅ 找到标签: ${finalTag}`);
+                        }
+                    });
+                }
+            });
+            
+            const availableTags = Array.from(tagSet).sort();
+            console.log('[TagSearchManager] 🏷️ 找到可用标签:', availableTags);
+            console.log('[TagSearchManager] ========== 获取标签完成 ==========');
+            
+            return availableTags;
+            
+        } catch (error) {
+            console.error('[TagSearchManager] ❌ 获取标签失败:', error);
+            return [];
+        }
+    }
+
+    /**
      * 搜索包含指定标签的块
      */
     public async searchByTag(
-        tagText: string, 
+        tagText: string,
         scope: SearchScope = 'notebook'
     ): Promise<TagSearchResult[]> {
         try {
@@ -477,6 +568,24 @@ export class TagSearchManager {
     }
 
 
+
+    /**
+     * 提取纯文本内容（去除HTML标签）
+     */
+    private extractTextContent(htmlContent: string): string {
+        if (!htmlContent) return '';
+        
+        try {
+            // 创建临时DOM元素来解析HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            return tempDiv.textContent || tempDiv.innerText || '';
+        } catch (error) {
+            console.warn('[TagSearchManager] HTML内容解析失败，使用正则清理:', error);
+            // 备用方案：使用正则表达式简单清理HTML标签
+            return htmlContent.replace(/<[^>]*>/g, '');
+        }
+    }
 
     /**
      * 从路径提取文档名
