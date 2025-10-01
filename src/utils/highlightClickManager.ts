@@ -39,19 +39,16 @@ export class HighlightClickManager {
             const handler = (e: Event) => {
                 const target = e.target as HTMLElement;
                 
-                // 直接判断点击的元素是否是高亮
-                const isHighlight = target.getAttribute?.('data-type') === 'text' &&
-                                   target.style?.backgroundColor &&
-                                   target.style.backgroundColor !== 'transparent' &&
-                                   target.style.backgroundColor !== '';
+                // 查找高亮元素（支持嵌套格式，如高亮+加粗）
+                const highlightElement = this.findHighlightElement(target);
                 
-                if (eventType === 'mousedown' && isHighlight) {
+                if (eventType === 'mousedown' && highlightElement) {
                     // 阻止所有默认行为和传播
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
                     
-                    this.showHighlightQuickDialog(target);
+                    this.showHighlightQuickDialog(highlightElement);
                     
                     return false;
                 }
@@ -61,6 +58,63 @@ export class HighlightClickManager {
         });
         
         console.log('[HighlightClickManager] ✅ 点击高亮事件监听器已注册');
+    }
+    
+    /**
+     * 查找高亮元素（向上查找，支持嵌套格式）
+     * 例如：点击 <span data-type="text" style="bg"><strong>文本</strong></span> 中的 strong
+     */
+    private findHighlightElement(target: HTMLElement): HTMLElement | null {
+        console.log('\n🔍 ========== DOM 结构分析 ==========');
+        console.log('点击的元素:', {
+            tagName: target.tagName,
+            dataType: target.getAttribute?.('data-type'),
+            className: target.className,
+            textContent: target.textContent?.substring(0, 30),
+            backgroundColor: target.style?.backgroundColor,
+        });
+        console.log('完整HTML结构:', target.outerHTML?.substring(0, 500));
+        
+        let current: HTMLElement | null = target;
+        let depth = 0;
+        const maxDepth = 5; // 最多向上查找5层，避免过度查找
+        
+        console.log('\n📊 向上查找DOM树:');
+        while (current && depth < maxDepth) {
+            // 检查当前元素是否是高亮元素
+            // 关键修复：data-type 可能是 'text', 'strong text', 'em text' 等
+            const dataType = current.getAttribute?.('data-type') || '';
+            
+            console.log(`深度 ${depth}:`, {
+                tagName: current.tagName,
+                dataType: dataType,
+                backgroundColor: current.style?.backgroundColor,
+                hasBackgroundColor: !!(current.style?.backgroundColor && 
+                                      current.style.backgroundColor !== 'transparent' && 
+                                      current.style.backgroundColor !== ''),
+                className: current.className,
+            });
+            console.log(`  HTML片段:`, current.outerHTML?.substring(0, 300));
+            
+            const hasTextType = dataType.includes('text');
+            const hasBackgroundColor = current.style?.backgroundColor &&
+                                      current.style.backgroundColor !== 'transparent' &&
+                                      current.style.backgroundColor !== '';
+            
+            if (hasTextType && hasBackgroundColor) {
+                console.log(`✅ 在深度 ${depth} 找到高亮元素! (data-type="${dataType}")`);
+                console.log('========== DOM 分析结束 ==========\n');
+                return current;
+            }
+            
+            // 向上查找父元素
+            current = current.parentElement;
+            depth++;
+        }
+        
+        console.log('❌ 未找到高亮元素');
+        console.log('========== DOM 分析结束 ==========\n');
+        return null;
     }
     
     
