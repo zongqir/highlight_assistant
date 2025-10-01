@@ -613,6 +613,9 @@ export class ToolbarHijacker {
         protyle: any, 
         toolbar: any
     ): HTMLButtonElement {
+        // 克隆 range 以避免在异步操作中失效
+        const clonedRange = range.cloneRange();
+        
         const btn = document.createElement('button');
         btn.className = 'keyboard__action highlight-btn wechat-style';
         btn.setAttribute('data-color', colorConfig.name);
@@ -668,8 +671,16 @@ export class ToolbarHijacker {
                 color: this.getColorValue(colorConfig.name)
             };
             
+            // 使用克隆的 range，并在应用前更新 protyle.toolbar.range
+            protyle.toolbar.range = clonedRange;
+            
             // 应用高亮（异步处理）
-            await this.applyHighlight(protyle, range, nodeElement, apiColorConfig);
+            await this.applyHighlight(protyle, clonedRange, nodeElement, apiColorConfig);
+            
+            // 隐藏工具栏
+            this.hideToolbar(toolbar);
+            // 清除选区
+            this.clearSelection();
         });
         
         return btn;
@@ -1057,6 +1068,15 @@ export class ToolbarHijacker {
             }
 
             console.log(`✨ 正在应用${colorConfig.name}高亮...`);
+            
+            // 🔧 关键修复：清理 range，移除 contenteditable 包裹层
+            const cleanedRange = this.cleanRangeFromEditableWrappers(range);
+            
+            // 更新 protyle.toolbar.range 为清理后的 range
+            protyle.toolbar.range = cleanedRange;
+            
+            // 使用清理后的 range
+            range = cleanedRange;
 
             // ✅ 核心修改：直接调用思源原生的 setInlineMark 方法
             // 这会自动处理：
@@ -1657,6 +1677,135 @@ export class ToolbarHijacker {
         };
         
         return lightColors[color] || lightColors.yellow;
+    }
+    
+    /**
+     * 清理 range，移除 contenteditable 包裹层
+     * 
+     * 问题：在只读模式下，思源会给块内容包裹 <div contenteditable="false" spellcheck="false">
+     * 如果 range 包含这个 div，调用 setInlineMark 会把它写入 markdown，导致数据污染
+     * 
+     * 解决：检测并跳过这些包裹层，确保 range 只选中实际的文本内容
+     */
+    private cleanRangeFromEditableWrappers(originalRange: Range): Range {
+        try {
+            console.log('[ToolbarHijacker] 🔍 开始清理 range...');
+            
+            // 克隆原始 range
+            const range = originalRange.cloneRange();
+            
+            console.log('[ToolbarHijacker] 🔍 Range 选中的文本:', range.toString());
+            
+            // 🔧 关键修复：检查 startContainer 和 endContainer 的父元素链
+            let startNode = range.startContainer;
+            let endNode = range.endContainer;
+            
+            console.log('[ToolbarHijacker] 🔍 startContainer:', startNode);
+            console.log('[ToolbarHijacker] 🔍 startContainer.parentElement:', (startNode as any).parentElement);
+            
+            // 检查父元素是否是 div[contenteditable]
+            let needsCleaning = false;
+            let startParent = startNode.nodeType === Node.TEXT_NODE ? (startNode as Node).parentElement : startNode as HTMLElement;
+            let endParent = endNode.nodeType === Node.TEXT_NODE ? (endNode as Node).parentElement : endNode as HTMLElement;
+            
+            if (startParent?.tagName === 'DIV' && startParent.hasAttribute('contenteditable')) {
+                console.warn('[ToolbarHijacker] ⚠️ startContainer 的父元素是 div[contenteditable]！');
+                needsCleaning = true;
+            }
+            
+            if (endParent?.tagName === 'DIV' && endParent.hasAttribute('contenteditable')) {
+                console.warn('[ToolbarHijacker] ⚠️ endContainer 的父元素是 div[contenteditable]！');
+                needsCleaning = true;
+            }
+            
+            // 检查 range 克隆的内容（作为备用检查）
+            const clonedContents = range.cloneContents();
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(clonedContents);
+            
+            console.log('[ToolbarHijacker] 🔍 Range 克隆的 HTML:', tempDiv.innerHTML);
+            
+            const editableElements = tempDiv.querySelectorAll('[contenteditable]');
+            if (editableElements.length > 0) {
+                console.warn('[ToolbarHijacker] ⚠️ Range 克隆内容包含 contenteditable 元素！');
+                needsCleaning = true;
+            }
+            
+            if (needsCleaning) {
+                console.error('[ToolbarHijacker] ❌ 检测到 contenteditable 包裹层！');
+                console.error('[ToolbarHijacker] ❌ 思源的 setInlineMark 会把这个 div 写入 markdown！');
+                console.error('[ToolbarHijacker] ❌ 这就是导致 <div contenteditable="false"> 污染的根本原因！');
+                
+                // 🔧 解决方案：临时移除 contenteditable 属性
+                const removedAttrs: Array<{element: HTMLElement, value: string}> = [];
+                
+                if (startParent?.hasAttribute('contenteditable')) {
+                    const value = startParent.getAttribute('contenteditable') || '';
+                    removedAttrs.push({element: startParent, value});
+                    startParent.removeAttribute('contenteditable');
+                    console.log('[ToolbarHijacker] 🔧 已临时移除 startParent 的 contenteditable 属性');
+                }
+                
+                if (endParent && endParent !== startParent && endParent.hasAttribute('contenteditable')) {
+                    const value = endParent.getAttribute('contenteditable') || '';
+                    removedAttrs.push({element: endParent, value});
+                    endParent.removeAttribute('contenteditable');
+                    console.log('[ToolbarHijacker] 🔧 已临时移除 endParent 的 contenteditable 属性');
+                }
+                
+                // 将移除的属性存储到 range 对象上，以便后续恢复
+                (range as any)._removedEditableAttrs = removedAttrs;
+                
+                console.log('[ToolbarHijacker] ✅ 已移除 contenteditable 属性，range 现在是干净的');
+                return range;
+            }
+            
+            console.log('[ToolbarHijacker] ✅ Range 无需清理（父元素没有 contenteditable）');
+            return range;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 清理 range 时出错:', error);
+            // 出错时返回原始 range
+            return originalRange;
+        }
+    }
+    
+    /**
+     * 获取元素的第一个文本节点
+     */
+    private getFirstTextNode(element: Node): Node | null {
+        if (element.nodeType === Node.TEXT_NODE) {
+            return element;
+        }
+        
+        for (let i = 0; i < element.childNodes.length; i++) {
+            const child = element.childNodes[i];
+            const textNode = this.getFirstTextNode(child);
+            if (textNode) {
+                return textNode;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 获取元素的最后一个文本节点
+     */
+    private getLastTextNode(element: Node): Node | null {
+        if (element.nodeType === Node.TEXT_NODE) {
+            return element;
+        }
+        
+        for (let i = element.childNodes.length - 1; i >= 0; i--) {
+            const child = element.childNodes[i];
+            const textNode = this.getLastTextNode(child);
+            if (textNode) {
+                return textNode;
+            }
+        }
+        
+        return null;
     }
     
     
@@ -2675,14 +2824,47 @@ export class ToolbarHijacker {
             }
 
             console.log(`✨ 应用${color.name}高亮...`);
+            
+            // 🔧 关键修复：临时切换文档为可编辑状态
+            // 原因：思源的 setInlineMark 在只读模式下会把 contenteditable div 写入 markdown
+            
+            // 1. 查找只读锁按钮
+            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+            let wasReadonly = false;
+            
+            if (readonlyBtn) {
+                const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
+                // "临时解锁" 表示当前是锁定状态
+                wasReadonly = ariaLabel.includes('临时解锁') || ariaLabel.includes('解锁');
+                
+                if (wasReadonly) {
+                    console.log('[ToolbarHijacker] 🔓 临时解锁文档（点击锁按钮）');
+                    readonlyBtn.click();
+                    
+                    // 等待 DOM 更新
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+            
+            // 2. 更新 range
+            currentEditor.protyle.toolbar.range = range;
 
-            // ✅ 使用思源原生方法
+            // 3. 使用思源原生方法
             currentEditor.protyle.toolbar.setInlineMark(currentEditor.protyle, "text", "range", {
                 type: "backgroundColor",
                 color: color.bg
             });
 
             console.log(`✅ 已应用${color.name}高亮`);
+            
+            // 4. 恢复只读状态
+            if (wasReadonly && readonlyBtn) {
+                // 等待 setInlineMark 完成
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                console.log('[ToolbarHijacker] 🔒 恢复只读状态（再次点击锁按钮）');
+                readonlyBtn.click();
+            }
             
         } catch (error) {
             console.error('应用自定义高亮出错:', error);
