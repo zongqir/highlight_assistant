@@ -414,7 +414,7 @@ export class TagClickManager {
         titleDiv.innerHTML = `
             <div style="
                 color: var(--b3-theme-on-surface-light);
-                font-size: ${isMobile ? '11px' : '12px'};
+                font-size: ${isMobile ? '12px' : '13px'};
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -424,40 +424,100 @@ export class TagClickManager {
         `;
         header.appendChild(titleDiv);
         
-        // 标签筛选器（紧凑布局）
+        // 统一的控制栏（标签筛选 + 范围选择）
+        const controlsContainer = document.createElement('div');
+        controlsContainer.style.cssText = `
+            display: flex;
+            align-items: stretch;
+            gap: ${isMobile ? '6px' : '8px'};
+            margin-bottom: ${isMobile ? '8px' : '10px'};
+            background: linear-gradient(135deg, var(--b3-theme-surface-light) 0%, var(--b3-theme-surface) 100%);
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.1);
+            border: 1px solid rgba(var(--b3-theme-border-rgb), 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // 控制栏整体悬停效果
+        controlsContainer.addEventListener('mouseenter', () => {
+            controlsContainer.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06)';
+            controlsContainer.style.transform = 'translateY(-1px)';
+        });
+        
+        controlsContainer.addEventListener('mouseleave', () => {
+            controlsContainer.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.1)';
+            controlsContainer.style.transform = 'translateY(0)';
+        });
+        
+        // 标签筛选器（统一样式）
         if (availableTags && availableTags.length > 0) {
             const tagFilterContainer = document.createElement('div');
             tagFilterContainer.style.cssText = `
-                margin-bottom: ${isMobile ? '8px' : '10px'};
                 display: flex;
                 align-items: center;
-                gap: 6px;
+                background: var(--b3-theme-background);
+                border-radius: 8px;
+                padding: ${isMobile ? '4px 8px' : '4px 8px'};
+                flex: 1;
+                min-width: 0;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                transition: all 0.3s ease;
+                border: 1px solid rgba(var(--b3-theme-border-rgb), 0.2);
             `;
             
-            const filterLabel = document.createElement('span');
-            filterLabel.textContent = '标签:';
-            filterLabel.style.cssText = `
-                font-size: ${isMobile ? '11px' : '12px'};
-                color: var(--b3-theme-on-surface-light);
-                white-space: nowrap;
+            // 标签容器悬停效果
+            tagFilterContainer.addEventListener('mouseenter', () => {
+                tagFilterContainer.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+                tagFilterContainer.style.borderColor = 'var(--b3-theme-primary-lighter)';
+            });
+            
+            tagFilterContainer.addEventListener('mouseleave', () => {
+                tagFilterContainer.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                tagFilterContainer.style.borderColor = 'rgba(var(--b3-theme-border-rgb), 0.2)';
+            });
+            
+            // 改成自定义下拉样式（去掉标签文字）
+            const tagSelectWrapper = document.createElement('div');
+            tagSelectWrapper.style.cssText = `
+                position: relative;
+                flex: 1;
+                min-width: 0;
             `;
             
             const tagSelect = document.createElement('select');
             tagSelect.style.cssText = `
-                padding: ${isMobile ? '3px 6px' : '4px 8px'};
-                border: 1px solid var(--b3-theme-border);
-                border-radius: 4px;
-                background: var(--b3-theme-background);
-                color: var(--b3-theme-on-background);
-                font-size: ${isMobile ? '11px' : '12px'};
-                flex: 1;
-                min-width: 0;
+                width: 100%;
+                padding: ${isMobile ? '8px 24px 8px 8px' : '10px 26px 10px 12px'};
+                border: none;
+                background: transparent;
+                color: var(--b3-theme-primary);
+                font-size: ${isMobile ? '12px' : '14px'};
+                font-weight: 600;
+                cursor: pointer;
+                outline: none;
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+            `;
+            
+            // 自定义下拉箭头
+            const dropdownArrow = document.createElement('div');
+            dropdownArrow.innerHTML = '▼';
+            dropdownArrow.style.cssText = `
+                position: absolute;
+                right: ${isMobile ? '8px' : '8px'};
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--b3-theme-on-surface-light);
+                font-size: ${isMobile ? '9px' : '10px'};
+                pointer-events: none;
             `;
             
             // 添加选项
             const currentOption = document.createElement('option');
             currentOption.value = tagText;
-            currentOption.textContent = tagText;
+            currentOption.textContent = tagText.length > 12 ? tagText.substring(0, 12) + '...' : tagText;
             currentOption.selected = true;
             tagSelect.appendChild(currentOption);
             
@@ -465,7 +525,7 @@ export class TagClickManager {
                 if (tag !== tagText) {
                     const option = document.createElement('option');
                     option.value = tag;
-                    option.textContent = tag;
+                    option.textContent = tag.length > 12 ? tag.substring(0, 12) + '...' : tag;
                     tagSelect.appendChild(option);
                 }
             });
@@ -480,18 +540,22 @@ export class TagClickManager {
                 }
             });
             
-            tagFilterContainer.appendChild(filterLabel);
-            tagFilterContainer.appendChild(tagSelect);
-            header.appendChild(tagFilterContainer);
+            tagSelectWrapper.appendChild(tagSelect);
+            tagSelectWrapper.appendChild(dropdownArrow);
+            
+            tagFilterContainer.appendChild(tagSelectWrapper);
+            controlsContainer.appendChild(tagFilterContainer);
         }
         
-        // 搜索范围选择器
+        // 范围选择器（统一样式）
         const scopeSelector = this.createScopeSelector(scope, (newScope) => {
             console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
             cleanup(); // 关闭当前面板
             this.showTagSearchPanel(tagText, newScope, availableTags); // 重新搜索，保持标签列表
         });
-        header.appendChild(scopeSelector);
+        controlsContainer.appendChild(scopeSelector);
+        
+        header.appendChild(controlsContainer);
         
         // 结果列表容器（紧凑版）
         const resultsList = document.createElement('div');
@@ -716,19 +780,10 @@ export class TagClickManager {
         
         const container = document.createElement('div');
         container.style.cssText = `
-            margin-top: ${isMobile ? '8px' : '10px'};
             display: flex;
             align-items: center;
-            gap: 6px;
-        `;
-        
-        const label = document.createElement('span');
-        label.textContent = '范围:';
-        label.style.cssText = `
-            color: var(--b3-theme-on-surface-light);
-            font-size: ${isMobile ? '11px' : '12px'};
-            font-weight: 500;
-            white-space: nowrap;
+            gap: 4px;
+            flex-shrink: 0;
         `;
         
         const scopes = [
@@ -740,10 +795,8 @@ export class TagClickManager {
         const buttonsContainer = document.createElement('div');
         buttonsContainer.style.cssText = `
             display: flex;
-            border-radius: ${isMobile ? '4px' : '6px'};
-            overflow: hidden;
-            border: 1px solid var(--b3-theme-surface-lighter);
-            flex: 1;
+            flex-shrink: 0;
+            gap: 2px;
         `;
         
         scopes.forEach((scopeOption, index) => {
@@ -753,28 +806,31 @@ export class TagClickManager {
             button.textContent = scopeOption.label;
             button.style.cssText = `
                 border: none;
-                padding: ${isMobile ? '4px 8px' : '6px 12px'};
-                font-size: ${isMobile ? '10px' : '11px'};
-                font-weight: 500;
+                padding: ${isMobile ? '8px 12px' : '8px 14px'};
+                font-size: ${isMobile ? '12px' : '14px'};
+                font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s ease;
-                background: ${isActive ? 'var(--b3-theme-primary)' : 'var(--b3-theme-surface)'};
-                color: ${isActive ? 'var(--b3-theme-on-primary)' : 'var(--b3-theme-on-surface)'};
-                border-right: ${index < scopes.length - 1 ? '1px solid var(--b3-theme-surface-lighter)' : 'none'};
-                flex: 1;
+                transition: all 0.25s ease;
+                border-radius: 7px;
                 white-space: nowrap;
+                background: ${isActive ? 'var(--b3-theme-background)' : 'transparent'};
+                color: ${isActive ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-surface-light)'};
+                box-shadow: ${isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'};
+                position: relative;
             `;
             
             // 悬停效果
             button.addEventListener('mouseenter', () => {
                 if (!isActive) {
-                    button.style.background = 'var(--b3-theme-surface-light)';
+                    button.style.background = 'rgba(var(--b3-theme-primary-rgb), 0.08)';
+                    button.style.color = 'var(--b3-theme-primary)';
                 }
             });
             
             button.addEventListener('mouseleave', () => {
                 if (!isActive) {
-                    button.style.background = 'var(--b3-theme-surface)';
+                    button.style.background = 'transparent';
+                    button.style.color = 'var(--b3-theme-on-surface-light)';
                 }
             });
             
@@ -788,7 +844,6 @@ export class TagClickManager {
             buttonsContainer.appendChild(button);
         });
         
-        container.appendChild(label);
         container.appendChild(buttonsContainer);
         
         return container;

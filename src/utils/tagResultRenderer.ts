@@ -54,24 +54,27 @@ export class TagResultRenderer {
     ): HTMLElement {
         const docElement = document.createElement('div');
         docElement.style.cssText = `
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             border: 1px solid var(--b3-theme-border);
-            border-radius: 6px;
+            border-radius: 12px;
             overflow: hidden;
             background: var(--b3-theme-surface);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
         `;
         
         // 文档标题头部
         const headerElement = document.createElement('div');
         headerElement.style.cssText = `
-            background: var(--b3-theme-surface-light);
-            padding: 8px 12px;
+            background: linear-gradient(135deg, var(--b3-theme-surface-light) 0%, var(--b3-theme-surface) 100%);
+            padding: 10px 14px;
             border-bottom: 1px solid var(--b3-theme-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.3s ease;
+            position: relative;
         `;
         
         const isExpanded = !this.collapsedNodes.has(docGroup.docId); // 默认展开
@@ -132,11 +135,13 @@ export class TagResultRenderer {
         });
         
         headerElement.addEventListener('mouseenter', () => {
-            headerElement.style.backgroundColor = 'var(--b3-theme-primary-lightest)';
+            headerElement.style.background = 'linear-gradient(135deg, var(--b3-theme-primary-lightest) 0%, var(--b3-theme-surface-light) 100%)';
+            headerElement.style.transform = 'scale(1.01)';
         });
         
         headerElement.addEventListener('mouseleave', () => {
-            headerElement.style.backgroundColor = 'var(--b3-theme-surface-light)';
+            headerElement.style.background = 'linear-gradient(135deg, var(--b3-theme-surface-light) 0%, var(--b3-theme-surface) 100%)';
+            headerElement.style.transform = 'scale(1)';
         });
         
         docElement.appendChild(headerElement);
@@ -156,13 +161,16 @@ export class TagResultRenderer {
     ): HTMLElement {
         const blockElement = document.createElement('div');
         blockElement.style.cssText = `
-            padding: 6px 10px;
-            margin: 2px 0;
-            border-radius: 4px;
-            border-left: 3px solid var(--b3-theme-primary-light);
-            background: var(--b3-theme-surface-light);
+            padding: 8px 12px;
+            margin: 3px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--b3-theme-primary);
+            background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
         `;
         
         // 清理和高亮内容
@@ -202,13 +210,17 @@ export class TagResultRenderer {
         
         // 添加悬停效果
         blockElement.addEventListener('mouseenter', () => {
-            blockElement.style.backgroundColor = 'var(--b3-theme-primary-lightest)';
-            blockElement.style.transform = 'translateX(4px)';
+            blockElement.style.background = 'linear-gradient(135deg, var(--b3-theme-primary-lightest) 0%, var(--b3-theme-surface-light) 100%)';
+            blockElement.style.transform = 'translateX(8px) scale(1.02)';
+            blockElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            blockElement.style.borderLeftColor = 'var(--b3-theme-primary)';
         });
         
         blockElement.addEventListener('mouseleave', () => {
-            blockElement.style.backgroundColor = 'var(--b3-theme-surface-light)';
-            blockElement.style.transform = 'translateX(0)';
+            blockElement.style.background = 'linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%)';
+            blockElement.style.transform = 'translateX(0) scale(1)';
+            blockElement.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+            blockElement.style.borderLeftColor = 'var(--b3-theme-primary)';
         });
         
         return blockElement;
@@ -233,7 +245,7 @@ export class TagResultRenderer {
         const escapedTag = this.escapeRegExp(tagText);
         const regex = new RegExp(`(${escapedTag})`, 'gi');
         
-        return escapedText.replace(regex, '<mark style="background: var(--b3-theme-primary-light); color: var(--b3-theme-on-primary); padding: 1px 3px; border-radius: 3px; font-weight: 500;">$1</mark>');
+        return escapedText.replace(regex, '<mark style="background: linear-gradient(135deg, var(--b3-theme-primary-light) 0%, var(--b3-theme-primary-lighter) 100%); color: var(--b3-theme-primary); padding: 2px 6px; border-radius: 6px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">$1</mark>');
     }
 
     /**
