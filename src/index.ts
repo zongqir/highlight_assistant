@@ -100,10 +100,35 @@ export default class HighlightAssistantPlugin extends Plugin {
                     }
                 };
                 
+                // 添加标签管理调试控制命令
+                (window as any).tagDebug = {
+                    enable: () => {
+                        const manager = this.toolbarHijacker?.getTagManager();
+                        if (manager) {
+                            manager.enableDebug();
+                        } else {
+                            console.error('❌ 标签管理器不可用');
+                        }
+                    },
+                    disable: () => {
+                        const manager = this.toolbarHijacker?.getTagManager();
+                        if (manager) {
+                            manager.disableDebug();
+                        } else {
+                            console.error('❌ 标签管理器不可用');
+                        }
+                    }
+                };
+                
                 console.log('💡 可用命令:');
                 console.log('  - testHijack() - 检查劫持状态');
                 console.log('  - highlightDebug.enable() - 开启高亮点击调试');
                 console.log('  - highlightDebug.disable() - 关闭高亮点击调试');
+                console.log('  - tagDebug.enable() - 开启标签管理调试');
+                console.log('  - tagDebug.disable() - 关闭标签管理调试');
+                console.log('💡 操作提示:');
+                console.log('  - 桌面版：右键点击块 - 快速打标签（仅锁定状态）');
+                console.log('  - 手机版：长按块（500ms）- 快速打标签（仅锁定状态）');
                 
             }, 2000);
         }
