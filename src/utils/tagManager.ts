@@ -4,6 +4,7 @@
 
 import { operationWrapper } from './operationWrapper';
 import { getAllEditor } from "siyuan";
+import { getBlockByID, updateBlock } from '../api';
 
 // 内置标签配置
 const PRESET_TAGS = [
@@ -385,18 +386,7 @@ export class TagManager {
      */
     private async performAddTag(blockElement: HTMLElement, tag: typeof PRESET_TAGS[number]): Promise<void> {
         try {
-            console.log('[TagManager] 🏷️ 开始添加标签...');
-            
-            // 获取编辑器
-            const editors = getAllEditor();
-            if (editors.length === 0) {
-                throw new Error('没有可用的编辑器');
-            }
-            
-            const protyle = editors[0].protyle;
-            if (!protyle || !protyle.toolbar) {
-                throw new Error('编辑器toolbar不可用');
-            }
+            this.debugLog('[TagManager] 🏷️ 开始添加标签...');
             
             // 获取块ID
             const blockId = blockElement.getAttribute('data-node-id');
@@ -404,47 +394,38 @@ export class TagManager {
                 throw new Error('未找到块ID');
             }
             
-            // 在块的末尾添加标签
-            // 思源笔记的标签格式是 #标签名#
-            const tagText = `#${tag.name}#`;
+            this.debugLog('[TagManager] 获取块ID:', blockId);
             
-            console.log('[TagManager] 添加标签:', {
-                blockId,
-                tagName: tag.name,
-                tagText
+            // 使用 operationWrapper 包裹操作
+            await operationWrapper.executeWithUnlockLock('添加标签', async () => {
+                // 获取块的完整信息
+                const block = await getBlockByID(blockId);
+                
+                if (!block) {
+                    throw new Error('未找到块信息');
+                }
+                
+                this.debugLog('[TagManager] 当前块内容:', block.content);
+                
+                // 思源标签格式是 #标签名#
+                const tagText = `#${tag.name}#`;
+                
+                // 在markdown内容末尾添加标签（使用空格分隔）
+                const newMarkdown = block.markdown.trim() + ' ' + tagText;
+                
+                this.debugLog('[TagManager] 新markdown内容:', newMarkdown);
+                
+                // 使用 markdown 格式更新块，思源会自动转换为正确的DOM格式
+                const result = await updateBlock('markdown', newMarkdown, blockId);
+                
+                this.debugLog('[TagManager] 更新结果:', result);
+                
+                console.log('[TagManager] ✅ 标签添加成功:', {
+                    blockId,
+                    tagName: tag.name,
+                    emoji: tag.emoji
+                });
             });
-            
-            // 查找内容区域
-            const contentDiv = blockElement.querySelector('div[contenteditable]') || 
-                              blockElement.querySelector('div');
-            
-            if (!contentDiv) {
-                throw new Error('未找到内容区域');
-            }
-            
-            // 在内容末尾添加标签
-            const currentContent = contentDiv.innerHTML;
-            const newContent = currentContent + ` ${tagText}`;
-            contentDiv.innerHTML = newContent;
-            
-            // 保存到思源
-            const response = await fetch('/api/block/updateBlock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dataType: 'dom',
-                    data: newContent,
-                    id: blockId
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.code === 0) {
-                console.log('[TagManager] ✅ 标签添加成功');
-            } else {
-                throw new Error(`标签添加失败: ${result.msg}`);
-            }
             
         } catch (error) {
             console.error('[TagManager] ❌ 标签添加失败:', error);
