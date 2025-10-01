@@ -2093,4 +2093,11 @@ export class ToolbarHijacker {
         return this.isHijacked;
     }
     
+    /**
+     * 获取高亮点击管理器（用于调试）
+     */
+    public getHighlightClickManager(): any {
+        return this.highlightClickManager;
+    }
+    
 }

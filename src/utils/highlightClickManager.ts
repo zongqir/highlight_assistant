@@ -7,9 +7,35 @@ import { getAllEditor } from "siyuan";
 
 export class HighlightClickManager {
     private isInitialized: boolean = false;
+    private debugMode: boolean = false; // 调试模式开关
     
     constructor() {
         // 初始化
+    }
+    
+    /**
+     * 开启调试模式
+     */
+    public enableDebug(): void {
+        this.debugMode = true;
+        console.log('[HighlightClickManager] ✅ 调试模式已开启');
+    }
+    
+    /**
+     * 关闭调试模式
+     */
+    public disableDebug(): void {
+        this.debugMode = false;
+        console.log('[HighlightClickManager] ❌ 调试模式已关闭');
+    }
+    
+    /**
+     * 调试日志 - 只在调试模式下打印
+     */
+    private debugLog(...args: any[]): void {
+        if (this.debugMode) {
+            console.log(...args);
+        }
     }
     
     /**
@@ -65,27 +91,27 @@ export class HighlightClickManager {
      * 例如：点击 <span data-type="text" style="bg"><strong>文本</strong></span> 中的 strong
      */
     private findHighlightElement(target: HTMLElement): HTMLElement | null {
-        console.log('\n🔍 ========== DOM 结构分析 ==========');
-        console.log('点击的元素:', {
+        this.debugLog('\n🔍 ========== DOM 结构分析 ==========');
+        this.debugLog('点击的元素:', {
             tagName: target.tagName,
             dataType: target.getAttribute?.('data-type'),
             className: target.className,
             textContent: target.textContent?.substring(0, 30),
             backgroundColor: target.style?.backgroundColor,
         });
-        console.log('完整HTML结构:', target.outerHTML?.substring(0, 500));
+        this.debugLog('完整HTML结构:', target.outerHTML?.substring(0, 500));
         
         let current: HTMLElement | null = target;
         let depth = 0;
         const maxDepth = 5; // 最多向上查找5层，避免过度查找
         
-        console.log('\n📊 向上查找DOM树:');
+        this.debugLog('\n📊 向上查找DOM树:');
         while (current && depth < maxDepth) {
             // 检查当前元素是否是高亮元素
             // 关键修复：data-type 可能是 'text', 'strong text', 'em text' 等
             const dataType = current.getAttribute?.('data-type') || '';
             
-            console.log(`深度 ${depth}:`, {
+            this.debugLog(`深度 ${depth}:`, {
                 tagName: current.tagName,
                 dataType: dataType,
                 backgroundColor: current.style?.backgroundColor,
@@ -94,7 +120,7 @@ export class HighlightClickManager {
                                       current.style.backgroundColor !== ''),
                 className: current.className,
             });
-            console.log(`  HTML片段:`, current.outerHTML?.substring(0, 300));
+            this.debugLog(`  HTML片段:`, current.outerHTML?.substring(0, 300));
             
             const hasTextType = dataType.includes('text');
             const hasBackgroundColor = current.style?.backgroundColor &&
@@ -102,8 +128,8 @@ export class HighlightClickManager {
                                       current.style.backgroundColor !== '';
             
             if (hasTextType && hasBackgroundColor) {
-                console.log(`✅ 在深度 ${depth} 找到高亮元素! (data-type="${dataType}")`);
-                console.log('========== DOM 分析结束 ==========\n');
+                this.debugLog(`✅ 在深度 ${depth} 找到高亮元素! (data-type="${dataType}")`);
+                this.debugLog('========== DOM 分析结束 ==========\n');
                 return current;
             }
             
@@ -112,8 +138,8 @@ export class HighlightClickManager {
             depth++;
         }
         
-        console.log('❌ 未找到高亮元素');
-        console.log('========== DOM 分析结束 ==========\n');
+        this.debugLog('❌ 未找到高亮元素');
+        this.debugLog('========== DOM 分析结束 ==========\n');
         return null;
     }
     

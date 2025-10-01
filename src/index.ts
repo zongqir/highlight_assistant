@@ -80,7 +80,30 @@ export default class HighlightAssistantPlugin extends Plugin {
                     });
                 };
                 
-                console.log('💡 可以在控制台运行 testHijack() 来检查劫持状态');
+                // 添加高亮点击调试控制命令
+                (window as any).highlightDebug = {
+                    enable: () => {
+                        const manager = this.toolbarHijacker?.getHighlightClickManager();
+                        if (manager) {
+                            manager.enableDebug();
+                        } else {
+                            console.error('❌ 高亮点击管理器不可用');
+                        }
+                    },
+                    disable: () => {
+                        const manager = this.toolbarHijacker?.getHighlightClickManager();
+                        if (manager) {
+                            manager.disableDebug();
+                        } else {
+                            console.error('❌ 高亮点击管理器不可用');
+                        }
+                    }
+                };
+                
+                console.log('💡 可用命令:');
+                console.log('  - testHijack() - 检查劫持状态');
+                console.log('  - highlightDebug.enable() - 开启高亮点击调试');
+                console.log('  - highlightDebug.disable() - 关闭高亮点击调试');
                 
             }, 2000);
         }
