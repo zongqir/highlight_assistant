@@ -12,6 +12,7 @@ import { StyleManager, HIGHLIGHT_COLORS } from './styleManager';
 import { ToolbarButtonFactory } from './toolbarButtonFactory';
 import { CustomToolbarManager } from './customToolbarManager';
 import { operationWrapper } from './operationWrapper';
+import { HighlightClickManager } from './highlightClickManager';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -20,6 +21,7 @@ export class ToolbarHijacker {
     private isDesktop: boolean = false;
     private api: any;
     private memoManager: MemoManager;
+    private highlightClickManager: HighlightClickManager;
     private buttonFactory: ToolbarButtonFactory;
     private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
@@ -30,12 +32,23 @@ export class ToolbarHijacker {
         this.isMobile = isMobile;
         this.isDesktop = isDesktop;
         
+        console.log('[ToolbarHijacker] 📦 正在初始化管理器...');
+        
         // 初始化备注管理器
         this.memoManager = new MemoManager();
+        console.log('[ToolbarHijacker] ✅ MemoManager 已创建');
         
-        // 在手机版和电脑版环境下都拦截原生备注弹窗
+        // 初始化高亮点击管理器
+        this.highlightClickManager = new HighlightClickManager();
+        console.log('[ToolbarHijacker] ✅ HighlightClickManager 已创建');
+        
+        // 在手机版和电脑版环境下都拦截原生备注弹窗，并启动高亮点击功能
         if (this.isMobile || this.isDesktop) {
+            console.log('[ToolbarHijacker] 🚀 开始初始化管理器（环境检查通过）...');
             this.memoManager.initialize();
+            this.highlightClickManager.initialize();
+        } else {
+            console.warn('[ToolbarHijacker] ⚠️ 不是手机版或桌面版，跳过管理器初始化');
         }
         
         // 初始化按钮工厂
