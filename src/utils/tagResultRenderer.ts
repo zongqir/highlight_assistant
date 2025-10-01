@@ -5,8 +5,10 @@
 import { TagSearchResult, SearchScope, GroupedResults } from './tagSearchManager';
 
 export class TagResultRenderer {
+    private collapsedNodes = new Set<string>(); // 改为存储折叠的节点
+
     /**
-     * 渲染分组结果到容器
+     * 渲染层级分组结果到容器
      */
     public renderGroupedResults(
         container: HTMLElement,
@@ -15,312 +17,310 @@ export class TagResultRenderer {
         onBlockClick: (blockId: string) => void
     ): void {
         const docCount = Object.keys(groupedResults).length;
-        const totalBlocks = Object.values(groupedResults).reduce((sum, doc) => sum + doc.blocks.length, 0);
         
-        console.log('[TagResultRenderer] 🎨 ========== 开始渲染分组结果 ==========');
-        console.log('[TagResultRenderer] 分组数据:', groupedResults);
-        console.log('[TagResultRenderer] 文档数:', docCount);
-        console.log('[TagResultRenderer] 总块数:', totalBlocks);
-        
-        if (totalBlocks === 0) {
-            console.log('[TagResultRenderer] ⚠️ 没有结果，显示空状态');
-            this.renderEmptyState(container, tagText);
+        if (docCount === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--b3-theme-on-surface-light);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">未找到包含标签的内容</div>
+                    <div style="font-size: 14px;">标签: <span style="background: var(--b3-theme-primary-light); padding: 2px 6px; border-radius: 4px;">${tagText}</span></div>
+                </div>
+            `;
             return;
         }
         
-        // 按文档分组渲染
-        console.log('[TagResultRenderer] 📝 开始逐个渲染文档组...');
-        Object.entries(groupedResults).forEach(([docId, docGroup], docIndex) => {
-            console.log(`[TagResultRenderer] 渲染文档组 #${docIndex}:`, {
-                docId,
-                docName: docGroup.docName,
-                blocksCount: docGroup.blocks.length,
-                blocks: docGroup.blocks
-            });
-            const docGroupElement = this.createDocGroup(docGroup, docIndex, onBlockClick);
-            container.appendChild(docGroupElement);
-            console.log(`[TagResultRenderer] ✅ 文档组 #${docIndex} 渲染完成`);
+        // 简化方案：按路径深度和字典序排序，直接平铺展示但保持层级视觉效果
+        const sortedDocs = Object.values(groupedResults).sort((a, b) => {
+            // 首先按路径深度排序
+            const levelA = a.level || 0;
+            const levelB = b.level || 0;
+            if (levelA !== levelB) {
+                return levelA - levelB;
+            }
+            
+            // 同层级按路径字典序排序  
+            return (a.docPath || '').localeCompare(b.docPath || '');
         });
-        console.log('[TagResultRenderer] ========== 渲染完成 ==========');
+        
+        console.log('[TagResultRenderer] 📋 排序后的文档:', sortedDocs.map(d => `${d.docName} (L${d.level})`));
+        
+        // 简单按顺序渲染，使用level决定缩进
+        sortedDocs.forEach(docGroup => {
+            const docElement = this.createDocumentGroup(docGroup, docGroup.level || 0, tagText, onBlockClick);
+            container.appendChild(docElement);
+        });
     }
-    
+
+
     /**
-     * 创建文档分组
+     * 创建文档组元素（支持层级缩进）
      */
-    private createDocGroup(
-        docGroup: { docId: string; docName: string; docPath: string; blocks: TagSearchResult[] },
-        index: number,
+    private createDocumentGroup(
+        docGroup: GroupedResults[string],
+        level: number,
+        tagText: string,
         onBlockClick: (blockId: string) => void
     ): HTMLElement {
-        console.log(`[TagResultRenderer] 🔧 创建文档组:`, {
-            docName: docGroup.docName,
-            blocksCount: docGroup.blocks.length
-        });
-        
-        const groupElement = document.createElement('div');
-        groupElement.style.cssText = `
-            margin-bottom: 20px;
-            animation: tagSearchSlideIn ${0.3 + index * 0.05}s ease-out;
+        const docElement = document.createElement('div');
+        const indentSize = level * 20; // 每层级缩进20px
+        docElement.style.cssText = `
+            margin-bottom: 8px;
+            margin-left: ${indentSize}px;
+            border: 1px solid var(--b3-theme-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--b3-theme-surface);
+            ${level > 0 ? 'border-left: 3px solid var(--b3-theme-primary-light);' : ''}
         `;
         
-        // 文档标题
+        // 文档标题头部
         const headerElement = document.createElement('div');
         headerElement.style.cssText = `
+            background: var(--b3-theme-surface-light);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--b3-theme-border);
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
-            border-radius: 10px 10px 0 0;
-            border-left: 4px solid var(--b3-theme-primary);
+            justify-content: space-between;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background-color 0.2s ease;
         `;
+        
+        const isExpanded = !this.collapsedNodes.has(docGroup.docId); // 默认展开
         
         headerElement.innerHTML = `
-            <span style="font-size: 18px;">📄</span>
-            <span style="
-                flex: 1;
-                font-size: 15px;
-                font-weight: 600;
-                color: var(--b3-theme-on-background);
-            ">${this.escapeHtml(docGroup.docName)}</span>
-            <span style="
-                padding: 4px 12px;
-                background: var(--b3-theme-primary);
-                color: white;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: 600;
-            ">${docGroup.blocks.length}</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 14px; color: var(--b3-theme-on-surface-light); transition: transform 0.2s ease; ${isExpanded ? 'transform: rotate(90deg);' : ''}">${isExpanded ? '▼' : '▶'}</span>
+                <span style="color: var(--b3-theme-primary); font-size: 14px;">📄</span>
+                <span style="font-weight: 500; color: var(--b3-theme-on-surface);">${docGroup.docName}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 12px; color: var(--b3-theme-on-surface-light); background: var(--b3-theme-primary-light); padding: 2px 8px; border-radius: 12px;">
+                    ${docGroup.blocks.length} 个结果
+                </span>
+                ${level > 0 ? `<span style="font-size: 10px; color: var(--b3-theme-on-surface-lighter); background: var(--b3-theme-surface); padding: 1px 4px; border-radius: 8px;">L${level}</span>` : ''}
+            </div>
         `;
         
-        // 结果列表容器
-        const resultsContainer = document.createElement('div');
-        resultsContainer.style.cssText = `
-            background: var(--b3-theme-surface);
-            border-radius: 0 0 10px 10px;
+        // 块列表容器
+        const blocksContainer = document.createElement('div');
+        blocksContainer.style.cssText = `
             padding: 8px;
+            display: ${isExpanded ? 'block' : 'none'};
         `;
         
-        // 添加所有块
-        console.log(`[TagResultRenderer] 📦 渲染 ${docGroup.blocks.length} 个块...`);
+        // 渲染块列表
         docGroup.blocks.forEach((block, blockIndex) => {
-            console.log(`[TagResultRenderer] 渲染块 #${blockIndex}:`, block.id, block.content?.substring(0, 50));
-            const blockElement = this.createBlockItem(block, blockIndex, onBlockClick);
-            resultsContainer.appendChild(blockElement);
+            const blockElement = this.createBlockItem(block, blockIndex, tagText, onBlockClick);
+            blocksContainer.appendChild(blockElement);
         });
-        console.log(`[TagResultRenderer] ✅ ${docGroup.blocks.length} 个块渲染完成`);
         
-        groupElement.appendChild(headerElement);
-        groupElement.appendChild(resultsContainer);
-        
-        // 折叠/展开功能
-        let isCollapsed = false;
-        headerElement.addEventListener('click', () => {
-            isCollapsed = !isCollapsed;
-            if (isCollapsed) {
-                resultsContainer.style.display = 'none';
-                headerElement.style.borderRadius = '10px';
+        // 添加展开/折叠功能
+        headerElement.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isCurrentlyExpanded = !this.collapsedNodes.has(docGroup.docId);
+            const arrow = headerElement.querySelector('span');
+            
+            if (isCurrentlyExpanded) {
+                // 当前展开 -> 折叠
+                this.collapsedNodes.add(docGroup.docId);
+                arrow.style.transform = 'rotate(0deg)';
+                arrow.textContent = '▶';
+                blocksContainer.style.display = 'none';
             } else {
-                resultsContainer.style.display = 'block';
-                headerElement.style.borderRadius = '10px 10px 0 0';
+                // 当前折叠 -> 展开
+                this.collapsedNodes.delete(docGroup.docId);
+                arrow.style.transform = 'rotate(90deg)';
+                arrow.textContent = '▼';
+                blocksContainer.style.display = 'block';
             }
         });
         
-        return groupElement;
+        headerElement.addEventListener('mouseenter', () => {
+            headerElement.style.backgroundColor = 'var(--b3-theme-primary-lightest)';
+        });
+        
+        headerElement.addEventListener('mouseleave', () => {
+            headerElement.style.backgroundColor = 'var(--b3-theme-surface-light)';
+        });
+        
+        docElement.appendChild(headerElement);
+        docElement.appendChild(blocksContainer);
+        
+        return docElement;
     }
-    
+
     /**
-     * 创建块项
+     * 创建块项目元素
      */
     private createBlockItem(
         block: TagSearchResult,
         index: number,
+        tagText: string,
         onBlockClick: (blockId: string) => void
     ): HTMLElement {
-        const item = document.createElement('div');
-        item.style.cssText = `
-            padding: 14px 16px;
-            margin-bottom: 6px;
-            background: var(--b3-theme-background);
-            border-radius: 8px;
+        const blockElement = document.createElement('div');
+        blockElement.style.cssText = `
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            border-left: 3px solid var(--b3-theme-primary-light);
+            background: var(--b3-theme-surface-light);
             cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            transition: all 0.2s ease;
         `;
         
-        // 提取文本内容
-        const contentText = this.extractTextContent(block.content || block.markdown);
-        const displayText = contentText.length > 120 ? contentText.substring(0, 120) + '...' : contentText;
+        // 清理和高亮内容
+        const cleanContent = this.extractTextContent(block.content);
+        const highlightedContent = this.highlightTag(cleanContent, tagText);
         
-        item.innerHTML = `
-            <div style="
-                font-size: 14px;
-                line-height: 1.6;
-                color: var(--b3-theme-on-background);
-                margin-bottom: 8px;
-                word-break: break-word;
-            ">${this.highlightTags(this.escapeHtml(displayText))}</div>
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                font-size: 12px;
-                color: var(--b3-theme-on-surface-light);
-            ">
-                <span>🕐 ${this.formatDate(block.updated)}</span>
+        // 获取时间戳
+        const updatedTime = block.ial?.updated || block.updated || '未知时间';
+        const timeDisplay = this.formatTimestamp(updatedTime);
+        
+        blockElement.innerHTML = `
+            <div style="font-size: 14px; line-height: 1.5; margin-bottom: 4px; color: var(--b3-theme-on-surface);">
+                ${highlightedContent}
+            </div>
+            <div style="font-size: 12px; color: var(--b3-theme-on-surface-light); display: flex; justify-content: space-between; align-items: center;">
+                <span>ID: ${block.id}</span>
+                <span>更新: ${timeDisplay}</span>
             </div>
         `;
         
-        // 悬停效果
-        item.addEventListener('mouseenter', () => {
-            item.style.borderColor = 'var(--b3-theme-primary)';
-            item.style.transform = 'translateX(4px)';
-            item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        });
-        
-        item.addEventListener('mouseleave', () => {
-            item.style.borderColor = 'transparent';
-            item.style.transform = 'translateX(0)';
-            item.style.boxShadow = 'none';
-        });
-        
-        // 点击跳转
-        item.addEventListener('click', () => {
+        // 添加点击事件
+        blockElement.addEventListener('click', () => {
             onBlockClick(block.id);
         });
         
-        return item;
+        // 添加悬停效果
+        blockElement.addEventListener('mouseenter', () => {
+            blockElement.style.backgroundColor = 'var(--b3-theme-primary-lightest)';
+            blockElement.style.transform = 'translateX(4px)';
+        });
+        
+        blockElement.addEventListener('mouseleave', () => {
+            blockElement.style.backgroundColor = 'var(--b3-theme-surface-light)';
+            blockElement.style.transform = 'translateX(0)';
+        });
+        
+        return blockElement;
     }
-    
+
     /**
-     * 渲染空状态
+     * 提取纯文本内容（去除HTML标签）
      */
-    private renderEmptyState(container: HTMLElement, tagText: string): void {
-        const emptyState = document.createElement('div');
-        emptyState.innerHTML = `
-            <div style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 60px 20px;
-                color: var(--b3-theme-on-surface-light);
-            ">
-                <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.5;">🔍</div>
-                <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">未找到相关内容</div>
-                <div style="font-size: 14px;">标签 "${this.escapeHtml(tagText)}" 在当前范围内没有被使用</div>
-            </div>
-        `;
-        container.appendChild(emptyState);
+    private extractTextContent(htmlContent: string): string {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        return tempDiv.textContent || tempDiv.innerText || '';
     }
-    
+
     /**
-     * 提取纯文本
+     * 高亮显示标签
      */
-    private extractTextContent(html: string): string {
-        if (!html) return '';
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        return div.textContent || div.innerText || '';
+    private highlightTag(text: string, tagText: string): string {
+        if (!tagText) return this.escapeHtml(text);
+        
+        const escapedText = this.escapeHtml(text);
+        const escapedTag = this.escapeRegExp(tagText);
+        const regex = new RegExp(`(${escapedTag})`, 'gi');
+        
+        return escapedText.replace(regex, '<mark style="background: var(--b3-theme-primary-light); color: var(--b3-theme-on-primary); padding: 1px 3px; border-radius: 3px; font-weight: 500;">$1</mark>');
     }
-    
+
     /**
-     * 转义HTML
+     * HTML转义
      */
     private escapeHtml(text: string): string {
-        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     /**
-     * 高亮标签
+     * 正则表达式转义
      */
-    private highlightTags(text: string): string {
-        if (!text) return '';
-        return text.replace(/#([^#\s]+)#/g, 
-            '<span style="color: var(--b3-theme-primary); font-weight: 600; background: var(--b3-theme-primary-lighter); padding: 2px 6px; border-radius: 4px;">#$1#</span>');
+    private escapeRegExp(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
-    
+
     /**
-     * 格式化日期
+     * 格式化时间戳
      */
-    private formatDate(timestamp: string): string {
-        if (!timestamp || timestamp.length < 12) return '未知时间';
+    private formatTimestamp(timestamp: string): string {
+        if (!timestamp || timestamp === '未知时间') return '未知时间';
         
-        const year = timestamp.substring(0, 4);
-        const month = timestamp.substring(4, 6);
-        const day = timestamp.substring(6, 8);
-        const hour = timestamp.substring(8, 10);
-        const minute = timestamp.substring(10, 12);
-        
-        return `${year}-${month}-${day} ${hour}:${minute}`;
+        try {
+            // SiYuan时间戳格式：20241001182024
+            const year = timestamp.substring(0, 4);
+            const month = timestamp.substring(4, 6);
+            const day = timestamp.substring(6, 8);
+            const hour = timestamp.substring(8, 10);
+            const minute = timestamp.substring(10, 12);
+            
+            return `${year}/${month}/${day} ${hour}:${minute}`;
+        } catch (error) {
+            return timestamp;
+        }
     }
-    
+
     /**
      * 渲染范围选择器
      */
     public renderScopeSelector(
-        container: HTMLElement,
         currentScope: SearchScope,
-        scopeNames: Record<SearchScope, string>,
+        availableScopes: SearchScope[],
         onScopeChange: (scope: SearchScope) => void
-    ): void {
-        const scopeContainer = document.createElement('div');
-        scopeContainer.style.cssText = `
+    ): HTMLElement {
+        const selector = document.createElement('div');
+        selector.style.cssText = `
             display: flex;
             gap: 8px;
-            padding: 12px 16px;
-            background: var(--b3-theme-surface);
-            border-radius: 8px;
-            margin-bottom: 16px;
+            flex-wrap: wrap;
         `;
         
-        const scopes: SearchScope[] = ['doc', 'subdocs', 'notebook', 'global'];
+        const scopeNames: Record<SearchScope, string> = {
+            'doc': '📄 本文档',
+            'subdocs': '📁 文档及子文档', 
+            'notebook': '📘 本笔记本'
+        };
         
-        scopes.forEach(scope => {
+        availableScopes.forEach(scope => {
             const button = document.createElement('button');
-            button.textContent = scopeNames[scope];
             button.style.cssText = `
-                padding: 8px 16px;
-                border: 2px solid ${scope === currentScope ? 'var(--b3-theme-primary)' : 'var(--b3-theme-surface-lighter)'};
-                background: ${scope === currentScope ? 'var(--b3-theme-primary-lighter)' : 'var(--b3-theme-background)'};
-                color: ${scope === currentScope ? 'var(--b3-theme-primary)' : 'var(--b3-theme-on-background)'};
-                border-radius: 6px;
+                padding: 4px 8px;
+                border: 1px solid ${scope === currentScope ? 'var(--b3-theme-primary)' : 'var(--b3-theme-border)'};
+                background: ${scope === currentScope ? 'var(--b3-theme-primary)' : 'var(--b3-theme-surface)'};
+                color: ${scope === currentScope ? 'var(--b3-theme-on-primary)' : 'var(--b3-theme-on-surface)'};
+                border-radius: 16px;
                 cursor: pointer;
-                font-size: 13px;
-                font-weight: ${scope === currentScope ? '600' : '400'};
-                transition: all 0.2s;
-                flex: 1;
+                font-size: 12px;
+                transition: all 0.2s ease;
+                white-space: nowrap;
             `;
             
-            button.addEventListener('mouseenter', () => {
-                if (scope !== currentScope) {
-                    button.style.borderColor = 'var(--b3-theme-primary-light)';
-                    button.style.background = 'var(--b3-theme-surface-light)';
-                }
-            });
-            
-            button.addEventListener('mouseleave', () => {
-                if (scope !== currentScope) {
-                    button.style.borderColor = 'var(--b3-theme-surface-lighter)';
-                    button.style.background = 'var(--b3-theme-background)';
-                }
-            });
+            button.textContent = scopeNames[scope];
             
             button.addEventListener('click', () => {
                 onScopeChange(scope);
             });
             
-            scopeContainer.appendChild(button);
+            button.addEventListener('mouseenter', () => {
+                if (scope !== currentScope) {
+                    button.style.backgroundColor = 'var(--b3-theme-primary-lightest)';
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                if (scope !== currentScope) {
+                    button.style.backgroundColor = 'var(--b3-theme-surface)';
+                }
+            });
+            
+            selector.appendChild(button);
         });
         
-        container.appendChild(scopeContainer);
+        return selector;
     }
 }
-
-export const tagResultRenderer = new TagResultRenderer();
-

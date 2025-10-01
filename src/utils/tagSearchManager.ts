@@ -22,11 +22,15 @@ export interface GroupedResults {
         docId: string;
         docName: string;
         docPath: string;
+        notebookId: string;
         blocks: TagSearchResult[];
+        level?: number; // 文档层级深度（用于缩进显示）
     };
 }
 
-export type SearchScope = 'doc' | 'subdocs' | 'notebook' | 'global';
+
+
+export type SearchScope = 'doc' | 'subdocs' | 'notebook';
 
 export class TagSearchManager {
     private debugMode: boolean = false;
@@ -283,11 +287,9 @@ export class TagSearchManager {
                 console.log('[TagSearchManager] ❌ notebook 模式失败，返回空数组');
                 return [];
                 
-            case 'global':
             default:
-                // 全局搜索：不限制路径
-                console.log('[TagSearchManager] 🌐 全局搜索模式');
-                return [];
+                console.log('[TagSearchManager] ⚠️ 未知搜索范围，使用笔记本模式');
+                return currentDoc ? [currentDoc.notebookId] : [];
         }
     }
 
@@ -382,11 +384,7 @@ export class TagSearchManager {
                 requestBody.paths = paths;
                 console.log('[TagSearchManager] ✅ 已添加 paths 到请求，搜索范围:', scope);
             } else {
-                if (scope === 'global') {
-                    console.log('[TagSearchManager] ✅ 全局搜索模式，paths 为空是正确的');
-                } else {
-                    console.log('[TagSearchManager] ⚠️ 非全局搜索但 paths 为空，可能有问题！搜索范围:', scope);
-                }
+                console.log('[TagSearchManager] ⚠️ 搜索但 paths 为空，可能有问题！搜索范围:', scope);
             }
             
             console.log('[TagSearchManager] 🔍 ========== API 调用详情 ==========');
@@ -452,12 +450,12 @@ export class TagSearchManager {
      * 将搜索结果按文档分组
      */
     public groupByDocument(results: TagSearchResult[]): GroupedResults {
-        console.log('[TagSearchManager] 📊 ========== 开始分组 ==========');
+        console.log('[TagSearchManager] 📊 ========== 开始层级文档分组 ==========');
         console.log('[TagSearchManager] 输入结果数量:', results.length);
-        console.log('[TagSearchManager] 输入结果详情:', results);
         
         const grouped: GroupedResults = {};
         
+        // 第一步：按docId分组
         results.forEach((block, index) => {
             const docId = block.rootID;
             console.log(`[TagSearchManager] 处理块 #${index}:`, {
@@ -468,27 +466,39 @@ export class TagSearchManager {
             
             if (!grouped[docId]) {
                 const docName = this.extractDocName(block.hpath);
-                console.log(`[TagSearchManager] 创建新文档组:`, {
-                    docId,
-                    docName,
-                    hpath: block.hpath
-                });
                 grouped[docId] = {
                     docId: docId,
                     docName: docName,
                     docPath: block.hpath,
-                    blocks: []
+                    notebookId: block.box,
+                    blocks: [],
+                    level: this.calculateDocumentLevel(block.hpath)
                 };
+                console.log(`[TagSearchManager] 创建文档组:`, {
+                    docId,
+                    docName,
+                    path: block.hpath,
+                    level: grouped[docId].level
+                });
             }
             
             grouped[docId].blocks.push(block);
-            console.log(`[TagSearchManager] 块已添加到文档组 ${docId}，当前块数:`, grouped[docId].blocks.length);
         });
         
-        console.log('[TagSearchManager] 📊 分组完成:', Object.keys(grouped).length, '个文档');
-        console.log('[TagSearchManager] 分组详情:', grouped);
+        // 第二步：简化处理，只需要计算层级深度
+        
+        console.log('[TagSearchManager] 📊 层级分组完成:', Object.keys(grouped).length, '个文档');
         console.log('[TagSearchManager] ========== 分组结束 ==========');
         return grouped;
+    }
+
+
+    /**
+     * 计算文档层级深度
+     */
+    private calculateDocumentLevel(docPath: string): number {
+        if (!docPath) return 0;
+        return docPath.split('/').filter(p => p).length;
     }
 
     /**
@@ -500,6 +510,46 @@ export class TagSearchManager {
         return parts[parts.length - 1] || '未知文档';
     }
 
+
+
+    /**
+     * 获取笔记本真实名称（使用SiYuan官方方法）
+     */
+    private getNotebookName(notebookId: string): string {
+        console.log('[TagSearchManager] 📚 ========== 使用SiYuan官方方法获取笔记本名称 ==========');
+        console.log('[TagSearchManager] 📚 笔记本ID:', notebookId);
+        
+        // 检查window.siyuan.notebooks是否存在
+        if (!window.siyuan || !window.siyuan.notebooks) {
+            console.log('[TagSearchManager] ❌ window.siyuan.notebooks不存在');
+            return `📚 笔记本 ${notebookId.substring(0, 8)}...`;
+        }
+        
+        console.log('[TagSearchManager] 📚 笔记本总数:', window.siyuan.notebooks.length);
+        console.log('[TagSearchManager] 📚 所有笔记本:', window.siyuan.notebooks.map(nb => ({id: nb.id, name: nb.name})));
+        
+        // 使用SiYuan官方方法：从window.siyuan.notebooks中查找
+        let rootPath = "";
+        const found = window.siyuan.notebooks.find((item) => {
+            if (item.id === notebookId) {
+                rootPath = item.name;
+                console.log('[TagSearchManager] ✅ 找到匹配的笔记本:', { id: item.id, name: item.name });
+                return true;
+            }
+            return false;
+        });
+        
+        if (found && rootPath) {
+            console.log('[TagSearchManager] ✅ 成功获取笔记本名称:', rootPath);
+            console.log('[TagSearchManager] ========== 获取笔记本名称结束 ==========');
+            return `📚 ${rootPath}`;
+        } else {
+            console.log('[TagSearchManager] ❌ 未找到匹配的笔记本ID，使用后备名称');
+            console.log('[TagSearchManager] ========== 获取笔记本名称结束（失败） ==========');
+            return `📚 笔记本 ${notebookId.substring(0, 8)}...`;
+        }
+    }
+
     /**
      * 获取范围显示名称
      */
@@ -507,8 +557,7 @@ export class TagSearchManager {
         const names: Record<SearchScope, string> = {
             'doc': '📄 本文档',
             'subdocs': '📁 本文档及子文档',
-            'notebook': '📘 本笔记本',
-            'global': '🌐 全局'
+            'notebook': '📘 本笔记本'
         };
         return names[scope] || names['notebook'];
     }
