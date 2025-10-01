@@ -8,12 +8,12 @@ import { getBlockByID, updateBlock } from '../api';
 
 // 内置标签配置
 const PRESET_TAGS = [
-    { id: 'important', name: '重点', color: '#ff4444', emoji: '🔴' },
-    { id: 'difficult', name: '难点', color: '#ff9800', emoji: '⚠️' },
-    { id: 'mistake', name: '易错点', color: '#9c27b0', emoji: '❌' },
-    { id: 'memory', name: '记忆点', color: '#2196f3', emoji: '🧠' },
-    { id: 'explore', name: '挖掘点', color: '#4caf50', emoji: '💡' },
-    { id: 'check', name: '检查点', color: '#00bcd4', emoji: '✓' },
+    { id: 'important', name: '重点', color: '#ff4444', emoji: '⭐' },
+    { id: 'difficult', name: '难点', color: '#ff9800', emoji: '🔥' },
+    { id: 'mistake', name: '易错点', color: '#9c27b0', emoji: '⚡' },
+    { id: 'memory', name: '记忆点', color: '#2196f3', emoji: '💭' },
+    { id: 'explore', name: '挖掘点', color: '#4caf50', emoji: '🔍' },
+    { id: 'check', name: '检查点', color: '#00bcd4', emoji: '✅' },
 ] as const;
 
 export class TagManager {
@@ -222,6 +222,26 @@ export class TagManager {
      */
     private showTagSelectionDialog(blockText: string): Promise<typeof PRESET_TAGS[number] | null> {
         return new Promise((resolve) => {
+            // 添加动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes tagOverlayFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes tagDialogSlideUp {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(30px) scale(0.9);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
             // 创建遮罩层
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -230,50 +250,59 @@ export class TagManager {
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background: rgba(0, 0, 0, 0.5);
+                background: rgba(0, 0, 0, 0.65);
+                backdrop-filter: blur(6px);
                 z-index: 99999;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 padding: 20px;
                 box-sizing: border-box;
+                animation: tagOverlayFadeIn 0.25s ease-out;
             `;
             
             // 创建对话框
             const dialog = document.createElement('div');
             dialog.style.cssText = `
                 background: var(--b3-theme-background);
-                padding: 24px;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                padding: 32px;
+                border-radius: 20px;
+                box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
                 max-width: 90vw;
-                width: 500px;
+                width: 560px;
                 box-sizing: border-box;
-                border: 1px solid var(--b3-theme-surface-lighter);
+                animation: tagDialogSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
             `;
             
             // 标题
             const title = document.createElement('div');
-            title.textContent = '快速打标签';
+            title.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 28px; line-height: 1;">🏷️</span>
+                    <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.5px;">快速打标签</span>
+                </div>
+            `;
             title.style.cssText = `
-                font-size: 20px;
-                font-weight: bold;
-                margin-bottom: 12px;
                 color: var(--b3-theme-on-background);
+                margin-bottom: 10px;
             `;
             
             // 块文本预览
             const preview = document.createElement('div');
-            preview.textContent = blockText + (blockText.length >= 50 ? '...' : '');
+            const displayText = blockText.length > 60 ? blockText.substring(0, 60) + '...' : blockText;
+            preview.textContent = displayText;
             preview.style.cssText = `
                 font-size: 14px;
+                line-height: 1.6;
                 color: var(--b3-theme-on-surface-light);
-                margin-bottom: 20px;
-                padding: 12px;
-                background: var(--b3-theme-surface);
-                border-radius: 6px;
-                max-height: 100px;
+                margin-bottom: 28px;
+                padding: 16px 18px;
+                background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
+                border-radius: 12px;
+                border-left: 4px solid var(--b3-theme-primary);
+                max-height: 80px;
                 overflow-y: auto;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             `;
             
             // 标签网格容器
@@ -281,47 +310,78 @@ export class TagManager {
             tagsGrid.style.cssText = `
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
-                margin-bottom: 20px;
+                gap: 16px;
+                margin-bottom: 28px;
             `;
             
             // 创建标签按钮
-            PRESET_TAGS.forEach(tag => {
+            PRESET_TAGS.forEach((tag, index) => {
                 const tagButton = document.createElement('button');
-                tagButton.innerHTML = `${tag.emoji} ${tag.name}`;
-                tagButton.style.cssText = `
-                    padding: 16px 20px;
-                    background: var(--b3-theme-surface);
-                    color: var(--b3-theme-on-background);
-                    border: 2px solid ${tag.color};
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    font-weight: 500;
-                    transition: all 0.2s;
+                
+                // 创建按钮内容
+                const content = document.createElement('div');
+                content.style.cssText = `
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 8px;
+                    gap: 10px;
+                    position: relative;
+                    z-index: 1;
+                `;
+                content.innerHTML = `
+                    <span style="font-size: 24px; line-height: 1;">${tag.emoji}</span>
+                    <span style="font-weight: 600; font-size: 16px;">${tag.name}</span>
                 `;
                 
-                // 悬停效果
+                tagButton.appendChild(content);
+                tagButton.style.cssText = `
+                    padding: 20px 16px;
+                    border: 2px solid transparent;
+                    background: linear-gradient(135deg, ${tag.color}18, ${tag.color}28);
+                    color: var(--b3-theme-on-background);
+                    border-radius: 14px;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                    animation: tagDialogSlideUp ${0.35 + index * 0.06}s cubic-bezier(0.34, 1.56, 0.64, 1);
+                `;
+                
+                // 创建光效层
+                const shine = document.createElement('div');
+                shine.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(135deg, ${tag.color}40, ${tag.color}60);
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    border-radius: 12px;
+                `;
+                tagButton.appendChild(shine);
+                
                 tagButton.addEventListener('mouseenter', () => {
-                    tagButton.style.background = tag.color;
-                    tagButton.style.color = 'white';
-                    tagButton.style.transform = 'scale(1.05)';
+                    tagButton.style.borderColor = tag.color;
+                    tagButton.style.transform = 'translateY(-4px) scale(1.03)';
+                    tagButton.style.boxShadow = `0 12px 28px ${tag.color}50, 0 0 0 1px ${tag.color}30`;
+                    shine.style.opacity = '1';
                 });
                 
                 tagButton.addEventListener('mouseleave', () => {
-                    tagButton.style.background = 'var(--b3-theme-surface)';
-                    tagButton.style.color = 'var(--b3-theme-on-background)';
-                    tagButton.style.transform = 'scale(1)';
+                    tagButton.style.borderColor = 'transparent';
+                    tagButton.style.transform = 'translateY(0) scale(1)';
+                    tagButton.style.boxShadow = 'none';
+                    shine.style.opacity = '0';
                 });
                 
-                // 点击选择
                 tagButton.addEventListener('click', () => {
-                    resolve(tag);
-                    cleanup();
+                    tagButton.style.transform = 'scale(0.96)';
+                    setTimeout(() => {
+                        resolve(tag);
+                        cleanup();
+                    }, 120);
                 });
                 
                 tagsGrid.appendChild(tagButton);
@@ -332,14 +392,28 @@ export class TagManager {
             cancelButton.textContent = '取消';
             cancelButton.style.cssText = `
                 width: 100%;
-                padding: 12px;
+                padding: 15px;
+                border: 2px solid var(--b3-theme-surface-lighter);
                 background: var(--b3-theme-surface);
                 color: var(--b3-theme-on-surface);
-                border: 1px solid var(--b3-theme-surface-lighter);
-                border-radius: 6px;
+                border-radius: 12px;
                 cursor: pointer;
-                font-size: 14px;
+                font-size: 15px;
+                font-weight: 600;
+                transition: all 0.25s;
             `;
+            
+            cancelButton.addEventListener('mouseenter', () => {
+                cancelButton.style.background = 'var(--b3-theme-surface-light)';
+                cancelButton.style.borderColor = 'var(--b3-theme-on-surface-light)';
+                cancelButton.style.transform = 'translateY(-1px)';
+            });
+            
+            cancelButton.addEventListener('mouseleave', () => {
+                cancelButton.style.background = 'var(--b3-theme-surface)';
+                cancelButton.style.borderColor = 'var(--b3-theme-surface-lighter)';
+                cancelButton.style.transform = 'translateY(0)';
+            });
             
             cancelButton.addEventListener('click', () => {
                 resolve(null);
@@ -358,6 +432,9 @@ export class TagManager {
             const cleanup = () => {
                 if (overlay.parentNode) {
                     overlay.parentNode.removeChild(overlay);
+                }
+                if (style.parentNode) {
+                    style.parentNode.removeChild(style);
                 }
             };
             
@@ -407,8 +484,8 @@ export class TagManager {
                 
                 this.debugLog('[TagManager] 当前块内容:', block.content);
                 
-                // 思源标签格式是 #标签名#
-                const tagText = `#${tag.name}#`;
+                // 思源标签格式是 #表情+标签名#
+                const tagText = `#${tag.emoji}${tag.name}#`;
                 
                 // 在markdown内容末尾添加标签（使用空格分隔）
                 const newMarkdown = block.markdown.trim() + ' ' + tagText;
