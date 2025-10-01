@@ -24,7 +24,6 @@ export interface GroupedResults {
         docPath: string;
         notebookId: string;
         blocks: TagSearchResult[];
-        level?: number; // 文档层级深度（用于缩进显示）
     };
 }
 
@@ -450,19 +449,13 @@ export class TagSearchManager {
      * 将搜索结果按文档分组
      */
     public groupByDocument(results: TagSearchResult[]): GroupedResults {
-        console.log('[TagSearchManager] 📊 ========== 开始层级文档分组 ==========');
+        console.log('[TagSearchManager] 📊 ========== 开始文档分组 ==========');
         console.log('[TagSearchManager] 输入结果数量:', results.length);
         
         const grouped: GroupedResults = {};
         
-        // 第一步：按docId分组
         results.forEach((block, index) => {
             const docId = block.rootID;
-            console.log(`[TagSearchManager] 处理块 #${index}:`, {
-                blockId: block.id,
-                docId: docId,
-                hpath: block.hpath
-            });
             
             if (!grouped[docId]) {
                 const docName = this.extractDocName(block.hpath);
@@ -471,35 +464,19 @@ export class TagSearchManager {
                     docName: docName,
                     docPath: block.hpath,
                     notebookId: block.box,
-                    blocks: [],
-                    level: this.calculateDocumentLevel(block.hpath)
+                    blocks: []
                 };
-                console.log(`[TagSearchManager] 创建文档组:`, {
-                    docId,
-                    docName,
-                    path: block.hpath,
-                    level: grouped[docId].level
-                });
+                console.log(`[TagSearchManager] 创建文档组: ${docName}`);
             }
             
             grouped[docId].blocks.push(block);
         });
         
-        // 第二步：简化处理，只需要计算层级深度
-        
-        console.log('[TagSearchManager] 📊 层级分组完成:', Object.keys(grouped).length, '个文档');
-        console.log('[TagSearchManager] ========== 分组结束 ==========');
+        console.log('[TagSearchManager] 📊 分组完成:', Object.keys(grouped).length, '个文档');
         return grouped;
     }
 
 
-    /**
-     * 计算文档层级深度
-     */
-    private calculateDocumentLevel(docPath: string): number {
-        if (!docPath) return 0;
-        return docPath.split('/').filter(p => p).length;
-    }
 
     /**
      * 从路径提取文档名

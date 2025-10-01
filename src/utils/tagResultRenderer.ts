@@ -8,7 +8,7 @@ export class TagResultRenderer {
     private collapsedNodes = new Set<string>(); // 改为存储折叠的节点
 
     /**
-     * 渲染层级分组结果到容器
+     * 渲染分组结果到容器（极简版）
      */
     public renderGroupedResults(
         container: HTMLElement,
@@ -29,48 +29,36 @@ export class TagResultRenderer {
             return;
         }
         
-        // 简化方案：按路径深度和字典序排序，直接平铺展示但保持层级视觉效果
+        // 极简方案：按文档名称排序，扁平显示
         const sortedDocs = Object.values(groupedResults).sort((a, b) => {
-            // 首先按路径深度排序
-            const levelA = a.level || 0;
-            const levelB = b.level || 0;
-            if (levelA !== levelB) {
-                return levelA - levelB;
-            }
-            
-            // 同层级按路径字典序排序  
-            return (a.docPath || '').localeCompare(b.docPath || '');
+            return a.docName.localeCompare(b.docName);
         });
         
-        console.log('[TagResultRenderer] 📋 排序后的文档:', sortedDocs.map(d => `${d.docName} (L${d.level})`));
+        console.log('[TagResultRenderer] 📄 扁平显示文档:', sortedDocs.map(d => d.docName));
         
-        // 简单按顺序渲染，使用level决定缩进
+        // 简单渲染，不考虑层级
         sortedDocs.forEach(docGroup => {
-            const docElement = this.createDocumentGroup(docGroup, docGroup.level || 0, tagText, onBlockClick);
+            const docElement = this.createDocumentGroup(docGroup, tagText, onBlockClick);
             container.appendChild(docElement);
         });
     }
 
 
     /**
-     * 创建文档组元素（支持层级缩进）
+     * 创建文档组元素（极简版）
      */
     private createDocumentGroup(
         docGroup: GroupedResults[string],
-        level: number,
         tagText: string,
         onBlockClick: (blockId: string) => void
     ): HTMLElement {
         const docElement = document.createElement('div');
-        const indentSize = level * 20; // 每层级缩进20px
         docElement.style.cssText = `
-            margin-bottom: 8px;
-            margin-left: ${indentSize}px;
+            margin-bottom: 12px;
             border: 1px solid var(--b3-theme-border);
             border-radius: 8px;
             overflow: hidden;
             background: var(--b3-theme-surface);
-            ${level > 0 ? 'border-left: 3px solid var(--b3-theme-primary-light);' : ''}
         `;
         
         // 文档标题头部
@@ -98,7 +86,6 @@ export class TagResultRenderer {
                 <span style="font-size: 12px; color: var(--b3-theme-on-surface-light); background: var(--b3-theme-primary-light); padding: 2px 8px; border-radius: 12px;">
                     ${docGroup.blocks.length} 个结果
                 </span>
-                ${level > 0 ? `<span style="font-size: 10px; color: var(--b3-theme-on-surface-lighter); background: var(--b3-theme-surface); padding: 1px 4px; border-radius: 8px;">L${level}</span>` : ''}
             </div>
         `;
         
