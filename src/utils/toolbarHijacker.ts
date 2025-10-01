@@ -14,6 +14,7 @@ import { CustomToolbarManager } from './customToolbarManager';
 import { operationWrapper } from './operationWrapper';
 import { HighlightClickManager } from './highlightClickManager';
 import { TagManager } from './tagManager';
+import { TagClickManager } from './tagClickManager';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -24,6 +25,7 @@ export class ToolbarHijacker {
     private memoManager: MemoManager;
     private highlightClickManager: HighlightClickManager;
     private tagManager: TagManager;
+    private tagClickManager: TagClickManager;
     private buttonFactory: ToolbarButtonFactory;
     private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
@@ -48,12 +50,17 @@ export class ToolbarHijacker {
         this.tagManager = new TagManager();
         console.log('[ToolbarHijacker] ✅ TagManager 已创建');
         
+        // 初始化标签点击管理器
+        this.tagClickManager = new TagClickManager();
+        console.log('[ToolbarHijacker] ✅ TagClickManager 已创建');
+        
         // 在手机版和电脑版环境下都拦截原生备注弹窗，并启动高亮点击、标签功能
         if (this.isMobile || this.isDesktop) {
             console.log('[ToolbarHijacker] 🚀 开始初始化管理器（环境检查通过）...');
             this.memoManager.initialize();
             this.highlightClickManager.initialize();
             this.tagManager.initialize();
+            this.tagClickManager.initialize();
         } else {
             console.warn('[ToolbarHijacker] ⚠️ 不是手机版或桌面版，跳过管理器初始化');
         }
@@ -2112,6 +2119,13 @@ export class ToolbarHijacker {
      */
     public getTagManager(): any {
         return this.tagManager;
+    }
+    
+    /**
+     * 获取标签点击管理器（用于调试）
+     */
+    public getTagClickManager(): any {
+        return this.tagClickManager;
     }
     
 }
