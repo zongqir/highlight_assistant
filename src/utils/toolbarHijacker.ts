@@ -3,7 +3,7 @@
  * 在原有复制弹窗基础上添加高亮功能
  */
 
-import { getAllEditor } from "siyuan";
+import { getAllEditor, getActiveTab } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 import { isSystemReadOnly, debugEnvironmentInfo, isDocumentReadOnlyFromRange } from './readonlyChecker';
 import { updateBlock } from '../api';
@@ -158,6 +158,9 @@ export class ToolbarHijacker {
         
         // 🔄 启动定期检查，确保劫持持续有效
         this.startRecheckInterval();
+        
+        // 🎯 设置tab切换监听器，解决编辑状态识别问题
+        this.setupTabSwitchListener();
         
         // 🔑 初始化公共操作包装器
         operationWrapper.initialize();
@@ -526,34 +529,34 @@ export class ToolbarHijacker {
         try {
             console.log('\n[ToolbarHijacker] 🚀 ========== 准备增强高亮工具栏（这是你说的弹窗！）==========');
             
-            // 🔍 实时检查只读状态 - 使用面包屑锁按钮（宽松检查，更稳定）
+            // 🔍 实时检查只读状态 - 根据当前选区找到对应的面包屑锁按钮
             let isDocReadonly = false;
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+            const readonlyBtn = this.findReadonlyButtonForRange(range);
             
             if (readonlyBtn) {
                 const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
                 const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
                 const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
                 
-                // 宽松判断（多条件检查，更稳定）：
-                // 1. data-subtype="unlock" → 解锁状态（可编辑）
-                // 2. aria-label 包含 "取消" → 解锁状态（"取消临时解锁"）
-                // 3. 图标是 #iconUnlock → 解锁状态
-                // 注意："临时解锁"表示点击后会解锁，说明当前是锁定状态！
-                const isUnlocked = 
-                    dataSubtype === 'unlock' || 
-                    ariaLabel.includes('取消') ||   // "取消临时解锁" → 当前已解锁
-                    iconHref === '#iconUnlock';
+                // 🔑 正确判断锁定状态（与memoManager.ts保持一致）
+                // '解除锁定'/'临时解锁' = 已锁定（只读模式）
+                // '锁定编辑'/'取消临时解锁' = 可编辑（未锁定）
+                const isLocked = 
+                    ariaLabel.includes('解除锁定') ||   // "解除锁定" → 当前已锁定
+                    ariaLabel.includes('临时解锁') ||   // "临时解锁" → 当前已锁定
+                    dataSubtype === 'lock' ||          // data-subtype="lock" → 当前已锁定
+                    iconHref === '#iconLock';          // 图标为锁定状态
                 
-                isDocReadonly = !isUnlocked;  // 只读 = 非解锁
+                isDocReadonly = isLocked;
                 
                 console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（宽松检查）:', {
                     '找到按钮': !!readonlyBtn,
                     'aria-label': ariaLabel,
                     'data-subtype': dataSubtype,
                     '图标href': iconHref,
-                    '是否解锁': isUnlocked ? '✏️ 是（可编辑）' : '🔒 否（已锁定）',
-                    '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+                    '是否锁定': isLocked ? '🔒 是（已锁定）' : '✏️ 否（未锁定）',
+                    '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
+                    '按钮来源': '当前选区对应的protyle容器'
                 });
             } else {
                 console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮！');
@@ -1832,8 +1835,9 @@ export class ToolbarHijacker {
                     console.log('\n[ToolbarHijacker] 📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
                     console.log('[ToolbarHijacker] 选中文本:', selectedText.substring(0, 50));
                     
-                    // 🔍 在工具栏显示之前检查只读状态 - 使用面包屑锁按钮（宽松检查）
-                    const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+                    // 🔍 在工具栏显示之前检查只读状态 - 根据当前选区找到对应的面包屑锁按钮
+                    const range = selection.getRangeAt(0);
+                    const readonlyBtn = this.findReadonlyButtonForRange(range);
                     let isDocReadonly = false;
                     
                     if (readonlyBtn) {
@@ -1841,21 +1845,25 @@ export class ToolbarHijacker {
                         const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
                         const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
                         
-                        // 宽松判断（多条件检查，更稳定）：
-                        // 注意："临时解锁"表示点击后会解锁，说明当前是锁定状态！
-                        const isUnlocked = 
-                            dataSubtype === 'unlock' || 
-                            ariaLabel.includes('取消') ||   // "取消临时解锁" → 当前已解锁
-                            iconHref === '#iconUnlock';
+                        // 🔑 正确判断锁定状态（与memoManager.ts保持一致）
+                        // '解除锁定'/'临时解锁' = 已锁定（只读模式）
+                        // '锁定编辑'/'取消临时解锁' = 可编辑（未锁定）
+                        const isLocked = 
+                            ariaLabel.includes('解除锁定') ||   // "解除锁定" → 当前已锁定
+                            ariaLabel.includes('临时解锁') ||   // "临时解锁" → 当前已锁定
+                            dataSubtype === 'lock' ||          // data-subtype="lock" → 当前已锁定
+                            iconHref === '#iconLock';          // 图标为锁定状态
                         
-                        isDocReadonly = !isUnlocked;
+                        isDocReadonly = isLocked;
                         
                         console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（工具栏显示前-宽松检查）:', {
                             'aria-label': ariaLabel,
                             'data-subtype': dataSubtype,
                             '图标href': iconHref,
-                            '是否解锁': isUnlocked ? '✏️ 是' : '🔒 否',
-                            '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+                            '是否锁定': isLocked ? '🔒 是（已锁定）' : '✏️ 否（未锁定）',
+                            '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
+                            '按钮来源': '当前选区对应的protyle容器',
+                            '检查时间': new Date().toLocaleTimeString()
                         });
                     } else {
                         console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮');
@@ -1870,12 +1878,11 @@ export class ToolbarHijacker {
                     console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示自定义工具栏');
                     
                     // 检查是否跨块选择
-                    if (this.isCrossBlockSelection(selection.getRangeAt(0))) {
+                    if (this.isCrossBlockSelection(range)) {
                         return;
                     }
                     
                     // 检查是否在思源编辑器中
-                    const range = selection.getRangeAt(0);
                     const blockElement = this.findBlockElement(range.startContainer);
                     if (!blockElement) {
                         return;
@@ -2153,6 +2160,398 @@ export class ToolbarHijacker {
      */
     public getTagClickManager(): any {
         return this.tagClickManager;
+    }
+    
+    /**
+     * 设置tab切换监听器，解决编辑状态识别问题
+     * 修复BUG：tab切换时编辑状态无法感知的问题
+     */
+    private setupTabSwitchListener(): void {
+        console.log('[ToolbarHijacker] 🎯 设置tab切换监听器，修复编辑状态识别问题...');
+        
+        try {
+            // 使用插件事件总线监听思源的 switch-protyle-mode 事件
+            if (typeof window !== 'undefined' && (window as any).siyuan) {
+                const eventBus = (window as any).siyuan.ws;
+                if (eventBus && typeof eventBus.addEventListener === 'function') {
+                    eventBus.addEventListener('message', (event: any) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.cmd === 'switch-protyle-mode') {
+                                console.log('[ToolbarHijacker] 🔄 检测到protyle模式切换事件');
+                                this.handleProtyleModeSwitch(data);
+                            }
+                        } catch (e) {
+                            // 忽略非JSON消息
+                        }
+                    });
+                    
+                    console.log('[ToolbarHijacker] ✅ 已监听 switch-protyle-mode 事件');
+                }
+            }
+            
+            // 备用方案1：监听DOM变化，检测tab切换
+            this.setupDOMChangeListener();
+            
+            // 备用方案2：监听窗口焦点变化
+            this.setupWindowFocusListener();
+            
+            // 备用方案3：监听选择变化，间接检测tab切换
+            this.setupSelectionChangeListener();
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 设置tab切换监听器失败:', error);
+        }
+    }
+    
+    /**
+     * 处理protyle模式切换事件
+     */
+    private handleProtyleModeSwitch(data: any): void {
+        console.log('[ToolbarHijacker] 🔄 处理protyle模式切换:', data);
+        
+        // 延迟处理，等待DOM更新
+        setTimeout(() => {
+            this.refreshEditingStateCache();
+        }, 200);
+    }
+    
+    /**
+     * 设置DOM变化监听器（备用方案1）
+     */
+    private setupDOMChangeListener(): void {
+        const observer = new MutationObserver((mutations) => {
+            let hasTabChange = false;
+            
+            mutations.forEach((mutation) => {
+                // 检测tab相关的DOM变化
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const element = node as Element;
+                            if (element.classList?.contains('layout-tab-container') ||
+                                element.classList?.contains('protyle-wysiwyg') ||
+                                element.querySelector?.('.protyle-wysiwyg')) {
+                                hasTabChange = true;
+                            }
+                        }
+                    });
+                }
+                
+                // 检测属性变化（如active状态）
+                if (mutation.type === 'attributes') {
+                    const element = mutation.target as Element;
+                    if (mutation.attributeName === 'class' && 
+                        (element.classList?.contains('layout-tab-container') ||
+                         element.classList?.contains('item--focus'))) {
+                        hasTabChange = true;
+                    }
+                }
+            });
+            
+            if (hasTabChange) {
+                console.log('[ToolbarHijacker] 🔄 检测到tab相关DOM变化，刷新编辑状态缓存');
+                setTimeout(() => {
+                    this.refreshEditingStateCache();
+                }, 300);
+            }
+        });
+        
+        // 监听整个文档的变化，但限制范围提高性能
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-type']
+        });
+        
+        console.log('[ToolbarHijacker] ✅ DOM变化监听器已设置');
+    }
+    
+    /**
+     * 设置窗口焦点监听器（备用方案2）
+     */
+    private setupWindowFocusListener(): void {
+        let lastFocusTime = 0;
+        
+        const handleFocus = () => {
+            const now = Date.now();
+            // 防抖，避免频繁触发
+            if (now - lastFocusTime < 500) return;
+            lastFocusTime = now;
+            
+            console.log('[ToolbarHijacker] 🔄 窗口焦点变化，检查编辑状态');
+            setTimeout(() => {
+                this.refreshEditingStateCache();
+            }, 100);
+        };
+        
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('focusin', handleFocus);
+        
+        console.log('[ToolbarHijacker] ✅ 窗口焦点监听器已设置');
+    }
+    
+    /**
+     * 设置选择变化监听器（备用方案3）
+     */
+    private setupSelectionChangeListener(): void {
+        let lastSelectionTime = 0;
+        let lastActiveElement: Element | null = null;
+        
+        const handleSelectionChange = () => {
+            const now = Date.now();
+            const activeElement = document.activeElement;
+            
+            // 检查是否切换到了不同的编辑器
+            if (activeElement !== lastActiveElement) {
+                const isInEditor = activeElement?.closest('.protyle-wysiwyg') !== null;
+                if (isInEditor && now - lastSelectionTime > 300) {
+                    console.log('[ToolbarHijacker] 🔄 检测到编辑器切换，刷新编辑状态');
+                    this.refreshEditingStateCache();
+                    lastSelectionTime = now;
+                }
+                lastActiveElement = activeElement;
+            }
+        };
+        
+        document.addEventListener('selectionchange', handleSelectionChange);
+        
+        console.log('[ToolbarHijacker] ✅ 选择变化监听器已设置');
+    }
+    
+    /**
+     * 刷新编辑状态缓存
+     * 这是修复tab切换问题的核心方法
+     */
+    private refreshEditingStateCache(): void {
+        try {
+            console.log('[ToolbarHijacker] 🔄 刷新编辑状态缓存...');
+            
+            // 🔑 强制清理所有可能的状态缓存
+            this.clearEditingStateCache();
+            
+            // 🔑 延迟检查，等待DOM完全更新（关键修复）
+            setTimeout(() => {
+                this.performDelayedStateCheck();
+            }, 300); // 给足够时间让DOM更新
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 刷新编辑状态缓存失败:', error);
+        }
+    }
+    
+    /**
+     * 延迟执行状态检查（修复时机问题）
+     */
+    private performDelayedStateCheck(): void {
+        try {
+            console.log('[ToolbarHijacker] ⏰ 执行延迟状态检查...');
+            
+            // 重新检查当前活动的编辑器状态
+            const currentReadonlyState = this.getCurrentReadonlyState();
+            console.log('[ToolbarHijacker] 📋 当前编辑状态（延迟检查）:', {
+                isReadonly: currentReadonlyState.isReadonly,
+                source: currentReadonlyState.source,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            // 如果有活动的自定义工具栏，根据新状态决定是否隐藏
+            if (!currentReadonlyState.isReadonly) {
+                console.log('[ToolbarHijacker] ⛔ 文档现在是可编辑状态，隐藏自定义工具栏');
+                this.hideCustomToolbar();
+            } else {
+                console.log('[ToolbarHijacker] ✅ 文档现在是只读状态，允许显示自定义工具栏');
+            }
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 延迟状态检查失败:', error);
+        }
+    }
+    
+    /**
+     * 清理编辑状态缓存
+     */
+    private clearEditingStateCache(): void {
+        try {
+            console.log('[ToolbarHijacker] 🧹 强制清理编辑状态缓存...');
+            
+            // 🔑 清理可能的内部缓存状态
+            // 这里可以清理任何缓存的状态信息
+            
+            // 🔑 强制重新获取DOM元素（避免缓存的DOM引用）
+            // 清除可能缓存的按钮引用等
+            
+            console.log('[ToolbarHijacker] ✅ 编辑状态缓存已清理');
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 清理编辑状态缓存失败:', error);
+        }
+    }
+    
+    /**
+     * 根据选区找到对应的面包屑锁按钮
+     * 修复BUG：确保取的是当前光标所在文档的锁按钮，而不是随便取一个
+     */
+    private findReadonlyButtonForRange(range: Range): HTMLElement | null {
+        try {
+            if (!range) {
+                console.warn('[ToolbarHijacker] ⚠️ 没有选区，无法定位面包屑锁按钮');
+                return null;
+            }
+            
+            // 1. 从选区找到所在的protyle容器
+            let element = range.startContainer as HTMLElement;
+            if (element.nodeType === Node.TEXT_NODE) {
+                element = element.parentElement!;
+            }
+            
+            // 向上查找protyle容器
+            let protyleElement: HTMLElement | null = null;
+            while (element && element !== document.body) {
+                if (element.classList?.contains('protyle')) {
+                    protyleElement = element;
+                    break;
+                }
+                element = element.parentElement!;
+            }
+            
+            if (!protyleElement) {
+                console.warn('[ToolbarHijacker] ⚠️ 未找到protyle容器');
+                return this.fallbackFindReadonlyButton();
+            }
+            
+            // 2. 在该protyle容器内查找面包屑锁按钮
+            const readonlyBtn = protyleElement.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+            
+            if (readonlyBtn) {
+                console.log('[ToolbarHijacker] ✅ 找到当前文档的面包屑锁按钮');
+                return readonlyBtn;
+            } else {
+                console.warn('[ToolbarHijacker] ⚠️ 当前protyle容器内未找到面包屑锁按钮');
+                return this.fallbackFindReadonlyButton();
+            }
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 查找面包屑锁按钮失败:', error);
+            return this.fallbackFindReadonlyButton();
+        }
+    }
+    
+    /**
+     * 备用方案：查找面包屑锁按钮
+     * 使用思源笔记官方的 getActiveTab API - 正确的方式！
+     */
+    private fallbackFindReadonlyButton(): HTMLElement | null {
+        console.log('[ToolbarHijacker] 🔄 使用思源官方API查找当前活跃tab的面包屑锁按钮...');
+        
+        try {
+            // 🎯 使用思源笔记官方API获取当前活跃tab
+            const activeTab = getActiveTab();
+            
+            if (activeTab) {
+                console.log('[ToolbarHijacker] ✅ 通过思源官方API找到活跃tab:', {
+                    tabId: activeTab.id,
+                    title: activeTab.title,
+                    type: activeTab.model?.type
+                });
+                
+                // 从活跃tab的model中获取protyle
+                let protyle = null;
+                if (activeTab.model && 'editor' in activeTab.model && activeTab.model.editor) {
+                    protyle = activeTab.model.editor.protyle;
+                } else if (activeTab.model && 'protyle' in activeTab.model) {
+                    protyle = activeTab.model.protyle;
+                }
+                
+                if (protyle && protyle.element) {
+                    // 在protyle元素中查找面包屑锁按钮
+                    const readonlyBtn = protyle.element.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                    if (readonlyBtn) {
+                        console.log('[ToolbarHijacker] ✅ 通过思源官方API找到面包屑锁按钮');
+                        return readonlyBtn;
+                    } else {
+                        console.warn('[ToolbarHijacker] ⚠️ 活跃tab的protyle中未找到锁按钮');
+                    }
+                } else {
+                    console.warn('[ToolbarHijacker] ⚠️ 活跃tab没有有效的protyle');
+                }
+            } else {
+                console.warn('[ToolbarHijacker] ⚠️ 思源官方API未找到活跃tab');
+            }
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 使用思源官方API查找活跃tab失败:', error);
+        }
+        
+        // 方案2：查找当前有焦点的编辑器（保留作为备用）
+        const focusedElement = document.activeElement;
+        if (focusedElement) {
+            console.log(`[ToolbarHijacker] 🔍 尝试通过焦点元素查找: ${focusedElement.tagName}.${focusedElement.className}`);
+            const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
+            if (protyleContainer) {
+                const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    console.log('[ToolbarHijacker] ✅ 通过焦点元素找到面包屑锁按钮');
+                    return readonlyBtn;
+                }
+            }
+        }
+        
+        // 方案3：最后兜底（显示明确警告）
+        const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+        if (readonlyBtn) {
+            console.warn('[ToolbarHijacker] ⚠️ 使用兜底方案找到面包屑锁按钮（可能不准确！！！）');
+        } else {
+            console.error('[ToolbarHijacker] ❌ 完全找不到任何面包屑锁按钮');
+        }
+        return readonlyBtn;
+    }
+    
+    /**
+     * 获取当前只读状态（实时检查）
+     */
+    private getCurrentReadonlyState(): { isReadonly: boolean; source: string } {
+        // 方式1：检查当前活跃文档的面包屑锁按钮（最准确）
+        const readonlyBtn = this.fallbackFindReadonlyButton();  // 使用活跃tab查找
+        
+        if (readonlyBtn) {
+            const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
+            const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
+            const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+            
+            // 🔑 正确判断锁定状态（与memoManager.ts保持一致）
+            // '解除锁定'/'临时解锁' = 已锁定（只读模式）
+            // '锁定编辑'/'取消临时解锁' = 可编辑（未锁定）
+            const isLocked = 
+                ariaLabel.includes('解除锁定') ||   // "解除锁定" → 当前已锁定
+                ariaLabel.includes('临时解锁') ||   // "临时解锁" → 当前已锁定
+                dataSubtype === 'lock' ||          // data-subtype="lock" → 当前已锁定
+                iconHref === '#iconLock';          // 图标为锁定状态
+            
+            return {
+                isReadonly: isLocked,
+                source: '活跃文档面包屑锁按钮'
+            };
+        }
+        
+        // 方式2：检查当前活动编辑器的DOM属性
+        const activeWysiwyg = document.querySelector('.protyle-wysiwyg.protyle-wysiwyg--attr') as HTMLElement;
+        if (activeWysiwyg) {
+            const customReadonly = activeWysiwyg.getAttribute('custom-sy-readonly');
+            if (customReadonly) {
+                return {
+                    isReadonly: customReadonly === 'true',
+                    source: 'DOM属性'
+                };
+            }
+        }
+        
+        // 默认假设为可编辑状态
+        return {
+            isReadonly: false,
+            source: '默认值'
+        };
     }
     
     /**
