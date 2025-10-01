@@ -54,9 +54,9 @@ export class TagResultRenderer {
     ): HTMLElement {
         const docElement = document.createElement('div');
         docElement.style.cssText = `
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             border: 1px solid var(--b3-theme-border);
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
             background: var(--b3-theme-surface);
         `;
@@ -65,7 +65,7 @@ export class TagResultRenderer {
         const headerElement = document.createElement('div');
         headerElement.style.cssText = `
             background: var(--b3-theme-surface-light);
-            padding: 12px 16px;
+            padding: 8px 12px;
             border-bottom: 1px solid var(--b3-theme-border);
             display: flex;
             align-items: center;
@@ -77,14 +77,22 @@ export class TagResultRenderer {
         const isExpanded = !this.collapsedNodes.has(docGroup.docId); // 默认展开
         
         headerElement.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
                 <span style="font-size: 14px; color: var(--b3-theme-on-surface-light); transition: transform 0.2s ease; ${isExpanded ? 'transform: rotate(90deg);' : ''}">${isExpanded ? '▼' : '▶'}</span>
                 <span style="color: var(--b3-theme-primary); font-size: 14px;">📄</span>
-                <span style="font-weight: 500; color: var(--b3-theme-on-surface);">${docGroup.docName}</span>
+                <span style="
+                    font-weight: 500; 
+                    color: var(--b3-theme-on-surface);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    flex: 1;
+                    min-width: 0;
+                ">${docGroup.docName}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 12px; color: var(--b3-theme-on-surface-light); background: var(--b3-theme-primary-light); padding: 2px 8px; border-radius: 12px;">
-                    ${docGroup.blocks.length} 个结果
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                <span style="font-size: 12px; color: var(--b3-theme-on-surface-light); background: var(--b3-theme-primary-light); padding: 2px 8px; border-radius: 12px; white-space: nowrap;">
+                    ${docGroup.blocks.length}结果
                 </span>
             </div>
         `;
@@ -92,7 +100,7 @@ export class TagResultRenderer {
         // 块列表容器
         const blocksContainer = document.createElement('div');
         blocksContainer.style.cssText = `
-            padding: 8px;
+            padding: 6px;
             display: ${isExpanded ? 'block' : 'none'};
         `;
         
@@ -148,9 +156,9 @@ export class TagResultRenderer {
     ): HTMLElement {
         const blockElement = document.createElement('div');
         blockElement.style.cssText = `
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 6px;
+            padding: 6px 10px;
+            margin: 2px 0;
+            border-radius: 4px;
             border-left: 3px solid var(--b3-theme-primary-light);
             background: var(--b3-theme-surface-light);
             cursor: pointer;
@@ -166,12 +174,28 @@ export class TagResultRenderer {
         const timeDisplay = this.formatTimestamp(updatedTime);
         
         blockElement.innerHTML = `
-            <div style="font-size: 14px; line-height: 1.5; margin-bottom: 4px; color: var(--b3-theme-on-surface);">
+            <div style="
+                font-size: 14px; 
+                line-height: 1.3; 
+                margin-bottom: 3px; 
+                color: var(--b3-theme-on-surface);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            ">
                 ${highlightedContent}
             </div>
-            <div style="font-size: 12px; color: var(--b3-theme-on-surface-light); display: flex; justify-content: space-between; align-items: center;">
-                <span>ID: ${block.id}</span>
-                <span>更新: ${timeDisplay}</span>
+            <div style="
+                font-size: 11px; 
+                color: var(--b3-theme-on-surface-light); 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                white-space: nowrap;
+                overflow: hidden;
+            ">
+                <span style="overflow: hidden; text-overflow: ellipsis; min-width: 0;">${block.id}</span>
+                <span style="flex-shrink: 0; margin-left: 8px;">${timeDisplay}</span>
             </div>
         `;
         

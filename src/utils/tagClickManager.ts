@@ -279,10 +279,10 @@ export class TagClickManager {
             animation: tagSearchSlideIn 0.3s ease-out;
         `;
         
-        // 标题栏
+        // 标题栏（紧凑版）
         const header = document.createElement('div');
         header.style.cssText = `
-            padding: ${isMobile ? '16px' : '24px 28px'};
+            padding: ${isMobile ? '12px' : '16px 20px'};
             border-bottom: 1px solid var(--b3-theme-surface-lighter);
             background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-background) 100%);
         `;
@@ -291,71 +291,57 @@ export class TagClickManager {
         const totalResults = Object.values(groupedResults).reduce((sum, doc) => sum + doc.blocks.length, 0);
         const docCount = Object.keys(groupedResults).length;
         
-        // 标题区域
+        // 紧凑标题区域（移动端优化）
         const titleDiv = document.createElement('div');
         titleDiv.style.cssText = `
             display: flex; 
             align-items: center; 
             justify-content: space-between;
-            flex-wrap: ${isMobile ? 'wrap' : 'nowrap'};
-            gap: ${isMobile ? '8px' : '12px'};
-            margin-bottom: 16px;
+            margin-bottom: ${isMobile ? '12px' : '16px'};
+            gap: 8px;
         `;
         
         titleDiv.innerHTML = `
-            <div style="display: flex; align-items: center; gap: ${isMobile ? '8px' : '12px'}; flex: 1;">
-                <span style="font-size: ${isMobile ? '20px' : '24px'};">🔍</span>
-                <span style="font-size: ${isMobile ? '16px' : '20px'}; font-weight: 600;">标签搜索</span>
-                <span style="
-                    padding: ${isMobile ? '4px 10px' : '6px 14px'};
-                    background: var(--b3-theme-primary-lighter);
-                    color: var(--b3-theme-primary);
-                    border-radius: 20px;
-                    font-size: ${isMobile ? '12px' : '14px'};
-                    font-weight: 600;
-                    word-break: break-all;
-                ">${tagText}</span>
-            </div>
             <div style="
                 color: var(--b3-theme-on-surface-light);
-                font-size: ${isMobile ? '12px' : '14px'};
+                font-size: ${isMobile ? '11px' : '12px'};
                 white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             ">
-                ${docCount} 个文档，共 ${totalResults} 个结果
+                ${docCount}文档 ${totalResults}结果
             </div>
         `;
         header.appendChild(titleDiv);
         
-        // 标签筛选器
+        // 标签筛选器（紧凑布局）
         if (availableTags && availableTags.length > 0) {
             const tagFilterContainer = document.createElement('div');
             tagFilterContainer.style.cssText = `
-                margin-bottom: 12px;
+                margin-bottom: ${isMobile ? '8px' : '10px'};
                 display: flex;
                 align-items: center;
-                gap: ${isMobile ? '8px' : '12px'};
-                flex-wrap: wrap;
+                gap: 6px;
             `;
             
             const filterLabel = document.createElement('span');
-            filterLabel.textContent = '🏷️ 筛选标签:';
+            filterLabel.textContent = '标签:';
             filterLabel.style.cssText = `
-                font-size: ${isMobile ? '12px' : '14px'};
+                font-size: ${isMobile ? '11px' : '12px'};
                 color: var(--b3-theme-on-surface-light);
                 white-space: nowrap;
             `;
             
             const tagSelect = document.createElement('select');
             tagSelect.style.cssText = `
-                padding: ${isMobile ? '4px 8px' : '6px 12px'};
+                padding: ${isMobile ? '3px 6px' : '4px 8px'};
                 border: 1px solid var(--b3-theme-border);
-                border-radius: 6px;
+                border-radius: 4px;
                 background: var(--b3-theme-background);
                 color: var(--b3-theme-on-background);
-                font-size: ${isMobile ? '12px' : '14px'};
-                min-width: ${isMobile ? '120px' : '150px'};
+                font-size: ${isMobile ? '11px' : '12px'};
                 flex: 1;
-                max-width: ${isMobile ? '200px' : '250px'};
+                min-width: 0;
             `;
             
             // 添加选项
@@ -397,12 +383,12 @@ export class TagClickManager {
         });
         header.appendChild(scopeSelector);
         
-        // 结果列表容器
+        // 结果列表容器（紧凑版）
         const resultsList = document.createElement('div');
         resultsList.style.cssText = `
             flex: 1;
             overflow-y: auto;
-            padding: ${isMobile ? '12px 16px' : '16px 28px'};
+            padding: ${isMobile ? '8px 12px' : '12px 20px'};
         `;
         
         // 使用渲染器渲染分组结果
@@ -411,10 +397,10 @@ export class TagClickManager {
             cleanup();
         });
         
-        // 底部按钮栏
+        // 底部按钮栏（紧凑版）
         const footer = document.createElement('div');
         footer.style.cssText = `
-            padding: ${isMobile ? '16px' : '20px 28px'};
+            padding: ${isMobile ? '12px' : '16px 20px'};
             border-top: 1px solid var(--b3-theme-surface-lighter);
             background: var(--b3-theme-surface);
         `;
@@ -613,37 +599,41 @@ export class TagClickManager {
     }
     
     /**
-     * 创建搜索范围选择器
+     * 创建搜索范围选择器（紧凑版）
      */
     private createScopeSelector(currentScope: SearchScope, onScopeChange: (scope: SearchScope) => void): HTMLElement {
+        const isMobile = window.innerWidth <= 768;
+        
         const container = document.createElement('div');
         container.style.cssText = `
-            margin-top: 16px;
+            margin-top: ${isMobile ? '8px' : '10px'};
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         `;
         
         const label = document.createElement('span');
-        label.textContent = '搜索范围：';
+        label.textContent = '范围:';
         label.style.cssText = `
             color: var(--b3-theme-on-surface-light);
-            font-size: 14px;
+            font-size: ${isMobile ? '11px' : '12px'};
             font-weight: 500;
+            white-space: nowrap;
         `;
         
         const scopes = [
-            { value: 'doc' as SearchScope, label: '📄 本文档' },
-            { value: 'subdocs' as SearchScope, label: '📁 文档及子文档' },
-            { value: 'notebook' as SearchScope, label: '📚 本笔记本' },
+            { value: 'doc' as SearchScope, label: '本文档' },
+            { value: 'subdocs' as SearchScope, label: '子文档' },
+            { value: 'notebook' as SearchScope, label: '笔记本' },
         ];
         
         const buttonsContainer = document.createElement('div');
         buttonsContainer.style.cssText = `
             display: flex;
-            border-radius: 8px;
+            border-radius: ${isMobile ? '4px' : '6px'};
             overflow: hidden;
             border: 1px solid var(--b3-theme-surface-lighter);
+            flex: 1;
         `;
         
         scopes.forEach((scopeOption, index) => {
@@ -653,14 +643,16 @@ export class TagClickManager {
             button.textContent = scopeOption.label;
             button.style.cssText = `
                 border: none;
-                padding: 8px 16px;
-                font-size: 13px;
+                padding: ${isMobile ? '4px 8px' : '6px 12px'};
+                font-size: ${isMobile ? '10px' : '11px'};
                 font-weight: 500;
                 cursor: pointer;
                 transition: all 0.2s ease;
                 background: ${isActive ? 'var(--b3-theme-primary)' : 'var(--b3-theme-surface)'};
                 color: ${isActive ? 'var(--b3-theme-on-primary)' : 'var(--b3-theme-on-surface)'};
                 border-right: ${index < scopes.length - 1 ? '1px solid var(--b3-theme-surface-lighter)' : 'none'};
+                flex: 1;
+                white-space: nowrap;
             `;
             
             // 悬停效果
