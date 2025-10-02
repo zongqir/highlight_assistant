@@ -4,7 +4,7 @@
  */
 
 import { operationWrapper } from './operationWrapper';
-import { getBlockByID, updateBlock } from '../api';
+import { updateBlock } from '../api';
 import { isCurrentDocumentReadonly, isCurrentDocumentEditable } from './readonlyButtonUtils';
 
 // 内置标签配置
@@ -860,10 +860,11 @@ export class TagManager {
      * 执行添加标签的核心逻辑
      * 
      * 修复说明：
-     * - 旧方法：使用 markdown 格式 #emoji+name# 添加标签
-     * - 问题：依赖于用户启用"Markdown 行级标签语法"设置，如果未启用，标签会变成纯文本
-     * - 新方法：使用 DOM 格式 <span data-type="tag">内容</span> 添加标签
-     * - 优势：不依赖设置，在手机版和桌面版都能正常工作
+     * - v1.0: 使用 markdown 格式 #emoji+name# 添加标签（依赖设置）
+     * - v1.1: 使用 DOM 格式 <span data-type="tag">内容</span>，但从 API 获取内容
+     * - v1.2: 🔧 修复BUG - 从 DOM 直接获取 HTML 内容，避免标签变成字符串
+     *   - 问题：getBlockByID 返回的 content 是纯文本，会丢失已有标签的 DOM 结构
+     *   - 解决：直接从 DOM 元素获取当前的 HTML 内容
      */
     private async performAddTag(blockElement: HTMLElement, tag: typeof PRESET_TAGS[number]): Promise<void> {
         try {
@@ -879,26 +880,31 @@ export class TagManager {
             
             // 使用 operationWrapper 包裹操作
             await operationWrapper.executeWithUnlockLock('添加标签', async () => {
-                // 获取块的完整信息
-                const block = await getBlockByID(blockId);
+                // 🔧 修复：从 DOM 直接获取内容，而不是从 API
+                // 查找可编辑的内容区域
+                const contentDiv = blockElement.querySelector('div[contenteditable]') as HTMLElement;
                 
-                if (!block) {
-                    throw new Error('未找到块信息');
+                if (!contentDiv) {
+                    throw new Error('未找到可编辑的内容区域');
                 }
                 
-                this.debugLog('当前块内容:', block.content);
+                // 获取当前的 HTML 内容（保留已有的标签结构）
+                let currentHTML = contentDiv.innerHTML.trim();
                 
-                // 🔧 修复：使用 DOM 格式而不是 Markdown 格式
-                // 旧方法（依赖设置）: const tagText = `#${tag.emoji}${tag.name}#`;
-                // 新方法（通用）: <span data-type="tag">emoji+name</span>
+                this.debugLog('当前块HTML:', currentHTML);
+                
+                // 🔧 移除末尾的零宽空格（思源常用的占位符）
+                currentHTML = currentHTML.replace(/​+$/, '');
+                
+                // 构建新标签的 DOM
                 const tagContent = `${tag.emoji}${tag.name}`;
                 const tagDOM = `<span data-type="tag">${tagContent}</span>`;
                 
-                // 在 DOM 内容末尾添加标签（使用空格分隔）
-                let newContent = block.content.trim();
+                // 在 HTML 内容末尾添加标签（使用空格分隔）
+                let newContent = currentHTML;
                 
                 // 确保标签前有空格
-                if (newContent && !newContent.endsWith(' ')) {
+                if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
                     newContent += ' ';
                 }
                 
@@ -915,7 +921,7 @@ export class TagManager {
                     blockId,
                     tagName: tag.name,
                     emoji: tag.emoji,
-                    method: 'DOM (修复后)'
+                    method: 'DOM (从元素获取 - v1.2修复)'
                 });
             });
             
