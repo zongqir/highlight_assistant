@@ -11,6 +11,7 @@ import Logger from "./utils/logger";
 // 导入高亮助手模块
 import { ToolbarHijacker } from "./utils/toolbarHijacker";
 import { readonlyStateMonitor } from "./utils/readonlyStateMonitor";
+import { initGutterMenuDisabler, destroyGutterMenuDisabler } from "./utils/gutterMenuDisabler";
 
 export default class HighlightAssistantPlugin extends Plugin {
     private isMobile: boolean;
@@ -36,6 +37,9 @@ export default class HighlightAssistantPlugin extends Plugin {
             screenWidth: window.innerWidth,
             touchSupport: 'ontouchstart' in window
         });
+        
+        // ⭐ 初始化 Gutter 菜单禁用器（全平台禁用 gutter 菜单）
+        initGutterMenuDisabler({ enabled: true, mobileOnly: false });
         
         // 静默加载，不显示弹窗
         
@@ -207,6 +211,9 @@ export default class HighlightAssistantPlugin extends Plugin {
             this.toolbarHijacker.unhijack();
             this.toolbarHijacker = null;
         }
+        
+        // ⭐ 销毁 Gutter 菜单禁用器
+        destroyGutterMenuDisabler();
         
         // 静默卸载
         Logger.log("onunload");

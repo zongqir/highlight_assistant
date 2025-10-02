@@ -9,7 +9,7 @@
  */
 class Logger {
     private static readonly PREFIX = '[HIGH_ASSISTANT]';
-    private static debugEnabled: boolean = false; // 默认关闭调试
+    private static debugEnabled: boolean = true; // 默认关闭调试
     
     /**
      * 开启调试模式
