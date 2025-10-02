@@ -4,7 +4,7 @@
  */
 
 import Logger from './logger';
-import { getAllEditor, getActiveTab } from "siyuan";
+import { getAllEditor, getActiveEditor } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 import { isSystemReadOnly, debugEnvironmentInfo, isDocumentReadOnlyFromRange } from './readonlyChecker';
 import { updateBlock } from '../api';
@@ -2496,44 +2496,19 @@ export class ToolbarHijacker {
      */
     private findReadonlyButtonForDesktop(): HTMLElement | null {
         try {
-            // 检查getActiveTab是否存在（桌面版才有）
-            if (typeof getActiveTab !== 'function') {
-                Logger.warn('⚠️ getActiveTab函数不存在，可能在移动端环境');
-                return this.findReadonlyButtonForMobile();
-            }
-
-            // 🎯 使用思源笔记官方API获取当前活跃tab
-            const activeTab = getActiveTab();
+            // 🎯 使用 getActiveEditor API（v3.3.0+）更准确
+            const currentProtyle = getActiveEditor?.(false)?.protyle;
             
-            if (activeTab) {
-                Logger.log('✅ 通过思源官方API找到活跃tab:', {
-                    tabId: activeTab.id,
-                    title: activeTab.title,
-                    type: activeTab.model?.type
-                });
-                
-                // 从活跃tab的model中获取protyle
-                let protyle = null;
-                if (activeTab.model && 'editor' in activeTab.model && activeTab.model.editor) {
-                    protyle = activeTab.model.editor.protyle;
-                } else if (activeTab.model && 'protyle' in activeTab.model) {
-                    protyle = activeTab.model.protyle;
-                }
-                
-                if (protyle && protyle.element) {
-                    // 在protyle元素中查找面包屑锁按钮
-                    const readonlyBtn = protyle.element.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                    if (readonlyBtn) {
-                        Logger.log('✅ 通过思源官方API找到面包屑锁按钮');
-                        return readonlyBtn;
-                    } else {
-                        Logger.warn('⚠️ 活跃tab的protyle中未找到锁按钮');
-                    }
+            if (currentProtyle?.element) {
+                const readonlyBtn = currentProtyle.element.querySelector('.protyle-breadcrumb > button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    Logger.log('✅ 通过 getActiveEditor 找到锁按钮');
+                    return readonlyBtn;
                 } else {
-                    Logger.warn('⚠️ 活跃tab没有有效的protyle');
+                    Logger.warn('⚠️ 当前编辑器中未找到锁按钮');
                 }
             } else {
-                Logger.warn('⚠️ 思源官方API未找到活跃tab');
+                Logger.warn('⚠️ getActiveEditor 未找到活跃编辑器');
             }
             
         } catch (error) {
