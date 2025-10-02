@@ -88,6 +88,19 @@ export default class HighlightAssistantPlugin extends Plugin {
                     });
                 };
                 
+                // 添加全局调试模式控制命令
+                (window as any).debugMode = {
+                    enable: () => {
+                        Logger.enableDebug();
+                    },
+                    disable: () => {
+                        Logger.disableDebug();
+                    },
+                    status: () => {
+                        Logger.showDebugStatus();
+                    }
+                };
+                
                 // 添加高亮点击调试控制命令
                 (window as any).highlightDebug = {
                     enable: () => {
@@ -148,14 +161,29 @@ export default class HighlightAssistantPlugin extends Plugin {
                     }
                 };
                 
+                // 初始化完成后，只显示欢迎信息（默认调试模式关闭）
+                console.log(
+                    '%c[HIGH_ASSISTANT] 🎉 高亮助手已加载',
+                    'color: #2196F3; font-weight: bold; font-size: 16px;'
+                );
+                console.log(
+                    '%c[HIGH_ASSISTANT] 💡 调试模式默认关闭，使用 debugMode.enable() 开启',
+                    'color: #FF9800; font-weight: bold;'
+                );
+                
                 Logger.log('💡 可用命令:');
-                Logger.log('  - testHijack() - 检查劫持状态');
-                Logger.log('  - highlightDebug.enable() - 开启高亮点击调试');
-                Logger.log('  - highlightDebug.disable() - 关闭高亮点击调试');
-                Logger.log('  - tagDebug.enable() - 开启标签管理调试');
-                Logger.log('  - tagDebug.disable() - 关闭标签管理调试');
-                Logger.log('  - tagClickDebug.enable() - 开启标签点击调试');
-                Logger.log('  - tagClickDebug.disable() - 关闭标签点击调试');
+                Logger.log('  🎛️  调试模式控制:');
+                Logger.log('    - debugMode.enable() - 开启全局调试模式');
+                Logger.log('    - debugMode.disable() - 关闭全局调试模式');
+                Logger.log('    - debugMode.status() - 查看调试状态');
+                Logger.log('  🔧 功能调试:');
+                Logger.log('    - testHijack() - 检查劫持状态');
+                Logger.log('    - highlightDebug.enable() - 开启高亮点击调试');
+                Logger.log('    - highlightDebug.disable() - 关闭高亮点击调试');
+                Logger.log('    - tagDebug.enable() - 开启标签管理调试');
+                Logger.log('    - tagDebug.disable() - 关闭标签管理调试');
+                Logger.log('    - tagClickDebug.enable() - 开启标签点击调试');
+                Logger.log('    - tagClickDebug.disable() - 关闭标签点击调试');
                 Logger.log('💡 操作提示:');
                 Logger.log('  - 桌面版：右键点击块 - 快速打标签（仅锁定状态）');
                 Logger.log('  - 手机版：长按块（500ms）- 快速打标签（仅锁定状态）');
