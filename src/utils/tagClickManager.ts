@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 标签点击管理器 - 自定义标签搜索面板
  */
@@ -28,7 +29,7 @@ export class TagClickManager {
     public enableDebug(): void {
         this.debugMode = true;
         this.searchManager.enableDebug();
-        console.log('[TagClickManager] ✅ 调试模式已开启');
+        Logger.log('✅ 调试模式已开启');
     }
     
     /**
@@ -37,7 +38,7 @@ export class TagClickManager {
     public disableDebug(): void {
         this.debugMode = false;
         this.searchManager.disableDebug();
-        console.log('[TagClickManager] ❌ 调试模式已关闭');
+        Logger.log('❌ 调试模式已关闭');
     }
     
     /**
@@ -45,7 +46,7 @@ export class TagClickManager {
      */
     private debugLog(...args: any[]): void {
         if (this.debugMode) {
-            console.log(...args);
+            Logger.log(...args);
         }
     }
     
@@ -61,7 +62,7 @@ export class TagClickManager {
         setTimeout(() => {
             this.setupTagClickListener();
             this.isInitialized = true;
-            console.log('[TagClickManager] ✅ 标签点击管理器初始化完成');
+            Logger.log('✅ 标签点击管理器初始化完成');
         }, 2000);
     }
     
@@ -82,7 +83,7 @@ export class TagClickManager {
             const tagElement = this.findTagElement(target);
             
             if (tagElement) {
-                this.debugLog('[TagClickManager] 🏷️ 检测到编辑区域内标签点击');
+                this.debugLog('🏷️ 检测到编辑区域内标签点击');
                 
                 // 立即阻止所有传播
                 e.preventDefault();
@@ -91,7 +92,7 @@ export class TagClickManager {
                 
                 // 获取标签内容
                 const tagText = tagElement.textContent?.trim() || '';
-                this.debugLog('[TagClickManager] 标签内容:', tagText);
+                this.debugLog('标签内容:', tagText);
                 
                 // 延迟执行，确保阻止了原生处理
                 setTimeout(() => {
@@ -120,7 +121,7 @@ export class TagClickManager {
             }
         }, true);
         
-        console.log('[TagClickManager] ✅ 标签点击监听已注册（限制在编辑区域）');
+        Logger.log('✅ 标签点击监听已注册（限制在编辑区域）');
     }
     
     /**
@@ -178,7 +179,7 @@ export class TagClickManager {
             const isDocumentTag = this.isDocumentTag(current, dataType, className, textContent);
             
             if (isDocumentTag) {
-                this.debugLog('[TagClickManager] 找到文档标签元素:', {
+                this.debugLog('找到文档标签元素:', {
                     tagName: current.tagName,
                     dataType,
                     className,
@@ -238,27 +239,27 @@ export class TagClickManager {
      * 显示标签搜索面板
      */
     private async showTagSearchPanel(tagText: string, scope: SearchScope = this.currentScope, availableTags?: string[]): Promise<void> {
-        console.log('[TagClickManager] 🔍 ========== 开始标签搜索 ==========');
-        console.log('[TagClickManager] 原始标签文本:', tagText);
-        console.log('[TagClickManager] 搜索范围:', scope);
+        Logger.log('🔍 ========== 开始标签搜索 ==========');
+        Logger.log('原始标签文本:', tagText);
+        Logger.log('搜索范围:', scope);
         
         // 如果没有传入可用标签，先获取
         if (!availableTags) {
-            console.log('[TagClickManager] 📋 获取可用标签...');
+            Logger.log('📋 获取可用标签...');
             availableTags = await this.searchManager.getAllAvailableTags(scope);
         }
         
         // 使用搜索管理器搜索
         const results = await this.searchManager.searchByTag(tagText, scope);
         
-        console.log('[TagClickManager] 搜索结果数量:', results.length);
+        Logger.log('搜索结果数量:', results.length);
         
         // 根据搜索范围选择分组和渲染方式
         // 按文档分组展示结果
         const groupedResults = this.searchManager.groupByDocument(results);
         this.showDocumentResultsPanel(tagText, groupedResults, scope, availableTags);
         
-        console.log('[TagClickManager] ========== 标签搜索结束 ==========');
+        Logger.log('========== 标签搜索结束 ==========');
     }
     
 
@@ -266,11 +267,11 @@ export class TagClickManager {
      * 显示笔记本级分组搜索结果面板（用于全局搜索）- 保留旧版本兼容
      */
     private showNotebookResultsPanel(tagText: string, notebookGroupedResults: NotebookGroupedResults, scope: SearchScope): void {
-        console.log('[TagClickManager] 🎨 开始渲染笔记本级分组面板...');
-        console.log('[TagClickManager] 标签文本:', tagText);
-        console.log('[TagClickManager] 笔记本分组结果:', notebookGroupedResults);
+        Logger.log('🎨 开始渲染笔记本级分组面板...');
+        Logger.log('标签文本:', tagText);
+        Logger.log('笔记本分组结果:', notebookGroupedResults);
         
-        console.log('[TagClickManager] 🌳 使用真正的树状结构渲染');
+        Logger.log('🌳 使用真正的树状结构渲染');
         
         // 创建基础面板结构
         const { overlay, style } = this.createOverlayAndStyles();
@@ -280,17 +281,17 @@ export class TagClickManager {
         
         // 使用笔记本级渲染器渲染树状结构
         this.renderer.renderNotebookGroupedResults(contentContainer, notebookGroupedResults, tagText, (blockId) => {
-            console.log('[TagClickManager] 🔗 点击块:', blockId);
+            Logger.log('🔗 点击块:', blockId);
             cleanup();
             // TODO: 跳转到指定块
         }, (notebookId) => {
-            console.log('[TagClickManager] 📚 点击笔记本:', notebookId);
+            Logger.log('📚 点击笔记本:', notebookId);
             // 切换到该笔记本搜索
             cleanup();
             this.currentScope = 'notebook';
             
             // TODO: 需要设置当前笔记本ID，然后重新搜索
-            console.log('[TagClickManager] 🔄 切换到笔记本搜索范围，重新搜索');
+            Logger.log('🔄 切换到笔记本搜索范围，重新搜索');
             this.showTagSearchPanel(tagText, 'notebook');
         });
         
@@ -324,16 +325,16 @@ export class TagClickManager {
             if (e.target === overlay) cleanup();
         });
         
-        console.log('[TagClickManager] ✅ 笔记本级树状面板已创建');
+        Logger.log('✅ 笔记本级树状面板已创建');
     }
 
     /**
      * 显示文档级分组搜索结果面板
      */
     private showDocumentResultsPanel(tagText: string, groupedResults: GroupedResults, scope: SearchScope, availableTags?: string[]): void {
-        console.log('[TagClickManager] 🎨 开始渲染面板...');
-        console.log('[TagClickManager] 标签文本:', tagText);
-        console.log('[TagClickManager] 分组结果:', groupedResults);
+        Logger.log('🎨 开始渲染面板...');
+        Logger.log('标签文本:', tagText);
+        Logger.log('分组结果:', groupedResults);
         
         // 添加动画样式
         const style = document.createElement('style');
@@ -535,7 +536,7 @@ export class TagClickManager {
             tagSelect.addEventListener('change', (e) => {
                 const newTag = (e.target as HTMLSelectElement).value;
                 if (newTag && newTag !== tagText) {
-                    console.log('[TagClickManager] 🔄 切换标签:', newTag);
+                    Logger.log('🔄 切换标签:', newTag);
                     cleanup(); // 关闭当前面板
                     this.showTagSearchPanel(newTag, scope, availableTags); // 重新搜索
                 }
@@ -550,7 +551,7 @@ export class TagClickManager {
         
         // 范围选择器（统一样式）
         const scopeSelector = this.createScopeSelector(scope, (newScope) => {
-            console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
+            Logger.log('🔄 切换搜索范围:', newScope);
             cleanup(); // 关闭当前面板
             this.showTagSearchPanel(tagText, newScope, availableTags); // 重新搜索，保持标签列表
         });
@@ -612,17 +613,17 @@ export class TagClickManager {
         footer.appendChild(closeButton);
         
         // 组装面板
-        console.log('[TagClickManager] 🔧 组装面板元素...');
+        Logger.log('🔧 组装面板元素...');
         panel.appendChild(header);
         panel.appendChild(resultsList);
         panel.appendChild(footer);
         overlay.appendChild(panel);
         
-        console.log('[TagClickManager] 📍 将面板添加到 body...');
-        console.log('[TagClickManager] Overlay 元素:', overlay);
-        console.log('[TagClickManager] Panel 元素:', panel);
+        Logger.log('📍 将面板添加到 body...');
+        Logger.log('Overlay 元素:', overlay);
+        Logger.log('Panel 元素:', panel);
         document.body.appendChild(overlay);
-        console.log('[TagClickManager] ✅ 面板已添加到 DOM');
+        Logger.log('✅ 面板已添加到 DOM');
         
         // 清理函数
         const cleanup = () => {
@@ -951,7 +952,7 @@ export class TagClickManager {
         
         // 正确地创建和添加scope selector，实现范围切换
         const scopeSelector = this.createScopeSelector(scope, (newScope) => {
-            console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
+            Logger.log('🔄 切换搜索范围:', newScope);
             this.currentScope = newScope;
             // 重新搜索
             this.showTagSearchPanel(tagText, newScope);
@@ -1025,7 +1026,7 @@ export class TagClickManager {
         // 搜索范围选择器
         const scopeSelector = this.createScopeSelector(scope, (newScope) => {
             // 切换范围重新搜索
-            console.log('[TagClickManager] 🔄 切换搜索范围:', newScope);
+            Logger.log('🔄 切换搜索范围:', newScope);
             this.currentScope = newScope;
             
             // 清理当前面板
@@ -1109,7 +1110,7 @@ export class TagClickManager {
      */
     private createFooter(): HTMLElement {
         return this.createFooterWithCleanup(() => {
-            console.log('[TagClickManager] ⚠️ 关闭按钮被点击，但没有清理函数');
+            Logger.log('⚠️ 关闭按钮被点击，但没有清理函数');
         });
     }
 
@@ -1117,7 +1118,7 @@ export class TagClickManager {
      * 跳转到指定块
      */
     private navigateToBlock(blockId: string): void {
-        this.debugLog('[TagClickManager] 🔗 跳转到块:', blockId);
+        this.debugLog('🔗 跳转到块:', blockId);
         
         // 使用思源的API跳转
         const url = `siyuan://blocks/${blockId}`;
@@ -1126,4 +1127,6 @@ export class TagClickManager {
 }
 
 export const tagClickManager = new TagClickManager();
+
+
 

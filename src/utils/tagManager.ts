@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 标签管理器 - 快速为块添加标签
  */
@@ -31,7 +32,7 @@ export class TagManager {
      */
     public enableDebug(): void {
         this.debugMode = true;
-        console.log('[TagManager] ✅ 调试模式已开启');
+        Logger.log('✅ 调试模式已开启');
     }
     
     /**
@@ -39,7 +40,7 @@ export class TagManager {
      */
     public disableDebug(): void {
         this.debugMode = false;
-        console.log('[TagManager] ❌ 调试模式已关闭');
+        Logger.log('❌ 调试模式已关闭');
     }
     
     /**
@@ -47,7 +48,7 @@ export class TagManager {
      */
     private debugLog(...args: any[]): void {
         if (this.debugMode) {
-            console.log(...args);
+            Logger.log(...args);
         }
     }
     
@@ -55,7 +56,7 @@ export class TagManager {
      * 初始化标签功能
      */
     public initialize(): void {
-        console.log('[TagManager] 🚀 标签管理器初始化...');
+        Logger.log('🚀 标签管理器初始化...');
         
         // 设置块点击监听
         this.setupBlockClickListener();
@@ -63,7 +64,7 @@ export class TagManager {
         // 延迟设置初始化完成标记
         setTimeout(() => {
             this.isInitialized = true;
-            console.log('[TagManager] ✅ 标签管理器初始化完成');
+            Logger.log('✅ 标签管理器初始化完成');
         }, 2000);
     }
     
@@ -75,7 +76,7 @@ export class TagManager {
         document.addEventListener('contextmenu', (e) => {
             const target = e.target as HTMLElement;
             
-            this.debugLog('[TagManager] 🎯 检测到右键点击');
+            this.debugLog('🎯 检测到右键点击');
             
             // 查找块元素
             const blockElement = this.findBlockElementFromNode(target);
@@ -89,7 +90,7 @@ export class TagManager {
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    this.debugLog('[TagManager] 找到块元素，显示标签面板');
+                    this.debugLog('找到块元素，显示标签面板');
                     this.showTagPanel(blockElement);
                 }
             }
@@ -103,7 +104,7 @@ export class TagManager {
             const target = e.target as HTMLElement;
             touchStartElement = target;
             
-            this.debugLog('[TagManager] 📱 检测到触摸开始');
+            this.debugLog('📱 检测到触摸开始');
             
             // 查找块元素
             const blockElement = this.findBlockElementFromNode(target);
@@ -118,7 +119,7 @@ export class TagManager {
                         // 阻止默认行为
                         e.preventDefault();
                         
-                        this.debugLog('[TagManager] 📱 长按触发，显示标签面板');
+                        this.debugLog('📱 长按触发，显示标签面板');
                         this.showTagPanel(blockElement);
                         
                         // 清除定时器
@@ -133,7 +134,7 @@ export class TagManager {
             if (touchTimer) {
                 clearTimeout(touchTimer);
                 touchTimer = null;
-                this.debugLog('[TagManager] 📱 长按取消');
+                this.debugLog('📱 长按取消');
             }
         };
         
@@ -141,7 +142,7 @@ export class TagManager {
         document.addEventListener('touchmove', cancelTouch, true);
         document.addEventListener('touchcancel', cancelTouch, true);
         
-        console.log('[TagManager] ✅ 块点击监听已注册（右键点击 + 长按）');
+        Logger.log('✅ 块点击监听已注册（右键点击 + 长按）');
     }
     
     /**
@@ -160,7 +161,7 @@ export class TagManager {
                 
                 // 检查是否是有效的块元素
                 if (nodeId && dataType && !element.classList.contains('protyle-wysiwyg')) {
-                    this.debugLog('[TagManager] 找到块元素:', { nodeId, dataType });
+                    this.debugLog('找到块元素:', { nodeId, dataType });
                     return element;
                 }
             }
@@ -178,7 +179,7 @@ export class TagManager {
         const blockId = blockElement.getAttribute('data-node-id');
         const blockText = blockElement.textContent?.substring(0, 50) || '';
         
-        this.debugLog('[TagManager] 显示标签面板:', { blockId, blockText });
+        this.debugLog('显示标签面板:', { blockId, blockText });
         
         // 🎨 检查块是否包含复杂样式，如果有则阻止打标签
         if (this.hasComplexStyles(blockElement)) {
@@ -190,11 +191,11 @@ export class TagManager {
         const selectedTag = await this.showTagSelectionDialog(blockText);
         
         if (selectedTag) {
-            console.log('[TagManager] 📤 用户选择标签:', selectedTag.name);
+            Logger.log('📤 用户选择标签:', selectedTag.name);
             
             // 🛡️ 兜底防御：再次检查文档锁定状态
             if (this.isDocumentEditableCheck()) {
-                console.error('[TagManager] 🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加标签');
+                Logger.error('🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加标签');
                 this.showEditableWarningDialog();
                 return;
             }
@@ -220,7 +221,7 @@ export class TagManager {
             
             // 🎨 检查是否包含内联样式 style=
             if (innerHTML.includes('style=')) {
-                console.log('[TagManager] 🎨 检测到内联样式，阻止打标签');
+                Logger.log('🎨 检测到内联样式，阻止打标签');
                 return true;
             }
             
@@ -229,7 +230,7 @@ export class TagManager {
                 blockElement.querySelector('code') ||
                 blockElement.classList.contains('code-block') ||
                 innerHTML.includes('hljs')) {
-                console.log('[TagManager] 💻 检测到代码块，阻止打标签');
+                Logger.log('💻 检测到代码块，阻止打标签');
                 return true;
             }
             
@@ -239,14 +240,14 @@ export class TagManager {
                 innerHTML.includes('\\(') || 
                 innerHTML.includes('\\[') ||
                 innerHTML.includes('katex')) {
-                console.log('[TagManager] 📐 检测到数学公式，阻止打标签');
+                Logger.log('📐 检测到数学公式，阻止打标签');
                 return true;
             }
             
             return false;
             
         } catch (error) {
-            console.error('[TagManager] ❌ 样式检查失败:', error);
+            Logger.error('❌ 样式检查失败:', error);
             // 出错时保守处理，阻止打标签
             return true;
         }
@@ -415,7 +416,7 @@ export class TagManager {
             const readonlyBtn = this.getCurrentActiveReadonlyButton();
             
             if (!readonlyBtn) {
-                console.warn('[TagManager] 🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
+                Logger.warn('🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
                 return true;
             }
             
@@ -426,7 +427,7 @@ export class TagManager {
             const isReadonly = iconHref !== '#iconUnlock';
             const isEditable = !isReadonly;
             
-            console.log(`[TagManager] 🛡️ 兜底防御检查（当前活跃文档）:`, {
+            Logger.log(`🛡️ 兜底防御检查（当前活跃文档）:`, {
                 '图标href': iconHref,
                 '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
                 '是否可编辑': isEditable ? '🔓 是（可编辑）' : '🔒 否（只读）'
@@ -435,7 +436,7 @@ export class TagManager {
             return isEditable;
             
         } catch (error) {
-            console.error('[TagManager] 🛡️ 兜底防御检查失败:', error);
+            Logger.error('🛡️ 兜底防御检查失败:', error);
             return true;
         }
     }
@@ -599,7 +600,7 @@ export class TagManager {
         const readonlyBtn = this.getCurrentActiveReadonlyButton();
         
         if (!readonlyBtn) {
-            this.debugLog('[TagManager] ⚠️ 未找到当前活跃文档的面包屑锁按钮');
+            this.debugLog('⚠️ 未找到当前活跃文档的面包屑锁按钮');
             return false;
         }
         
@@ -609,7 +610,7 @@ export class TagManager {
         // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
         const isReadonly = iconHref !== '#iconUnlock';
         
-        this.debugLog('[TagManager] 🔐 当前活跃文档锁按钮状态:', {
+        this.debugLog('🔐 当前活跃文档锁按钮状态:', {
             '图标href': iconHref,
             '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
         });
@@ -629,7 +630,7 @@ export class TagManager {
                 if (protyleContainer) {
                     const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                     if (readonlyBtn) {
-                        console.log('[TagManager] ✅ 通过焦点元素找到当前文档锁按钮');
+                        Logger.log('✅ 通过焦点元素找到当前文档锁按钮');
                         return readonlyBtn;
                     }
                 }
@@ -640,7 +641,7 @@ export class TagManager {
             if (activeWnd) {
                 const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
-                    console.log('[TagManager] ✅ 通过活跃窗口找到当前文档锁按钮');
+                    Logger.log('✅ 通过活跃窗口找到当前文档锁按钮');
                     return readonlyBtn;
                 }
             }
@@ -648,14 +649,14 @@ export class TagManager {
             // 方法3: 兜底方案 - 全局查找（可能不准确）
             const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
             if (readonlyBtn) {
-                console.warn('[TagManager] ⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
+                Logger.warn('⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
                 return readonlyBtn;
             }
             
             return null;
             
         } catch (error) {
-            console.error('[TagManager] ❌ 获取当前活跃文档锁按钮失败:', error);
+            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
             return null;
         }
     }
@@ -906,7 +907,7 @@ export class TagManager {
      */
     private async performAddTag(blockElement: HTMLElement, tag: typeof PRESET_TAGS[number]): Promise<void> {
         try {
-            this.debugLog('[TagManager] 🏷️ 开始添加标签...');
+            this.debugLog('🏷️ 开始添加标签...');
             
             // 获取块ID
             const blockId = blockElement.getAttribute('data-node-id');
@@ -914,7 +915,7 @@ export class TagManager {
                 throw new Error('未找到块ID');
             }
             
-            this.debugLog('[TagManager] 获取块ID:', blockId);
+            this.debugLog('获取块ID:', blockId);
             
             // 使用 operationWrapper 包裹操作
             await operationWrapper.executeWithUnlockLock('添加标签', async () => {
@@ -925,7 +926,7 @@ export class TagManager {
                     throw new Error('未找到块信息');
                 }
                 
-                this.debugLog('[TagManager] 当前块内容:', block.content);
+                this.debugLog('当前块内容:', block.content);
                 
                 // 思源标签格式是 #表情+标签名#
                 const tagText = `#${tag.emoji}${tag.name}#`;
@@ -933,14 +934,14 @@ export class TagManager {
                 // 在markdown内容末尾添加标签（使用空格分隔）
                 const newMarkdown = block.markdown.trim() + ' ' + tagText;
                 
-                this.debugLog('[TagManager] 新markdown内容:', newMarkdown);
+                this.debugLog('新markdown内容:', newMarkdown);
                 
                 // 使用 markdown 格式更新块，思源会自动转换为正确的DOM格式
                 const result = await updateBlock('markdown', newMarkdown, blockId);
                 
-                this.debugLog('[TagManager] 更新结果:', result);
+                this.debugLog('更新结果:', result);
                 
-                console.log('[TagManager] ✅ 标签添加成功:', {
+                Logger.log('✅ 标签添加成功:', {
                     blockId,
                     tagName: tag.name,
                     emoji: tag.emoji
@@ -948,9 +949,12 @@ export class TagManager {
             });
             
         } catch (error) {
-            console.error('[TagManager] ❌ 标签添加失败:', error);
+            Logger.error('❌ 标签添加失败:', error);
             throw error;
         }
     }
 }
+
+
+
 

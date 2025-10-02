@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 工具栏按钮工厂 - 负责创建各种工具栏按钮
  * 从 toolbarHijacker.ts 中提取，减少主文件大小
@@ -176,7 +177,7 @@ export class ToolbarButtonFactory {
             
             const selectedText = range.toString().trim();
             if (!selectedText) {
-                console.warn('请先选择要添加备注的文本');
+                Logger.warn('请先选择要添加备注的文本');
                 return;
             }
             
@@ -190,4 +191,5 @@ export class ToolbarButtonFactory {
         return btn;
     }
 }
+
 

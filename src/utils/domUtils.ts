@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * DOM操作工具函数
  */
@@ -18,7 +19,7 @@ export class DOMUtils {
         let level = 0;
         while (current && current !== document.body && level < 20) {
             if (current.hasAttribute && current.hasAttribute(DATA_ATTRIBUTES.BLOCK_ID)) {
-                console.log('[DOMUtils] 找到块元素:', current.getAttribute(DATA_ATTRIBUTES.BLOCK_ID), 'tag:', current.tagName);
+                Logger.log('找到块元素:', current.getAttribute(DATA_ATTRIBUTES.BLOCK_ID), 'tag:', current.tagName);
                 return current;
             }
             // 也尝试查找其他可能的块标识
@@ -33,14 +34,14 @@ export class DOMUtils {
             )) {
                 const id = current.getAttribute('data-node-id') || current.getAttribute('data-id');
                 if (id) {
-                    console.log('[DOMUtils] 找到备选块元素:', id, 'tag:', current.tagName);
+                    Logger.log('找到备选块元素:', id, 'tag:', current.tagName);
                     return current;
                 }
             }
             current = current.parentElement as HTMLElement;
             level++;
         }
-        console.log('[DOMUtils] 未找到块元素，搜索了', level, '层');
+        Logger.log('未找到块元素，搜索了', level, '层');
         return null;
     }
 
@@ -62,7 +63,7 @@ export class DOMUtils {
             }
         }
         
-        console.log('[DOMUtils] 所有ID属性:', {
+        Logger.log('所有ID属性:', {
             'data-node-id': blockElement.getAttribute('data-node-id'),
             'data-id': blockElement.getAttribute('data-id'),
             'id': blockElement.getAttribute('id'),
@@ -121,7 +122,7 @@ export class DOMUtils {
     static getSelectionInfo(): ISelectionInfo | null {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
-            console.log('[DOMUtils] 没有选择或选择范围为空');
+            Logger.log('没有选择或选择范围为空');
             return null;
         }
 
@@ -129,7 +130,7 @@ export class DOMUtils {
         const text = selection.toString().trim();
         
         if (!text || text.length < DIMENSIONS.MIN_SELECTION_LENGTH) {
-            console.log('[DOMUtils] 文本为空或太短:', text.length);
+            Logger.log('文本为空或太短:', text.length);
             return null;
         }
 
@@ -139,24 +140,24 @@ export class DOMUtils {
             ? startContainer.parentElement as HTMLElement
             : startContainer as HTMLElement;
         
-        console.log('[DOMUtils] 开始查找块元素，startContainer:', startContainer.nodeName);
+        Logger.log('开始查找块元素，startContainer:', startContainer.nodeName);
             
         const blockElement = this.findBlockElement(element);
         if (!blockElement) {
-            console.log('[DOMUtils] 未找到包含块元素');
+            Logger.log('未找到包含块元素');
             return null;
         }
 
         const blockId = this.getBlockId(blockElement);
         if (!blockId) {
-            console.log('[DOMUtils] 块元素没有有效ID, className:', blockElement.className);
+            Logger.log('块元素没有有效ID, className:', blockElement.className);
             return null;
         }
 
         // 检查是否选中了已存在的高亮
         const { isExistingHighlight, existingHighlight } = this.checkExistingHighlight(range);
 
-        console.log('[DOMUtils] 获取到有效选择:', {
+        Logger.log('获取到有效选择:', {
             text: text.substring(0, 20),
             blockId,
             isExisting: isExistingHighlight
@@ -408,7 +409,7 @@ export class DOMUtils {
             
             return true;
         } catch (error) {
-            console.error('替换选择失败:', error);
+            Logger.error('替换选择失败:', error);
             return false;
         }
     }
@@ -511,8 +512,10 @@ export class DOMUtils {
         try {
             return operation();
         } catch (error) {
-            console.error('DOM操作失败:', error);
+            Logger.error('DOM操作失败:', error);
             return fallback;
         }
     }
 }
+
+

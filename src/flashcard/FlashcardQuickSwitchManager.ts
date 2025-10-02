@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 闪卡快切主管理器 - 整个功能的核心控制器
  */
@@ -29,7 +30,7 @@ export class FlashcardQuickSwitchManager {
         this.uiManager = new UIManager(this.historyManager, this.config);
         this.monitor = new FlashcardMonitor();
 
-        console.log('[FlashcardQuickSwitchManager] 主管理器已创建');
+        Logger.log('主管理器已创建');
     }
 
     /**
@@ -37,12 +38,12 @@ export class FlashcardQuickSwitchManager {
      */
     async initialize(): Promise<void> {
         if (this.isInitialized) {
-            console.warn('[FlashcardQuickSwitchManager] 管理器已经初始化');
+            Logger.warn('管理器已经初始化');
             return;
         }
 
         try {
-            console.log('[FlashcardQuickSwitchManager] 正在初始化...');
+            Logger.log('正在初始化...');
 
             // 初始化历史管理器
             await this.historyManager.initialize();
@@ -62,10 +63,10 @@ export class FlashcardQuickSwitchManager {
                 await this.enable();
             }
 
-            console.log('[FlashcardQuickSwitchManager] 初始化完成');
+            Logger.log('初始化完成');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 初始化失败:', error);
+            Logger.error('初始化失败:', error);
             throw new Error(`${ErrorCode.INIT_FAILED}: ${error.message}`);
         }
     }
@@ -79,7 +80,7 @@ export class FlashcardQuickSwitchManager {
         }
 
         if (this.isEnabled) {
-            console.warn('[FlashcardQuickSwitchManager] 功能已经启用');
+            Logger.warn('功能已经启用');
             return;
         }
 
@@ -91,10 +92,10 @@ export class FlashcardQuickSwitchManager {
             // 立即显示小圆球（无论是否有闪卡面板）
             this.showQuickSwitchBallAlways();
             
-            console.log('[FlashcardQuickSwitchManager] 功能已启用，小圆球已显示');
+            Logger.log('功能已启用，小圆球已显示');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 启用功能失败:', error);
+            Logger.error('启用功能失败:', error);
             throw error;
         }
     }
@@ -113,10 +114,10 @@ export class FlashcardQuickSwitchManager {
             this.uiManager.hideQuickSwitchBall();
             
             this.isEnabled = false;
-            console.log('[FlashcardQuickSwitchManager] 功能已禁用');
+            Logger.log('功能已禁用');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 禁用功能失败:', error);
+            Logger.error('禁用功能失败:', error);
         }
     }
 
@@ -144,10 +145,10 @@ export class FlashcardQuickSwitchManager {
                 await this.historyManager.setMaxCount(newConfig.maxHistory);
             }
 
-            console.log('[FlashcardQuickSwitchManager] 配置已更新');
+            Logger.log('配置已更新');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 更新配置失败:', error);
+            Logger.error('更新配置失败:', error);
             throw error;
         }
     }
@@ -190,7 +191,7 @@ export class FlashcardQuickSwitchManager {
             return success;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 添加筛选记录失败:', error);
+            Logger.error('添加筛选记录失败:', error);
             return false;
         }
     }
@@ -208,7 +209,7 @@ export class FlashcardQuickSwitchManager {
             return success;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 删除筛选记录失败:', error);
+            Logger.error('删除筛选记录失败:', error);
             return false;
         }
     }
@@ -226,7 +227,7 @@ export class FlashcardQuickSwitchManager {
             return success;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 切换固定状态失败:', error);
+            Logger.error('切换固定状态失败:', error);
             return false;
         }
     }
@@ -241,10 +242,10 @@ export class FlashcardQuickSwitchManager {
             // 更新UI
             this.uiManager.updateHistoryPanel();
             
-            console.log('[FlashcardQuickSwitchManager] 历史记录已清空');
+            Logger.log('历史记录已清空');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 清空历史记录失败:', error);
+            Logger.error('清空历史记录失败:', error);
             throw error;
         }
     }
@@ -256,7 +257,7 @@ export class FlashcardQuickSwitchManager {
         try {
             return await this.historyManager.exportData();
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 导出数据失败:', error);
+            Logger.error('导出数据失败:', error);
             throw error;
         }
     }
@@ -271,10 +272,10 @@ export class FlashcardQuickSwitchManager {
             // 更新UI
             this.uiManager.updateHistoryPanel();
             
-            console.log('[FlashcardQuickSwitchManager] 数据导入完成');
+            Logger.log('数据导入完成');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 导入数据失败:', error);
+            Logger.error('导入数据失败:', error);
             throw error;
         }
     }
@@ -307,7 +308,7 @@ export class FlashcardQuickSwitchManager {
      */
     async destroy(): Promise<void> {
         try {
-            console.log('[FlashcardQuickSwitchManager] 正在销毁管理器...');
+            Logger.log('正在销毁管理器...');
 
             // 禁用功能
             this.disable();
@@ -320,10 +321,10 @@ export class FlashcardQuickSwitchManager {
             this.isInitialized = false;
             this.isEnabled = false;
 
-            console.log('[FlashcardQuickSwitchManager] 管理器已销毁');
+            Logger.log('管理器已销毁');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 销毁管理器失败:', error);
+            Logger.error('销毁管理器失败:', error);
         }
     }
 
@@ -332,7 +333,7 @@ export class FlashcardQuickSwitchManager {
      */
     private async handleFilterEvent(event: FilterEvent): Promise<void> {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 处理筛选事件:`, event);
+            Logger.log(`处理筛选事件:`, event);
 
             // 添加到历史记录
             const success = await this.historyManager.addFilter({
@@ -344,11 +345,11 @@ export class FlashcardQuickSwitchManager {
             if (success) {
                 // 更新UI
                 this.uiManager.updateHistoryPanel();
-                console.log(`[FlashcardQuickSwitchManager] 已记录筛选: ${event.filterName}`);
+                Logger.log(`已记录筛选: ${event.filterName}`);
             }
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 处理筛选事件失败:', error);
+            Logger.error('处理筛选事件失败:', error);
         }
     }
 
@@ -357,7 +358,7 @@ export class FlashcardQuickSwitchManager {
      */
     private showQuickSwitchBallAlways(): void {
         try {
-            console.log('[FlashcardQuickSwitchManager] 显示小圆球（智能交互模式）');
+            Logger.log('显示小圆球（智能交互模式）');
             
             // 创建一个虚拟的面板引用用于位置定位，如果没有真实面板的话
             let referenceElement: Element = document.body;
@@ -366,15 +367,15 @@ export class FlashcardQuickSwitchManager {
             const existingPanel = document.querySelector('[data-key="dialog-opencard"], [data-key="dialog-viewcards"], .card__main');
             if (existingPanel) {
                 referenceElement = existingPanel;
-                console.log('[FlashcardQuickSwitchManager] 找到现有闪卡面板作为参考位置');
+                Logger.log('找到现有闪卡面板作为参考位置');
             } else {
-                console.log('[FlashcardQuickSwitchManager] 未找到闪卡面板，将小圆球定位到页面右侧');
+                Logger.log('未找到闪卡面板，将小圆球定位到页面右侧');
             }
             
             this.uiManager.showQuickSwitchBall(referenceElement);
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 显示小圆球失败:', error);
+            Logger.error('显示小圆球失败:', error);
         }
     }
 
@@ -383,7 +384,7 @@ export class FlashcardQuickSwitchManager {
      */
     private handlePanelDetected(panelInfo: FlashcardPanelInfo): void {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 检测到闪卡面板: ${panelInfo.type}`);
+            Logger.log(`检测到闪卡面板: ${panelInfo.type}`);
 
             // 如果小圆球还没显示，则显示它
             // 注意：由于我们现在在启用时就显示小圆球，这里主要是确保位置更新
@@ -393,7 +394,7 @@ export class FlashcardQuickSwitchManager {
             }
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 处理面板检测失败:', error);
+            Logger.error('处理面板检测失败:', error);
         }
     }
 
@@ -402,7 +403,7 @@ export class FlashcardQuickSwitchManager {
      */
     private async handleFilterSwitch(filter: FlashcardFilter): Promise<void> {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 切换筛选: ${filter.name}`);
+            Logger.log(`切换筛选: ${filter.name}`);
 
             // 先让monitor重新检查面板状态
             this.monitor.manualTriggerCheck();
@@ -412,13 +413,13 @@ export class FlashcardQuickSwitchManager {
 
             // 查找当前的闪卡面板
             const panels = this.monitor.getCurrentPanels();
-            console.log(`[FlashcardQuickSwitchManager] 当前检测到 ${panels.length} 个闪卡面板`);
+            Logger.log(`当前检测到 ${panels.length} 个闪卡面板`);
             
             let activePanel = panels.find(p => p.filterButton);
 
             // 如果没找到活动面板，尝试重新查找
             if (!activePanel || !activePanel.filterButton) {
-                console.warn('[FlashcardQuickSwitchManager] 未找到活动面板，尝试重新检测...');
+                Logger.warn('未找到活动面板，尝试重新检测...');
                 
                 // 强制重新检测页面上的所有闪卡面板
                 this.monitor.manualTriggerCheck();
@@ -427,30 +428,30 @@ export class FlashcardQuickSwitchManager {
                 const retryPanels = this.monitor.getCurrentPanels();
                 activePanel = retryPanels.find(p => p.filterButton);
                 
-                console.log(`[FlashcardQuickSwitchManager] 重新检测后找到 ${retryPanels.length} 个面板`);
+                Logger.log(`重新检测后找到 ${retryPanels.length} 个面板`);
             }
 
             if (!activePanel || !activePanel.filterButton) {
-                console.error('[FlashcardQuickSwitchManager] 仍未找到活动的闪卡面板，显示提示通知');
+                Logger.error('仍未找到活动的闪卡面板，显示提示通知');
                 
                 // 显示友好的提示而不是抛出错误
                 this.showSwitchNotification(filter, false);
                 return;
             }
 
-            console.log(`[FlashcardQuickSwitchManager] 找到活动面板，开始执行切换`);
+            Logger.log(`找到活动面板，开始执行切换`);
 
             // 执行筛选切换
             const success = await this.executeFilterSwitch(activePanel.filterButton, filter);
             
             if (success) {
-                console.log(`[FlashcardQuickSwitchManager] 筛选切换成功: ${filter.name}`);
+                Logger.log(`筛选切换成功: ${filter.name}`);
             } else {
-                console.error('[FlashcardQuickSwitchManager] 筛选切换失败');
+                Logger.error('筛选切换失败');
             }
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 处理筛选切换失败:', error);
+            Logger.error('处理筛选切换失败:', error);
             
             // 不抛出错误，而是显示友好的通知
             this.showSwitchNotification(filter, false);
@@ -462,41 +463,41 @@ export class FlashcardQuickSwitchManager {
      */
     private async executeFilterSwitch(filterButton: Element, filter: FlashcardFilter): Promise<boolean> {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 开始执行筛选切换: ${filter.name}（模拟原生流程）`);
+            Logger.log(`开始执行筛选切换: ${filter.name}（模拟原生流程）`);
             
             // 1. 更新筛选按钮属性（与原生流程一致）
             filterButton.setAttribute('data-id', filter.id);
             filterButton.setAttribute('data-cardtype', filter.type);
-            console.log(`[FlashcardQuickSwitchManager] 已更新筛选属性: data-id="${filter.id}", data-cardtype="${filter.type}"`);
+            Logger.log(`已更新筛选属性: data-id="${filter.id}", data-cardtype="${filter.type}"`);
             
             // 2. 模拟原生筛选菜单选择流程
             // 基于思源源码分析：用户选择筛选后会调用 fetchNewRound() 函数直接刷新面板内容
             let success = false;
             
-            console.log('[FlashcardQuickSwitchManager] 尝试模拟原生筛选选择流程');
+            Logger.log('尝试模拟原生筛选选择流程');
             
             try {
                 // 不要弹出菜单！直接触发刷新
-                console.log('[FlashcardQuickSwitchManager] 直接触发筛选刷新（不弹出菜单）');
+                Logger.log('直接触发筛选刷新（不弹出菜单）');
                 success = await this.triggerDirectRefresh(filterButton, filter);
                 
                 if (!success) {
-                    console.log('[FlashcardQuickSwitchManager] 直接刷新失败，尝试DOM事件触发');
+                    Logger.log('直接刷新失败，尝试DOM事件触发');
                     success = this.triggerFilterChangeEvents(filterButton, filter);
                 }
                 
             } catch (error) {
-                console.warn('[FlashcardQuickSwitchManager] 触发刷新出错:', error);
+                Logger.warn('触发刷新出错:', error);
                 success = false;
             }
             
-            console.log(`[FlashcardQuickSwitchManager] 筛选切换${success ? '成功' : '可能需要手动刷新'}`);
+            Logger.log(`筛选切换${success ? '成功' : '可能需要手动刷新'}`);
             this.showSwitchNotification(filter, success);
             
             return success;
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 执行筛选切换失败:', error);
+            Logger.error('执行筛选切换失败:', error);
             this.showSwitchNotification(filter, false);
             return false;
         }
@@ -507,12 +508,12 @@ export class FlashcardQuickSwitchManager {
      */
     private async triggerDirectRefresh(filterButton: Element, filter: FlashcardFilter): Promise<boolean> {
         try {
-            console.log('[FlashcardQuickSwitchManager] 尝试直接触发思源刷新机制');
+            Logger.log('尝试直接触发思源刷新机制');
             
             // 查找闪卡面板容器
             const cardContainer = filterButton.closest('[data-key="dialog-opencard"], .card__main');
             if (!cardContainer) {
-                console.warn('[FlashcardQuickSwitchManager] 未找到闪卡容器');
+                Logger.warn('未找到闪卡容器');
                 return false;
             }
             
@@ -525,7 +526,7 @@ export class FlashcardQuickSwitchManager {
                 ? { rootID: filter.id }
                 : { notebook: filter.id };
 
-            console.log(`[FlashcardQuickSwitchManager] 静默调用API获取新数据: ${apiEndpoint}`, requestBody);
+            Logger.log(`静默调用API获取新数据: ${apiEndpoint}`, requestBody);
 
             const response = await fetch(apiEndpoint, {
                 method: 'POST',
@@ -542,19 +543,19 @@ export class FlashcardQuickSwitchManager {
                 throw new Error(`API返回错误: ${result.msg || 'Unknown error'}`);
             }
 
-            console.log(`[FlashcardQuickSwitchManager] 静默获取到 ${result.data?.cards?.length || 0} 张闪卡数据`);
+            Logger.log(`静默获取到 ${result.data?.cards?.length || 0} 张闪卡数据`);
             
             // 关键：直接更新面板显示，模拟 nextCard 函数的效果
             if (result.data?.cards?.length > 0) {
-                console.log('[FlashcardQuickSwitchManager] 直接更新面板显示内容');
+                Logger.log('直接更新面板显示内容');
                 return this.updateFlashcardDisplay(cardContainer, result.data, filter);
             } else {
-                console.log('[FlashcardQuickSwitchManager] 筛选结果为空，显示无卡片状态');
+                Logger.log('筛选结果为空，显示无卡片状态');
                 return this.showNoDueCards(cardContainer);
             }
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 直接刷新失败:', error);
+            Logger.error('直接刷新失败:', error);
             return false;
         }
     }
@@ -564,7 +565,7 @@ export class FlashcardQuickSwitchManager {
      */
     private updateFlashcardDisplay(cardContainer: Element, cardsData: any, filter: FlashcardFilter): boolean {
         try {
-            console.log('[FlashcardQuickSwitchManager] 开始更新闪卡显示');
+            Logger.log('开始更新闪卡显示');
             
             // 1. 更新计数显示
             const countElement = cardContainer.querySelector('[data-type="count"]');
@@ -572,14 +573,14 @@ export class FlashcardQuickSwitchManager {
                 const totalCards = cardsData.cards?.length || 0;
                 countElement.innerHTML = `<span>1/${totalCards}</span>`;
                 countElement.classList.remove('fn__none');
-                console.log(`[FlashcardQuickSwitchManager] 更新计数显示: 1/${totalCards}`);
+                Logger.log(`更新计数显示: 1/${totalCards}`);
             }
             
             // 2. 寻找并更新编辑器内容区域
             const editorElement = cardContainer.querySelector('.protyle-content, [data-type="render"]');
             if (editorElement && cardsData.cards?.length > 0) {
                 const firstCard = cardsData.cards[0];
-                console.log(`[FlashcardQuickSwitchManager] 更新编辑器内容: ${firstCard.blockID}`);
+                Logger.log(`更新编辑器内容: ${firstCard.blockID}`);
                 
                 // 直接调用思源的内部函数来加载卡片内容（如果可能的话）
                 // 这里我们尝试触发卡片加载
@@ -602,11 +603,11 @@ export class FlashcardQuickSwitchManager {
                 filterButton.setAttribute('title', `筛选: ${filter.name}`);
             }
             
-            console.log('[FlashcardQuickSwitchManager] 面板显示更新完成');
+            Logger.log('面板显示更新完成');
             return true;
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 更新面板显示失败:', error);
+            Logger.error('更新面板显示失败:', error);
             return false;
         }
     }
@@ -616,7 +617,7 @@ export class FlashcardQuickSwitchManager {
      */
     private loadCardContent(editorElement: Element, card: any): void {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 加载卡片内容: ${card.blockID}`);
+            Logger.log(`加载卡片内容: ${card.blockID}`);
             
             // 使用正确的API获取渲染后的HTML内容，而不是Kramdown原始格式
             fetch('/api/block/getBlockDOM', {
@@ -626,7 +627,7 @@ export class FlashcardQuickSwitchManager {
             }).then(response => response.json())
             .then(result => {
                 if (result.code === 0 && result.data) {
-                    console.log('[FlashcardQuickSwitchManager] 成功获取卡片HTML内容');
+                    Logger.log('成功获取卡片HTML内容');
                     
                     // 设置渲染后的HTML内容
                     const contentDiv = editorElement.querySelector('.protyle-wysiwyg') || editorElement;
@@ -635,18 +636,18 @@ export class FlashcardQuickSwitchManager {
                         contentDiv.innerHTML = result.data.dom || result.data;
                     }
                 } else {
-                    console.warn('[FlashcardQuickSwitchManager] 获取DOM内容失败，尝试备选方案');
+                    Logger.warn('获取DOM内容失败，尝试备选方案');
                     // 备选方案：尝试获取块的基本信息
                     this.loadCardContentFallback(editorElement, card);
                 }
             }).catch(error => {
-                console.error('[FlashcardQuickSwitchManager] 加载卡片内容失败:', error);
+                Logger.error('加载卡片内容失败:', error);
                 // 失败时的备选方案
                 this.loadCardContentFallback(editorElement, card);
             });
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 加载卡片内容出错:', error);
+            Logger.error('加载卡片内容出错:', error);
         }
     }
 
@@ -655,7 +656,7 @@ export class FlashcardQuickSwitchManager {
      */
     private loadCardContentFallback(editorElement: Element, card: any): void {
         try {
-            console.log('[FlashcardQuickSwitchManager] 使用备选方案加载卡片内容');
+            Logger.log('使用备选方案加载卡片内容');
             
             // 备选方案：尝试获取块的基本信息并简单显示
             fetch('/api/block/getBlockInfo', {
@@ -680,7 +681,7 @@ export class FlashcardQuickSwitchManager {
                     }
                 }
             }).catch(error => {
-                console.error('[FlashcardQuickSwitchManager] 备选方案也失败:', error);
+                Logger.error('备选方案也失败:', error);
                 // 最后的备选方案：显示占位符
                 const contentDiv = editorElement.querySelector('.protyle-wysiwyg') || editorElement;
                 if (contentDiv) {
@@ -697,7 +698,7 @@ export class FlashcardQuickSwitchManager {
             });
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 备选方案出错:', error);
+            Logger.error('备选方案出错:', error);
         }
     }
 
@@ -706,7 +707,7 @@ export class FlashcardQuickSwitchManager {
      */
     private showNoDueCards(cardContainer: Element): boolean {
         try {
-            console.log('[FlashcardQuickSwitchManager] 显示无卡片状态');
+            Logger.log('显示无卡片状态');
             
             // 隐藏编辑器
             const editorElement = cardContainer.querySelector('.protyle-content, [data-type="render"]');
@@ -730,7 +731,7 @@ export class FlashcardQuickSwitchManager {
             return true;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 显示无卡片状态失败:', error);
+            Logger.error('显示无卡片状态失败:', error);
             return false;
         }
     }
@@ -740,7 +741,7 @@ export class FlashcardQuickSwitchManager {
      */
     private triggerFilterChangeEvents(filterButton: Element, filter: FlashcardFilter): boolean {
         try {
-            console.log('[FlashcardQuickSwitchManager] 触发筛选变更事件');
+            Logger.log('触发筛选变更事件');
             
             // 触发各种可能让思源识别筛选变更的DOM事件
             const events = [
@@ -765,11 +766,11 @@ export class FlashcardQuickSwitchManager {
                 cardContainer.dispatchEvent(new Event('update', { bubbles: true }));
             }
             
-            console.log('[FlashcardQuickSwitchManager] 已触发筛选变更事件');
+            Logger.log('已触发筛选变更事件');
             return true;
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 触发筛选事件失败:', error);
+            Logger.error('触发筛选事件失败:', error);
             return false;
         }
     }
@@ -781,10 +782,10 @@ export class FlashcardQuickSwitchManager {
     // @ts-ignore - deprecated method kept for reference
     private _reopenFlashcardPanel(): void {
         try {
-            console.log('[FlashcardQuickSwitchManager] 尝试重新打开闪卡面板');
+            Logger.log('尝试重新打开闪卡面板');
             
             // 方法1: 使用正确的Alt+0快捷键（基于思源源码分析）
-            console.log('[FlashcardQuickSwitchManager] 方法1: 使用Alt+0快捷键打开闪卡复习');
+            Logger.log('方法1: 使用Alt+0快捷键打开闪卡复习');
             const altZeroEvent = new KeyboardEvent('keydown', {
                 key: '0',
                 code: 'Digit0',
@@ -795,11 +796,11 @@ export class FlashcardQuickSwitchManager {
             });
             
             document.dispatchEvent(altZeroEvent);
-            console.log('[FlashcardQuickSwitchManager] Alt+0快捷键已发送');
+            Logger.log('Alt+0快捷键已发送');
             
             // 方法1b: 如果快捷键不起作用，查找"间隔重复"菜单项
             setTimeout(() => {
-                console.log('[FlashcardQuickSwitchManager] 备选：查找间隔重复菜单项');
+                Logger.log('备选：查找间隔重复菜单项');
                 
                 const menuItems = document.querySelectorAll('.b3-menu__item');
                 for (const menuItem of menuItems) {
@@ -812,7 +813,7 @@ export class FlashcardQuickSwitchManager {
                         text.includes('Space Repetition') ||
                         text.includes('复习')) {
                         
-                        console.log(`[FlashcardQuickSwitchManager] 找到间隔重复菜单: "${text}", id: "${menuId}"`);
+                        Logger.log(`找到间隔重复菜单: "${text}", id: "${menuId}"`);
                         
                         menuItem.dispatchEvent(new MouseEvent('click', { 
                             bubbles: true,
@@ -826,7 +827,7 @@ export class FlashcardQuickSwitchManager {
             
             // 方法2: 如果Alt+0不起作用，尝试其他可能的快捷键
             setTimeout(() => {
-                console.log('[FlashcardQuickSwitchManager] 方法2: 尝试其他可能的快捷键');
+                Logger.log('方法2: 尝试其他可能的快捷键');
                 
                 // 基于源码，主要是Alt+0，但也尝试一些常见的组合
                 const backupShortcuts = [
@@ -836,7 +837,7 @@ export class FlashcardQuickSwitchManager {
                 
                 backupShortcuts.forEach((shortcut, index) => {
                     setTimeout(() => {
-                        console.log(`[FlashcardQuickSwitchManager] 备选快捷键: ${shortcut.name}`);
+                        Logger.log(`备选快捷键: ${shortcut.name}`);
                         
                         const event = new KeyboardEvent('keydown', {
                             key: shortcut.key,
@@ -851,10 +852,10 @@ export class FlashcardQuickSwitchManager {
                 });
             }, 600);
             
-            console.log('[FlashcardQuickSwitchManager] 重新打开闪卡面板的尝试已完成');
+            Logger.log('重新打开闪卡面板的尝试已完成');
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 重新打开闪卡面板失败:', error);
+            Logger.error('重新打开闪卡面板失败:', error);
         }
     }
 
@@ -864,14 +865,14 @@ export class FlashcardQuickSwitchManager {
     // @ts-ignore - deprecated method kept for reference
     private _ensureFilterSettingsApplied(filter: FlashcardFilter): void {
         try {
-            console.log(`[FlashcardQuickSwitchManager] 确保筛选设置正确应用: ${filter.name}`);
+            Logger.log(`确保筛选设置正确应用: ${filter.name}`);
             
             // 重新检测面板
             this.monitor.manualTriggerCheck();
             
             setTimeout(() => {
                 const panels = this.monitor.getCurrentPanels();
-                console.log(`[FlashcardQuickSwitchManager] 重新打开后检测到 ${panels.length} 个面板`);
+                Logger.log(`重新打开后检测到 ${panels.length} 个面板`);
                 
                 const activePanel = panels.find(p => p.filterButton);
                 
@@ -879,19 +880,19 @@ export class FlashcardQuickSwitchManager {
                     const currentId = activePanel.filterButton.getAttribute('data-id');
                     const currentType = activePanel.filterButton.getAttribute('data-cardtype');
                     
-                    console.log(`[FlashcardQuickSwitchManager] 当前筛选设置: ID="${currentId}", Type="${currentType}"`);
-                    console.log(`[FlashcardQuickSwitchManager] 期望筛选设置: ID="${filter.id}", Type="${filter.type}"`);
+                    Logger.log(`当前筛选设置: ID="${currentId}", Type="${currentType}"`);
+                    Logger.log(`期望筛选设置: ID="${filter.id}", Type="${filter.type}"`);
                     
                     // 如果设置不匹配，重新设置
                     if (currentId !== filter.id || currentType !== filter.type) {
-                        console.log('[FlashcardQuickSwitchManager] 筛选设置不匹配，重新应用设置');
+                        Logger.log('筛选设置不匹配，重新应用设置');
                         
                         // 更新筛选按钮属性
                         activePanel.filterButton.setAttribute('data-id', filter.id);
                         activePanel.filterButton.setAttribute('data-cardtype', filter.type);
                         
                         // 尝试触发筛选刷新 - 模拟用户点击筛选按钮
-                        console.log('[FlashcardQuickSwitchManager] 尝试触发筛选刷新');
+                        Logger.log('尝试触发筛选刷新');
                         
                         // 方法1: 触发筛选按钮的各种事件
                         const events = ['change', 'input', 'blur', 'focus'];
@@ -901,7 +902,7 @@ export class FlashcardQuickSwitchManager {
                         
                         // 方法2: 尝试重新调用思源的openCard来应用筛选
                         setTimeout(() => {
-                            console.log('[FlashcardQuickSwitchManager] 尝试使用Alt+0重新打开以应用筛选');
+                            Logger.log('尝试使用Alt+0重新打开以应用筛选');
                             
                             // 先关闭当前面板
                             const currentCloseBtn = activePanel.panel.querySelector('[data-type="close"]');
@@ -919,22 +920,22 @@ export class FlashcardQuickSwitchManager {
                                         cancelable: true
                                     });
                                     document.dispatchEvent(altZeroEvent);
-                                    console.log('[FlashcardQuickSwitchManager] 重新发送Alt+0以应用筛选');
+                                    Logger.log('重新发送Alt+0以应用筛选');
                                 }, 300);
                             }
                         }, 500);
                         
-                        console.log('[FlashcardQuickSwitchManager] 筛选设置重新应用完成');
+                        Logger.log('筛选设置重新应用完成');
                     } else {
-                        console.log('[FlashcardQuickSwitchManager] 筛选设置已正确应用，无需更改');
+                        Logger.log('筛选设置已正确应用，无需更改');
                     }
                 } else {
-                    console.warn('[FlashcardQuickSwitchManager] 重新打开后未找到闪卡面板');
+                    Logger.warn('重新打开后未找到闪卡面板');
                 }
             }, 500); // 给面板检测一些时间
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 确保筛选设置应用失败:', error);
+            Logger.error('确保筛选设置应用失败:', error);
         }
     }
 
@@ -943,7 +944,7 @@ export class FlashcardQuickSwitchManager {
      */
     private openFlashcardReview(): void {
         try {
-            console.log('[FlashcardQuickSwitchManager] 打开闪卡复习');
+            Logger.log('打开闪卡复习');
             
             // 使用正确的Alt+0快捷键（基于思源源码分析）
             const altZeroEvent = new KeyboardEvent('keydown', {
@@ -956,7 +957,7 @@ export class FlashcardQuickSwitchManager {
             });
             
             document.dispatchEvent(altZeroEvent);
-            console.log('[FlashcardQuickSwitchManager] Alt+0快捷键已发送，正在打开闪卡复习');
+            Logger.log('Alt+0快捷键已发送，正在打开闪卡复习');
             
             // 备选方案：如果Alt+0没有效果，才尝试菜单点击
             setTimeout(() => {
@@ -964,7 +965,7 @@ export class FlashcardQuickSwitchManager {
                 const hasPanel = document.querySelector('[data-key="dialog-opencard"], [data-key="dialog-viewcards"], .card__main');
                 
                 if (!hasPanel) {
-                    console.log('[FlashcardQuickSwitchManager] Alt+0未生效，尝试菜单点击');
+                    Logger.log('Alt+0未生效，尝试菜单点击');
                     
                     const menuItems = document.querySelectorAll('.b3-menu__item');
                     for (const menuItem of menuItems) {
@@ -976,7 +977,7 @@ export class FlashcardQuickSwitchManager {
                             text.includes('Space Repetition') ||
                             text.includes('复习')) {
                             
-                            console.log(`[FlashcardQuickSwitchManager] 找到间隔重复菜单: "${text}"`);
+                            Logger.log(`找到间隔重复菜单: "${text}"`);
                             menuItem.dispatchEvent(new MouseEvent('click', { 
                                 bubbles: true,
                                 cancelable: true,
@@ -986,12 +987,12 @@ export class FlashcardQuickSwitchManager {
                         }
                     }
                 } else {
-                    console.log('[FlashcardQuickSwitchManager] Alt+0成功，闪卡面板已打开');
+                    Logger.log('Alt+0成功，闪卡面板已打开');
                 }
             }, 500); // 增加延迟，确保Alt+0有足够时间生效
             
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 打开闪卡复习失败:', error);
+            Logger.error('打开闪卡复习失败:', error);
         }
     }
 
@@ -1065,7 +1066,7 @@ export class FlashcardQuickSwitchManager {
             if (!autoRefreshSuccess) {
                 const clickHandler = () => {
                     try {
-                        console.log('[FlashcardQuickSwitchManager] 用户点击通知，尝试手动刷新');
+                        Logger.log('用户点击通知，尝试手动刷新');
                         
                         // 尝试重新载闪卡面板
                         const panels = this.monitor.getCurrentPanels();
@@ -1075,7 +1076,7 @@ export class FlashcardQuickSwitchManager {
                             // 查找刷新按钮或重新打开面板
                             const closeBtn = activePanel.panel.querySelector('[data-type="close"]');
                             if (closeBtn) {
-                                console.log('[FlashcardQuickSwitchManager] 关闭当前面板');
+                                Logger.log('关闭当前面板');
                                 closeBtn.dispatchEvent(new MouseEvent('click'));
                                 
                                 // 延迟重新打开
@@ -1098,7 +1099,7 @@ export class FlashcardQuickSwitchManager {
                         }
                         
                     } catch (error) {
-                        console.error('[FlashcardQuickSwitchManager] 手动刷新失败:', error);
+                        Logger.error('手动刷新失败:', error);
                     }
                 };
                 
@@ -1143,7 +1144,7 @@ export class FlashcardQuickSwitchManager {
             }, 5000);
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 显示通知失败:', error);
+            Logger.error('显示通知失败:', error);
         }
     }
 
@@ -1162,11 +1163,12 @@ export class FlashcardQuickSwitchManager {
             // 更新UI
             this.uiManager.updateHistoryPanel();
             
-            console.log('[FlashcardQuickSwitchManager] 已重置为默认状态');
+            Logger.log('已重置为默认状态');
 
         } catch (error) {
-            console.error('[FlashcardQuickSwitchManager] 重置失败:', error);
+            Logger.error('重置失败:', error);
             throw error;
         }
     }
 }
+

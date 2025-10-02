@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 历史记录管理器 - 负责闪卡筛选历史的增删改查和智能管理
  */
@@ -21,12 +22,12 @@ export class HistoryManager {
      */
     async initialize(): Promise<void> {
         try {
-            console.log('[HistoryManager] 正在初始化...');
+            Logger.log('正在初始化...');
             this.data = await this.dataPersistence.loadData();
             this.isLoaded = true;
-            console.log(`[HistoryManager] 初始化完成，加载了 ${this.data.filters.length} 条历史记录`);
+            Logger.log(`初始化完成，加载了 ${this.data.filters.length} 条历史记录`);
         } catch (error) {
-            console.error('[HistoryManager] 初始化失败:', error);
+            Logger.error('初始化失败:', error);
             // 使用默认数据，确保功能可用
             this.data = {
                 version: '1.0.0',
@@ -47,7 +48,7 @@ export class HistoryManager {
         type: 'doc' | 'notebook';
     }): Promise<boolean> {
         if (!this.isLoaded) {
-            console.warn('[HistoryManager] 管理器未初始化');
+            Logger.warn('管理器未初始化');
             return false;
         }
 
@@ -61,13 +62,13 @@ export class HistoryManager {
                 existing.lastUsed = Date.now();
                 existing.name = filterInfo.name; // 更新可能变化的名称
                 
-                console.log(`[HistoryManager] 更新现有记录: ${filterInfo.name} (使用次数: ${existing.useCount})`);
+                Logger.log(`更新现有记录: ${filterInfo.name} (使用次数: ${existing.useCount})`);
             } else {
                 // 检查是否可以添加新记录
                 const pinnedCount = this.data.filters.filter(f => f.isPinned).length;
                 
                 if (pinnedCount >= this.data.maxCount) {
-                    console.log('[HistoryManager] 所有位置都被固定，无法添加新记录');
+                    Logger.log('所有位置都被固定，无法添加新记录');
                     return false;
                 }
 
@@ -88,7 +89,7 @@ export class HistoryManager {
                 };
 
                 this.data.filters.push(newFilter);
-                console.log(`[HistoryManager] 添加新记录: ${filterInfo.name}`);
+                Logger.log(`添加新记录: ${filterInfo.name}`);
             }
 
             this.sortFilters();
@@ -96,7 +97,7 @@ export class HistoryManager {
             return true;
 
         } catch (error) {
-            console.error('[HistoryManager] 添加筛选记录失败:', error);
+            Logger.error('添加筛选记录失败:', error);
             return false;
         }
     }
@@ -106,25 +107,25 @@ export class HistoryManager {
      */
     async removeFilter(filterId: string): Promise<boolean> {
         if (!this.isLoaded) {
-            console.warn('[HistoryManager] 管理器未初始化');
+            Logger.warn('管理器未初始化');
             return false;
         }
 
         try {
             const index = this.data.filters.findIndex(f => f.id === filterId);
             if (index === -1) {
-                console.warn(`[HistoryManager] 未找到要删除的记录: ${filterId}`);
+                Logger.warn(`未找到要删除的记录: ${filterId}`);
                 return false;
             }
 
             const removed = this.data.filters.splice(index, 1)[0];
-            console.log(`[HistoryManager] 删除记录: ${removed.name}`);
+            Logger.log(`删除记录: ${removed.name}`);
             
             await this.saveDataDebounced();
             return true;
 
         } catch (error) {
-            console.error('[HistoryManager] 删除筛选记录失败:', error);
+            Logger.error('删除筛选记录失败:', error);
             return false;
         }
     }
@@ -134,27 +135,27 @@ export class HistoryManager {
      */
     async togglePin(filterId: string): Promise<boolean> {
         if (!this.isLoaded) {
-            console.warn('[HistoryManager] 管理器未初始化');
+            Logger.warn('管理器未初始化');
             return false;
         }
 
         try {
             const filter = this.data.filters.find(f => f.id === filterId);
             if (!filter) {
-                console.warn(`[HistoryManager] 未找到要固定的记录: ${filterId}`);
+                Logger.warn(`未找到要固定的记录: ${filterId}`);
                 return false;
             }
 
             filter.isPinned = !filter.isPinned;
             const action = filter.isPinned ? '固定' : '取消固定';
-            console.log(`[HistoryManager] ${action}记录: ${filter.name}`);
+            Logger.log(`${action}记录: ${filter.name}`);
             
             this.sortFilters();
             await this.saveDataDebounced();
             return true;
 
         } catch (error) {
-            console.error('[HistoryManager] 切换固定状态失败:', error);
+            Logger.error('切换固定状态失败:', error);
             return false;
         }
     }
@@ -241,16 +242,16 @@ export class HistoryManager {
         try {
             if (keepPinned) {
                 this.data.filters = this.data.filters.filter(f => f.isPinned);
-                console.log('[HistoryManager] 清空历史记录（保留固定项）');
+                Logger.log('清空历史记录（保留固定项）');
             } else {
                 this.data.filters = [];
-                console.log('[HistoryManager] 清空所有历史记录');
+                Logger.log('清空所有历史记录');
             }
 
             await this.saveDataDebounced();
 
         } catch (error) {
-            console.error('[HistoryManager] 清空历史记录失败:', error);
+            Logger.error('清空历史记录失败:', error);
         }
     }
 
@@ -267,10 +268,10 @@ export class HistoryManager {
 
             // 清理数据文件
             await this.dataPersistence.cleanupData();
-            console.log('[HistoryManager] 清理完成');
+            Logger.log('清理完成');
 
         } catch (error) {
-            console.error('[HistoryManager] 清理失败:', error);
+            Logger.error('清理失败:', error);
         }
     }
 
@@ -338,7 +339,7 @@ export class HistoryManager {
         const index = this.data.filters.indexOf(oldest);
         if (index !== -1) {
             this.data.filters.splice(index, 1);
-            console.log(`[HistoryManager] 移除最旧记录: ${oldest.name} (使用次数: ${oldest.useCount})`);
+            Logger.log(`移除最旧记录: ${oldest.name} (使用次数: ${oldest.useCount})`);
         }
     }
 
@@ -355,7 +356,7 @@ export class HistoryManager {
                 await this.dataPersistence.saveData(this.data);
                 this.saveTimeout = null;
             } catch (error) {
-                console.error('[HistoryManager] 保存数据失败:', error);
+                Logger.error('保存数据失败:', error);
             }
         }, 1000); // 1秒延时
     }
@@ -372,7 +373,7 @@ export class HistoryManager {
         try {
             await this.dataPersistence.saveData(this.data);
         } catch (error) {
-            console.error('[HistoryManager] 立即保存失败:', error);
+            Logger.error('立即保存失败:', error);
             throw error;
         }
     }
@@ -389,9 +390,9 @@ export class HistoryManager {
 
         try {
             await this.saveImmediate();
-            console.log('[HistoryManager] 重置为默认配置');
+            Logger.log('重置为默认配置');
         } catch (error) {
-            console.error('[HistoryManager] 重置失败:', error);
+            Logger.error('重置失败:', error);
             throw error;
         }
     }
@@ -415,6 +416,7 @@ export class HistoryManager {
         }
 
         await this.saveDataDebounced();
-        console.log(`[HistoryManager] 最大记录数量设置为: ${maxCount}`);
+        Logger.log(`最大记录数量设置为: ${maxCount}`);
     }
 }
+

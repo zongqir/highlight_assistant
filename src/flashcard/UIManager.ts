@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 界面管理器 - 负责闪卡快切的UI组件创建和交互
  */
@@ -55,12 +56,12 @@ export class UIManager {
         for (const selector of flashcardSelectors) {
             const panels = document.querySelectorAll(selector);
             if (panels.length > 0) {
-                console.log(`[UIManager] 发现闪卡面板: ${selector} (${panels.length}个)`);
+                Logger.log(`发现闪卡面板: ${selector} (${panels.length}个)`);
                 return true;
             }
         }
 
-        console.log('[UIManager] 未发现活动的闪卡面板');
+        Logger.log('未发现活动的闪卡面板');
         return false;
     }
 
@@ -88,10 +89,10 @@ export class UIManager {
             this.currentFlashcardPanel = flashcardPanel;
             this.createFloatingBall();
             this.state.ballVisible = true;
-            console.log('[UIManager] 显示快切小圆球');
+            Logger.log('显示快切小圆球');
 
         } catch (error) {
-            console.error('[UIManager] 显示快切小圆球失败:', error);
+            Logger.error('显示快切小圆球失败:', error);
         }
     }
 
@@ -111,10 +112,10 @@ export class UIManager {
 
             this.currentFlashcardPanel = null;
             this.state.ballVisible = false;
-            console.log('[UIManager] 隐藏快切小圆球');
+            Logger.log('隐藏快切小圆球');
 
         } catch (error) {
-            console.error('[UIManager] 隐藏快切小圆球失败:', error);
+            Logger.error('隐藏快切小圆球失败:', error);
         }
     }
 
@@ -127,10 +128,10 @@ export class UIManager {
         try {
             this.createHistoryPanel();
             this.state.panelVisible = true;
-            console.log('[UIManager] 显示历史面板');
+            Logger.log('显示历史面板');
 
         } catch (error) {
-            console.error('[UIManager] 显示历史面板失败:', error);
+            Logger.error('显示历史面板失败:', error);
         }
     }
 
@@ -147,10 +148,10 @@ export class UIManager {
             }
 
             this.state.panelVisible = false;
-            console.log('[UIManager] 隐藏历史面板');
+            Logger.log('隐藏历史面板');
 
         } catch (error) {
-            console.error('[UIManager] 隐藏历史面板失败:', error);
+            Logger.error('隐藏历史面板失败:', error);
         }
     }
 
@@ -173,7 +174,7 @@ export class UIManager {
             }
 
         } catch (error) {
-            console.error('[UIManager] 更新历史面板失败:', error);
+            Logger.error('更新历史面板失败:', error);
         }
     }
 
@@ -203,7 +204,7 @@ export class UIManager {
     destroy(): void {
         this.hideQuickSwitchBall();
         this.removeEventListeners();
-        console.log('[UIManager] UI管理器已销毁');
+        Logger.log('UI管理器已销毁');
     }
 
     /**
@@ -265,13 +266,13 @@ export class UIManager {
                 
                 if (!hasFlashcardPanel) {
                     // 没有闪卡面板 → 打开闪卡复习
-                    console.log('[UIManager] 未检测到闪卡面板，自动打开闪卡复习');
+                    Logger.log('未检测到闪卡面板，自动打开闪卡复习');
                     if (this.onOpenFlashcard) {
                         this.onOpenFlashcard();
                     }
                 } else {
                     // 有闪卡面板 → 显示/隐藏快切面板
-                    console.log('[UIManager] 检测到闪卡面板，切换快切面板显示');
+                    Logger.log('检测到闪卡面板，切换快切面板显示');
                     if (this.state.panelVisible) {
                         this.hideHistoryPanel();
                     } else {
@@ -725,7 +726,7 @@ export class UIManager {
     private async handleFilterSwitch(filterId: string): Promise<void> {
         const filter = this.historyManager.getFilter(filterId);
         if (!filter) {
-            console.warn(`[UIManager] 未找到筛选记录: ${filterId}`);
+            Logger.warn(`未找到筛选记录: ${filterId}`);
             return;
         }
 
@@ -741,10 +742,10 @@ export class UIManager {
             // 隐藏面板
             this.hideHistoryPanel();
 
-            console.log(`[UIManager] 切换到筛选: ${filter.name}`);
+            Logger.log(`切换到筛选: ${filter.name}`);
 
         } catch (error) {
-            console.error(`[UIManager] 切换筛选失败:`, error);
+            Logger.error(`切换筛选失败:`, error);
         }
     }
 
@@ -758,7 +759,7 @@ export class UIManager {
                 this.updateHistoryPanel();
             }
         } catch (error) {
-            console.error(`[UIManager] 切换固定状态失败:`, error);
+            Logger.error(`切换固定状态失败:`, error);
         }
     }
 
@@ -779,7 +780,7 @@ export class UIManager {
                 this.updateHistoryPanel();
             }
         } catch (error) {
-            console.error(`[UIManager] 删除筛选记录失败:`, error);
+            Logger.error(`删除筛选记录失败:`, error);
         }
     }
 
@@ -846,3 +847,4 @@ export class UIManager {
         this.eventListeners = [];
     }
 }
+

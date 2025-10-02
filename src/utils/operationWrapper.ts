@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 操作包装器 - 统一的解锁-操作-加锁抽象
  * 所有文本写入操作都必须通过这个包装器执行
@@ -25,7 +26,7 @@ export class OperationWrapper {
         // 延迟设置初始化完成标记，避免启动时意外加锁
         setTimeout(() => {
             this.isInitialized = true;
-            console.log('[OperationWrapper] ✅ 操作包装器初始化完成，现在允许执行加锁操作');
+            Logger.log('✅ 操作包装器初始化完成，现在允许执行加锁操作');
         }, 3000);
     }
     
@@ -40,11 +41,11 @@ export class OperationWrapper {
         operationName: string, 
         operation: () => Promise<T>
     ): Promise<T | null> {
-        console.log(`[OperationWrapper] 🚀 开始执行写入操作: ${operationName}`);
+        Logger.log(`🚀 开始执行写入操作: ${operationName}`);
         
         // 🛡️ 兜底防御：检查文档是否处于可编辑状态，如果是则拒绝操作
         if (this.isDocumentEditable()) {
-            console.error(`[OperationWrapper] 🛡️ 兜底防御触发：文档处于可编辑状态，拒绝执行 ${operationName} 操作`);
+            Logger.error(`🛡️ 兜底防御触发：文档处于可编辑状态，拒绝执行 ${operationName} 操作`);
             throw new Error(`文档未锁定，禁止执行 ${operationName} 操作`);
         }
         
@@ -54,12 +55,12 @@ export class OperationWrapper {
         let result: T | null = null;
         try {
             // 步骤2: ⚡ 执行操作
-            console.log(`[OperationWrapper] ⚡ 执行${operationName}操作...`);
+            Logger.log(`⚡ 执行${operationName}操作...`);
             result = await operation();
-            console.log(`[OperationWrapper] ✅ ${operationName}操作完成`);
+            Logger.log(`✅ ${operationName}操作完成`);
             
         } catch (error) {
-            console.error(`[OperationWrapper] ❌ ${operationName}操作失败:`, error);
+            Logger.error(`❌ ${operationName}操作失败:`, error);
             throw error;
             
         } finally {
@@ -76,25 +77,25 @@ export class OperationWrapper {
      * 🔓 强制解锁（无条件解锁）
      */
     private async forceUnlock(operationName: string): Promise<boolean> {
-        console.log(`[OperationWrapper] 🔓 [${operationName}] 开始强制解锁...`);
+        Logger.log(`🔓 [${operationName}] 开始强制解锁...`);
         
         const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
         
         if (readonlyBtn) {
             const beforeLabel = readonlyBtn.getAttribute('aria-label');
-            console.log(`[OperationWrapper] 🔓 [${operationName}] 解锁前状态: ${beforeLabel}`);
+            Logger.log(`🔓 [${operationName}] 解锁前状态: ${beforeLabel}`);
             
             // 无脑点击解锁
             readonlyBtn.click();
             await new Promise(resolve => setTimeout(resolve, 150)); // 等待解锁完成
             
             const afterLabel = readonlyBtn.getAttribute('aria-label');
-            console.log(`[OperationWrapper] 🔓 [${operationName}] 解锁后状态: ${afterLabel}`);
-            console.log(`[OperationWrapper] ✅ [${operationName}] 强制解锁完成`);
+            Logger.log(`🔓 [${operationName}] 解锁后状态: ${afterLabel}`);
+            Logger.log(`✅ [${operationName}] 强制解锁完成`);
             
             return true;
         } else {
-            console.log(`[OperationWrapper] ❌ [${operationName}] 未找到锁按钮`);
+            Logger.log(`❌ [${operationName}] 未找到锁按钮`);
             return false;
         }
     }
@@ -105,11 +106,11 @@ export class OperationWrapper {
     private async forceLock(operationName: string): Promise<void> {
         // 安全检查：只有初始化完成才加锁
         if (!this.isInitialized) {
-            console.log(`[OperationWrapper] ⚠️ [${operationName}] 尚未初始化，跳过加锁`);
+            Logger.log(`⚠️ [${operationName}] 尚未初始化，跳过加锁`);
             return;
         }
         
-        console.log(`[OperationWrapper] 🔒 [${operationName}] 开始强制加锁...`);
+        Logger.log(`🔒 [${operationName}] 开始强制加锁...`);
         
         let attempts = 0;
         const maxAttempts = 3;
@@ -121,7 +122,7 @@ export class OperationWrapper {
             
             if (readonlyBtn) {
                 const currentLabel = readonlyBtn.getAttribute('aria-label');
-                console.log(`[OperationWrapper] 🔒 [${operationName}] 第${attempts}次加锁尝试，当前状态: ${currentLabel}`);
+                Logger.log(`🔒 [${operationName}] 第${attempts}次加锁尝试，当前状态: ${currentLabel}`);
                 
                 // 无脑点击锁按钮
                 readonlyBtn.click();
@@ -129,23 +130,23 @@ export class OperationWrapper {
                 // 检查是否成功
                 setTimeout(() => {
                     const newLabel = readonlyBtn.getAttribute('aria-label');
-                    console.log(`[OperationWrapper] 🔒 [${operationName}] 第${attempts}次加锁后状态: ${newLabel}`);
+                    Logger.log(`🔒 [${operationName}] 第${attempts}次加锁后状态: ${newLabel}`);
                     
                     // 检查是否已经锁定
                     const isLocked = newLabel && (newLabel.includes('临时解锁') || newLabel.includes('解除锁定'));
                     
                     if (!isLocked && attempts < maxAttempts) {
-                        console.log(`[OperationWrapper] 🔒 [${operationName}] 加锁未成功，300ms后重试`);
+                        Logger.log(`🔒 [${operationName}] 加锁未成功，300ms后重试`);
                         setTimeout(tryToLock, 300);
                     } else if (isLocked) {
-                        console.log(`[OperationWrapper] ✅ [${operationName}] 强制加锁成功！`);
+                        Logger.log(`✅ [${operationName}] 强制加锁成功！`);
                     } else {
-                        console.log(`[OperationWrapper] ⚠️ [${operationName}] 达到最大尝试次数，放弃加锁`);
+                        Logger.log(`⚠️ [${operationName}] 达到最大尝试次数，放弃加锁`);
                     }
                 }, 200);
                 
             } else {
-                console.log(`[OperationWrapper] ❌ [${operationName}] 未找到锁按钮`);
+                Logger.log(`❌ [${operationName}] 未找到锁按钮`);
             }
         };
         
@@ -165,7 +166,7 @@ export class OperationWrapper {
             const readonlyBtn = this.getCurrentActiveReadonlyButton();
             
             if (!readonlyBtn) {
-                console.warn('[OperationWrapper] 🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
+                Logger.warn('🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
                 return true; // 找不到锁按钮时保守处理，认为可编辑
             }
             
@@ -176,7 +177,7 @@ export class OperationWrapper {
             const isReadonly = iconHref !== '#iconUnlock';
             const isEditable = !isReadonly;
             
-            console.log(`[OperationWrapper] 🛡️ 兜底防御检查（当前活跃文档）:`, {
+            Logger.log(`🛡️ 兜底防御检查（当前活跃文档）:`, {
                 '图标href': iconHref,
                 '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
                 '是否可编辑': isEditable ? '🔓 是（可编辑）' : '🔒 否（只读）'
@@ -185,7 +186,7 @@ export class OperationWrapper {
             return isEditable;
             
         } catch (error) {
-            console.error('[OperationWrapper] 🛡️ 兜底防御检查失败:', error);
+            Logger.error('🛡️ 兜底防御检查失败:', error);
             return true; // 出错时保守处理，认为可编辑
         }
     }
@@ -202,7 +203,7 @@ export class OperationWrapper {
                 if (protyleContainer) {
                     const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                     if (readonlyBtn) {
-                        console.log('[OperationWrapper] ✅ 通过焦点元素找到当前文档锁按钮');
+                        Logger.log('✅ 通过焦点元素找到当前文档锁按钮');
                         return readonlyBtn;
                     }
                 }
@@ -213,7 +214,7 @@ export class OperationWrapper {
             if (activeWnd) {
                 const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
-                    console.log('[OperationWrapper] ✅ 通过活跃窗口找到当前文档锁按钮');
+                    Logger.log('✅ 通过活跃窗口找到当前文档锁按钮');
                     return readonlyBtn;
                 }
             }
@@ -221,14 +222,14 @@ export class OperationWrapper {
             // 方法3: 兜底方案 - 全局查找（可能不准确）
             const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
             if (readonlyBtn) {
-                console.warn('[OperationWrapper] ⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
+                Logger.warn('⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
                 return readonlyBtn;
             }
             
             return null;
             
         } catch (error) {
-            console.error('[OperationWrapper] ❌ 获取当前活跃文档锁按钮失败:', error);
+            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
             return null;
         }
     }
@@ -236,3 +237,5 @@ export class OperationWrapper {
 
 // 导出单例实例
 export const operationWrapper = OperationWrapper.getInstance();
+
+

@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 标签搜索结果渲染器 - 分组展示
  */
@@ -34,7 +35,7 @@ export class TagResultRenderer {
             return a.docName.localeCompare(b.docName);
         });
         
-        console.log('[TagResultRenderer] 📄 扁平显示文档:', sortedDocs.map(d => d.docName));
+        Logger.log('📄 扁平显示文档:', sortedDocs.map(d => d.docName));
         
         // 简单渲染，不考虑层级
         sortedDocs.forEach(docGroup => {
@@ -343,3 +344,4 @@ export class TagResultRenderer {
         return selector;
     }
 }
+

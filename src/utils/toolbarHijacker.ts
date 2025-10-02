@@ -1,8 +1,9 @@
-/**
+﻿/**
  * 思源工具栏劫持器 - 专门劫持手机版只读模式下的划线弹窗
  * 在原有复制弹窗基础上添加高亮功能
  */
 
+import Logger from './logger';
 import { getAllEditor, getActiveTab } from "siyuan";
 import type { HighlightColor } from '../types/highlight';
 import { isSystemReadOnly, debugEnvironmentInfo, isDocumentReadOnlyFromRange } from './readonlyChecker';
@@ -37,23 +38,23 @@ export class ToolbarHijacker {
         this.isMobile = isMobile;
         this.isDesktop = isDesktop;
         
-        console.log('[ToolbarHijacker] 📦 正在初始化管理器...');
+        Logger.log('📦 正在初始化管理器...');
         
         // 初始化备注管理器
         this.memoManager = new MemoManager();
-        console.log('[ToolbarHijacker] ✅ MemoManager 已创建');
+        Logger.log('✅ MemoManager 已创建');
         
         // 初始化高亮点击管理器
         this.highlightClickManager = new HighlightClickManager();
-        console.log('[ToolbarHijacker] ✅ HighlightClickManager 已创建');
+        Logger.log('✅ HighlightClickManager 已创建');
         
         // 初始化标签管理器
         this.tagManager = new TagManager();
-        console.log('[ToolbarHijacker] ✅ TagManager 已创建');
+        Logger.log('✅ TagManager 已创建');
         
         // 初始化标签点击管理器
         this.tagClickManager = new TagClickManager();
-        console.log('[ToolbarHijacker] ✅ TagClickManager 已创建');
+        Logger.log('✅ TagClickManager 已创建');
         
         // 初始化闪卡快切管理器
         this.flashcardQuickSwitchManager = new FlashcardQuickSwitchManager({
@@ -64,11 +65,11 @@ export class ToolbarHijacker {
             showUsageCount: true,
             enableDrag: true
         });
-        console.log('[ToolbarHijacker] ✅ FlashcardQuickSwitchManager 已创建');
+        Logger.log('✅ FlashcardQuickSwitchManager 已创建');
         
         // 在手机版和电脑版环境下都拦截原生备注弹窗，并启动高亮点击、标签功能
         if (this.isMobile || this.isDesktop) {
-            console.log('[ToolbarHijacker] 🚀 开始初始化管理器（环境检查通过）...');
+            Logger.log('🚀 开始初始化管理器（环境检查通过）...');
             this.memoManager.initialize();
             this.highlightClickManager.initialize();
             this.tagManager.initialize();
@@ -76,12 +77,12 @@ export class ToolbarHijacker {
             
             // 初始化闪卡快切管理器（异步）
             this.flashcardQuickSwitchManager.initialize().then(() => {
-                console.log('[ToolbarHijacker] ✅ FlashcardQuickSwitchManager 初始化完成');
+                Logger.log('✅ FlashcardQuickSwitchManager 初始化完成');
             }).catch((error) => {
-                console.error('[ToolbarHijacker] ❌ FlashcardQuickSwitchManager 初始化失败:', error);
+                Logger.error('❌ FlashcardQuickSwitchManager 初始化失败:', error);
             });
         } else {
-            console.warn('[ToolbarHijacker] ⚠️ 不是手机版或桌面版，跳过管理器初始化');
+            Logger.warn('⚠️ 不是手机版或桌面版，跳过管理器初始化');
         }
         
         // 初始化按钮工厂
@@ -131,21 +132,21 @@ export class ToolbarHijacker {
             return;
         }
         
-        console.log('\n[ToolbarHijacker] 🚀 ========== 启动工具栏劫持 ==========');
-        console.log('[ToolbarHijacker] 环境:', {
+        Logger.log('\n🚀 ========== 启动工具栏劫持 ==========');
+        Logger.log('环境:', {
             isMobile: this.isMobile,
             isDesktop: this.isDesktop
         });
         
         // 检查系统只读模式
-        console.log('[ToolbarHijacker] 🔐 检查系统只读状态...');
+        Logger.log('🔐 检查系统只读状态...');
         const readOnly = await isSystemReadOnly();
-        console.log(`[ToolbarHijacker] 系统状态: ${readOnly ? '🔒 只读模式（这是正常状态）' : '✏️ 可写模式'}`);
+        Logger.log(`系统状态: ${readOnly ? '🔒 只读模式（这是正常状态）' : '✏️ 可写模式'}`);
         
         // 打印环境信息
         await debugEnvironmentInfo();
         
-        console.log('[ToolbarHijacker] 📝 准备劫持工具栏...');
+        Logger.log('📝 准备劫持工具栏...');
         
         // 延迟执行，确保编辑器已加载
         setTimeout(() => {
@@ -167,7 +168,7 @@ export class ToolbarHijacker {
         // 🔑 延迟设置初始化完成标记，避免启动时意外触发加锁
         setTimeout(() => {
             this.isInitialized = true;
-            console.log('[ToolbarHijacker] ✅ 插件初始化完成，现在允许执行加锁操作');
+            Logger.log('✅ 插件初始化完成，现在允许执行加锁操作');
         }, 3000); // 给足够的时间让插件完全初始化
     }
     
@@ -223,11 +224,11 @@ export class ToolbarHijacker {
                     // 劫持 showContent 方法
                     const hijacker = this;
                     editor.protyle.toolbar.showContent = function(protyle: any, range: Range, nodeElement: Element) {
-                        console.log('\n[ToolbarHijacker] 🎯 ========== 工具栏 showContent 被触发 ==========');
-                        console.log('[ToolbarHijacker] 选中文本:', range?.toString()?.substring(0, 50));
+                        Logger.log('\n🎯 ========== 工具栏 showContent 被触发 ==========');
+                        Logger.log('选中文本:', range?.toString()?.substring(0, 50));
                         
                         // 先调用原始方法显示基础工具栏
-                        console.log('[ToolbarHijacker] 📋 调用原始 showContent...');
+                        Logger.log('📋 调用原始 showContent...');
                         hijacker.originalShowContent.call(this, protyle, range, nodeElement);
                         
                         // 延迟一点再增强，确保原始工具栏已显示
@@ -235,15 +236,15 @@ export class ToolbarHijacker {
                             if ((hijacker.isMobile || hijacker.isDesktop) && range && range.toString().trim()) {
                                 // 检查是否跨块选择
                                 if (hijacker.isCrossBlockSelection(range)) {
-                                    console.log('[ToolbarHijacker] ⚠️ 跨块选择，不增强工具栏');
+                                    Logger.log('⚠️ 跨块选择，不增强工具栏');
                                     return; // 跨块选择时不增强工具栏
                                 }
-                                console.log('[ToolbarHijacker] ✨ 准备增强工具栏...');
+                                Logger.log('✨ 准备增强工具栏...');
                                 hijacker.enhanceToolbar(this, range, nodeElement, protyle);
                             } else {
-                                console.log('[ToolbarHijacker] ⚠️ 不满足增强条件，跳过');
+                                Logger.log('⚠️ 不满足增强条件，跳过');
                             }
-                            console.log('[ToolbarHijacker] ========== showContent 流程结束 ==========\n');
+                            Logger.log('========== showContent 流程结束 ==========\n');
                         }, 50);
                     };
                     
@@ -253,7 +254,7 @@ export class ToolbarHijacker {
             
             if (hijackSuccess) {
                 this.isHijacked = true;
-                console.log(`✅ ${this.isMobile ? '📱 手机版' : '💻 电脑版'}高亮功能已激活`);
+                Logger.log(`✅ ${this.isMobile ? '📱 手机版' : '💻 电脑版'}高亮功能已激活`);
             } else {
                 setTimeout(() => this.performHijack(), 3000);
             }
@@ -274,31 +275,31 @@ export class ToolbarHijacker {
 
         // 检查是否在代码块中
         if (this.isInCodeBlock(range)) {
-            console.log('[ToolbarHijacker] 在代码块中，不显示工具栏');
+            Logger.log('在代码块中，不显示工具栏');
             return false;
         }
 
         // 检查是否在表格中
         if (this.isInTable(range)) {
-            console.log('[ToolbarHijacker] 在表格中，不显示工具栏');
+            Logger.log('在表格中，不显示工具栏');
             return false;
         }
 
         // 检查是否在数学公式中
         if (this.isInMathFormula(range)) {
-            console.log('[ToolbarHijacker] 在数学公式中，不显示工具栏');
+            Logger.log('在数学公式中，不显示工具栏');
             return false;
         }
 
         // 检查是否在链接中
         if (this.isInLink(range)) {
-            console.log('[ToolbarHijacker] 在链接中，不显示工具栏');
+            Logger.log('在链接中，不显示工具栏');
             return false;
         }
 
         // 检查是否在特殊格式中（粗体、斜体、删除线等）
         if (this.isInSpecialFormat(range)) {
-            console.log('[ToolbarHijacker] 在特殊格式中，不显示工具栏');
+            Logger.log('在特殊格式中，不显示工具栏');
             return false;
         }
 
@@ -412,7 +413,7 @@ export class ToolbarHijacker {
             const fragment = range.cloneContents();
             const linkElements = fragment.querySelectorAll('a, [data-type*="a"]');
             if (linkElements.length > 0) {
-                console.log('[ToolbarHijacker] 选中范围内包含链接元素:', linkElements.length);
+                Logger.log('选中范围内包含链接元素:', linkElements.length);
                 return true;
             }
 
@@ -430,7 +431,7 @@ export class ToolbarHijacker {
                     const dataType = el.getAttribute('data-type');
                     
                     if (tagName === 'a' || dataType === 'a' || (dataType && dataType.includes('a'))) {
-                        console.log('[ToolbarHijacker] 在链接元素中:', { tagName, dataType });
+                        Logger.log('在链接元素中:', { tagName, dataType });
                         return true;
                     }
                 }
@@ -438,7 +439,7 @@ export class ToolbarHijacker {
             }
             return false;
         } catch (error) {
-            console.error('[ToolbarHijacker] 检查链接时出错:', error);
+            Logger.error('检查链接时出错:', error);
             return false;
         }
     }
@@ -481,7 +482,7 @@ export class ToolbarHijacker {
      */
     private enhanceToolbar(toolbar: any, range: Range, nodeElement: Element, protyle: any): void {
         try {
-            console.log('\n[ToolbarHijacker] 🚀 ========== 准备增强高亮工具栏（这是你说的弹窗！）==========');
+            Logger.log('\n🚀 ========== 准备增强高亮工具栏（这是你说的弹窗！）==========');
             
             // 🔍 实时检查只读状态 - 根据当前选区找到对应的面包屑锁按钮
             let isDocReadonly = false;
@@ -503,7 +504,7 @@ export class ToolbarHijacker {
                 
                 isDocReadonly = isLocked;
                 
-                console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（宽松检查）:', {
+                Logger.log('🔐 面包屑锁按钮状态（宽松检查）:', {
                     '找到按钮': !!readonlyBtn,
                     'aria-label': ariaLabel,
                     'data-subtype': dataSubtype,
@@ -513,12 +514,12 @@ export class ToolbarHijacker {
                     '按钮来源': '当前选区对应的protyle容器'
                 });
             } else {
-                console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮！');
+                Logger.warn('⚠️ 未找到面包屑锁按钮！');
             }
             
             // 作为参考，也检查 protyle.disabled 和 DOM 属性
             const isProtyleDisabled = protyle?.disabled === true;
-            console.log('[ToolbarHijacker] 📋 其他状态（参考）:', {
+            Logger.log('📋 其他状态（参考）:', {
                 'protyle.disabled': isProtyleDisabled ? '🔒 禁用' : '✏️ 启用'
             });
             
@@ -535,7 +536,7 @@ export class ToolbarHijacker {
             }
             
             if (wysiwyg) {
-                console.log('[ToolbarHijacker] 📋 DOM 属性（参考）:', {
+                Logger.log('📋 DOM 属性（参考）:', {
                     'custom-sy-readonly': wysiwyg.getAttribute('custom-sy-readonly'),
                     'data-readonly': wysiwyg.getAttribute('data-readonly'),
                     'contenteditable': wysiwyg.getAttribute('contenteditable')
@@ -543,7 +544,7 @@ export class ToolbarHijacker {
             }
             
             // 打印所有参数和条件
-            console.log('[ToolbarHijacker] 📊 工具栏增强条件检查:', {
+            Logger.log('📊 工具栏增强条件检查:', {
                 '有toolbar': !!toolbar,
                 '有range': !!range,
                 '有nodeElement': !!nodeElement,
@@ -557,25 +558,25 @@ export class ToolbarHijacker {
             
             // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
             if (!isDocReadonly) {
-                console.log('[ToolbarHijacker] ⛔ 文档未加锁（可编辑状态），不显示高亮工具栏');
-                console.log('[ToolbarHijacker] ========== 工具栏增强结束（文档未加锁）==========\n');
+                Logger.log('⛔ 文档未加锁（可编辑状态），不显示高亮工具栏');
+                Logger.log('========== 工具栏增强结束（文档未加锁）==========\n');
                 return;
             }
             
-            console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示高亮工具栏');
+            Logger.log('✅ 文档已加锁（只读状态），允许显示高亮工具栏');
             
             // 检查是否应该显示工具栏
             const shouldShow = this.shouldShowToolbar(range);
-            console.log(`[ToolbarHijacker] shouldShowToolbar 返回: ${shouldShow ? '✅ 应该显示' : '❌ 不应该显示'}`);
+            Logger.log(`shouldShowToolbar 返回: ${shouldShow ? '✅ 应该显示' : '❌ 不应该显示'}`);
             
             if (!shouldShow) {
-                console.log('[ToolbarHijacker] ❌ 不满足显示条件，隐藏工具栏');
+                Logger.log('❌ 不满足显示条件，隐藏工具栏');
                 this.hideToolbar(toolbar);
-                console.log('[ToolbarHijacker] ========== 工具栏增强结束（隐藏）==========\n');
+                Logger.log('========== 工具栏增强结束（隐藏）==========\n');
                 return;
             }
             
-            console.log('[ToolbarHijacker] ✅ 满足显示条件，继续增强工具栏...');
+            Logger.log('✅ 满足显示条件，继续增强工具栏...');
             
             const subElement = toolbar.subElement;
             if (!subElement) return;
@@ -597,22 +598,22 @@ export class ToolbarHijacker {
             this.cleanupPreviousButtons(flexContainer);
             
             // 添加高亮按钮组
-            console.log('[ToolbarHijacker] 🎨 添加高亮按钮组...');
+            Logger.log('🎨 添加高亮按钮组...');
             this.addHighlightButtons(flexContainer, range, nodeElement, protyle, toolbar);
             
             // 添加按钮后调整工具栏位置，确保完整显示
-            console.log('[ToolbarHijacker] 📐 调整工具栏位置...');
+            Logger.log('📐 调整工具栏位置...');
             this.adjustToolbarPosition(toolbar, range);
             
             // 添加自动隐藏机制
-            console.log('[ToolbarHijacker] 👁️ 设置自动隐藏机制...');
+            Logger.log('👁️ 设置自动隐藏机制...');
             this.setupAutoHide(toolbar);
             
-            console.log('[ToolbarHijacker] ✅ ========== 高亮工具栏增强成功！==========\n');
+            Logger.log('✅ ========== 高亮工具栏增强成功！==========\n');
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 工具栏增强失败:', error);
-            console.log('[ToolbarHijacker] ========== 工具栏增强结束（失败）==========\n');
+            Logger.error('❌ 工具栏增强失败:', error);
+            Logger.log('========== 工具栏增强结束（失败）==========\n');
         }
     }
     
@@ -637,20 +638,20 @@ export class ToolbarHijacker {
         try {
             const selectedText = range.toString().trim();
             if (!selectedText) {
-                console.warn('请先选择要添加备注的文本');
+                Logger.warn('请先选择要添加备注的文本');
                 return;
             }
 
             // 找到真正的块元素
             const blockElement = this.findBlockElement(range.startContainer);
             if (!blockElement) {
-                console.warn('未找到目标块元素');
+                Logger.warn('未找到目标块元素');
                 return;
             }
 
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                console.warn('未找到块ID');
+                Logger.warn('未找到块ID');
                 return;
             }
 
@@ -684,11 +685,11 @@ export class ToolbarHijacker {
             const updateResult = await updateBlock("markdown", newContent, blockId);
 
             if (updateResult) {
-                console.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
+                Logger.log(`✅ 备注添加成功：${memoText.substring(0, 20)}${memoText.length > 20 ? '...' : ''}`);
                 // 恢复只读状态
                 setTimeout(() => this.restoreReadOnlyState(blockId), 100);
             } else {
-                console.error('❌ 备注添加失败');
+                Logger.error('❌ 备注添加失败');
                 this.restoreOriginalHTML(blockId, oldContent);
             }
 
@@ -696,7 +697,7 @@ export class ToolbarHijacker {
             this.clearSelection();
 
         } catch (error) {
-            console.error('添加备注出错:', error);
+            Logger.error('添加备注出错:', error);
             // 静默处理错误
         }
     }
@@ -844,7 +845,7 @@ export class ToolbarHijacker {
      */
     private async applyHighlight(protyle: any, range: Range, nodeElement: Element, colorConfig: {name: string, color: string}): Promise<void> {
         try {
-            console.log('\n[ToolbarHijacker] 🎨 ========== 应用高亮操作 ==========');
+            Logger.log('\n🎨 ========== 应用高亮操作 ==========');
             
             // 🔍 实时检查文档只读状态 - 从 range 参数查找
             let wysiwyg: HTMLElement | null = null;
@@ -869,34 +870,34 @@ export class ToolbarHijacker {
             if (wysiwyg) {
                 const customReadonly = wysiwyg.getAttribute('custom-sy-readonly');
                 const isDocReadonly = customReadonly === 'true';
-                console.log('[ToolbarHijacker] 📋 当前文档只读状态 (实时检查):', {
+                Logger.log('📋 当前文档只读状态 (实时检查):', {
                     'custom-sy-readonly': customReadonly,
                     '是否只读': isDocReadonly ? '是🔒（锁已锁定）' : '否✏️（锁已解锁）',
                     '操作': '即将应用高亮'
                 });
                 
                 if (isDocReadonly) {
-                    console.log('[ToolbarHijacker] 🔒 文档处于只读模式，继续执行高亮操作');
+                    Logger.log('🔒 文档处于只读模式，继续执行高亮操作');
                 } else {
-                    console.log('[ToolbarHijacker] ✏️ 文档处于可写模式，继续执行高亮操作');
+                    Logger.log('✏️ 文档处于可写模式，继续执行高亮操作');
                 }
             } else {
-                console.warn('[ToolbarHijacker] ⚠️ 未找到 protyle-wysiwyg 元素');
+                Logger.warn('⚠️ 未找到 protyle-wysiwyg 元素');
             }
             
             // 检查参数
             if (!colorConfig || !protyle || !range) {
-                console.error('applyHighlight: 参数缺失', { colorConfig, protyle, range });
+                Logger.error('applyHighlight: 参数缺失', { colorConfig, protyle, range });
                 return;
             }
             
             const selectedText = range.toString().trim();
             if (!selectedText) {
-                console.warn('没有选中文本');
+                Logger.warn('没有选中文本');
                 return;
             }
             
-            console.log('[ToolbarHijacker] 🎨 高亮参数:', {
+            Logger.log('🎨 高亮参数:', {
                 color: colorConfig.name,
                 text: selectedText.substring(0, 30)
             });
@@ -913,7 +914,7 @@ export class ToolbarHijacker {
             );
 
         } catch (error) {
-            console.error("高亮功能出错:", error);
+            Logger.error("高亮功能出错:", error);
         }
     }
     
@@ -923,13 +924,13 @@ export class ToolbarHijacker {
     private async removeHighlight(protyle: any, range: Range, nodeElement: Element): Promise<void> {
         const selectedText = range.toString().trim();
         if (!selectedText) {
-            console.warn('没有选中文本');
+            Logger.warn('没有选中文本');
             return;
         }
 
         // 检查 protyle.toolbar 是否存在
         if (!protyle || !protyle.toolbar) {
-            console.error('protyle.toolbar 不可用');
+            Logger.error('protyle.toolbar 不可用');
             return;
         }
 
@@ -955,7 +956,7 @@ export class ToolbarHijacker {
             color: "" // 空字符串表示移除背景色
         });
 
-        console.log('✅ 已移除高亮');
+        Logger.log('✅ 已移除高亮');
     }
     
     /**
@@ -1001,31 +1002,31 @@ export class ToolbarHijacker {
         try {
             // 首先尝试通过 API 获取原始 Markdown 内容
             const blockId = blockElement.getAttribute("data-node-id");
-            console.log('[ToolbarHijacker] 尝试获取 blockId:', blockId);
+            Logger.log('尝试获取 blockId:', blockId);
             
             if (blockId) {
                 try {
-                    console.log('[ToolbarHijacker] 开始调用 getBlockKramdown API...');
+                    Logger.log('开始调用 getBlockKramdown API...');
                     const response = await this.api.getBlockKramdown(blockId);
-                    console.log('[ToolbarHijacker] API 响应:', response);
+                    Logger.log('API 响应:', response);
                     
                     if (response && response.code === 0 && response.data && response.data.kramdown) {
                         const originalMarkdown = response.data.kramdown;
-                        console.log('[ToolbarHijacker] 成功获取原始 Markdown 内容:', originalMarkdown);
+                        Logger.log('成功获取原始 Markdown 内容:', originalMarkdown);
                         
                         // 尝试从修改后的 DOM 生成包含高亮的 Markdown
                         const modifiedMarkdown = this.mergeHighlightIntoMarkdown(originalMarkdown, blockElement);
-                        console.log('[ToolbarHijacker] 合并后的 Markdown 内容:', modifiedMarkdown);
+                        Logger.log('合并后的 Markdown 内容:', modifiedMarkdown);
                         
                         return modifiedMarkdown;
                     } else {
-                        console.warn('[ToolbarHijacker] API 响应格式不正确，完整响应:', response);
+                        Logger.warn('API 响应格式不正确，完整响应:', response);
                     }
                 } catch (apiError) {
-                    console.warn('[ToolbarHijacker] API 获取 Markdown 失败，回退到 HTML 解析:', apiError);
+                    Logger.warn('API 获取 Markdown 失败，回退到 HTML 解析:', apiError);
                 }
             } else {
-                console.warn('[ToolbarHijacker] 未找到 blockId，使用 HTML 解析');
+                Logger.warn('未找到 blockId，使用 HTML 解析');
             }
 
             // 回退方案：从 HTML 内容提取
@@ -1050,25 +1051,25 @@ export class ToolbarHijacker {
             }
             
             if (contentDiv && contentDiv.innerHTML.trim() && contentDiv.innerHTML.trim() !== '​') {
-                console.log('[ToolbarHijacker] 提取内容成功 - 方式:', contentDiv.getAttribute('contenteditable') || 'div');
+                Logger.log('提取内容成功 - 方式:', contentDiv.getAttribute('contenteditable') || 'div');
                 return contentDiv.innerHTML;
             }
             
             // 方式4：如果都没找到，可能是编辑模式，尝试提取第一个div的内容
             const firstDiv = tempDiv.querySelector('div');
             if (firstDiv && firstDiv.innerHTML.trim() && firstDiv.innerHTML.trim() !== '​') {
-                console.log('[ToolbarHijacker] 提取编辑模式内容 - div内容');
+                Logger.log('提取编辑模式内容 - div内容');
                 return firstDiv.innerHTML;
             }
             
             // 方式5：最后回退，过滤掉protyle-attr后返回
             const cleanedInnerHTML = innerHTML.replace(/<div[^>]*class="protyle-attr"[^>]*>​<\/div>/g, '');
             
-            console.log('[ToolbarHijacker] 使用清理后的innerHTML');
+            Logger.log('使用清理后的innerHTML');
             return cleanedInnerHTML;
             
         } catch (error) {
-            console.error('提取markdown失败:', error);
+            Logger.error('提取markdown失败:', error);
             return blockElement.innerHTML;
         }
     }
@@ -1094,25 +1095,25 @@ export class ToolbarHijacker {
             }
             
             if (!contentDiv) {
-                console.warn('[ToolbarHijacker] 未找到可编辑的内容区域，使用整个块元素');
+                Logger.warn('未找到可编辑的内容区域，使用整个块元素');
                 contentDiv = blockElement;
             }
 
             // 提取修改后的内容，保留高亮标记
             const modifiedHtml = contentDiv.innerHTML;
-            console.log('[ToolbarHijacker] 修改后的 HTML:', modifiedHtml);
-            console.log('[ToolbarHijacker] 内容区域标签:', contentDiv.tagName, 'contenteditable:', contentDiv.getAttribute('contenteditable'));
+            Logger.log('修改后的 HTML:', modifiedHtml);
+            Logger.log('内容区域标签:', contentDiv.tagName, 'contenteditable:', contentDiv.getAttribute('contenteditable'));
 
             // 将高亮 span 转换为 Markdown 高亮语法
             const processedHtml = this.convertHighlightSpansToMarkdown(modifiedHtml);
-            console.log('[ToolbarHijacker] 处理后的HTML:', processedHtml);
+            Logger.log('处理后的HTML:', processedHtml);
             
             // 直接返回处理后的HTML内容，不再尝试合并原始Markdown
             // 这样可以避免重复内容的问题
             return processedHtml;
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 合并高亮到 Markdown 失败:', error);
+            Logger.error('合并高亮到 Markdown 失败:', error);
             return originalMarkdown;
         }
     }
@@ -1122,16 +1123,16 @@ export class ToolbarHijacker {
      */
     private printDisplayEffect(blockId: string): void {
         try {
-            console.log('🔍 ===== 打印界面显示效果 =====');
+            Logger.log('🔍 ===== 打印界面显示效果 =====');
             
             // 查找块元素
             const blockElement = document.querySelector(`[data-node-id="${blockId}"]`);
             if (!blockElement) {
-                console.log('❌ 未找到块元素');
+                Logger.log('❌ 未找到块元素');
                 return;
             }
             
-            console.log('📄 块元素HTML:', blockElement.outerHTML);
+            Logger.log('📄 块元素HTML:', blockElement.outerHTML);
             
             // 查找内容区域
             let contentDiv = blockElement.querySelector('div[contenteditable]');
@@ -1146,12 +1147,12 @@ export class ToolbarHijacker {
             }
             
             if (contentDiv) {
-                console.log('📝 内容区域HTML:', contentDiv.outerHTML);
-                console.log('📝 内容区域文本:', contentDiv.textContent);
+                Logger.log('📝 内容区域HTML:', contentDiv.outerHTML);
+                Logger.log('📝 内容区域文本:', contentDiv.textContent);
                 
                 // 查找所有span元素
                 const spans = contentDiv.querySelectorAll('span');
-                console.log('🎨 找到span元素数量:', spans.length);
+                Logger.log('🎨 找到span元素数量:', spans.length);
                 
                 spans.forEach((span, index) => {
                     const dataType = span.getAttribute('data-type');
@@ -1159,7 +1160,7 @@ export class ToolbarHijacker {
                     const bgColor = span.style.backgroundColor;
                     const href = span.getAttribute('data-href');
                     
-                    console.log(`🎨 Span ${index}:`, {
+                    Logger.log(`🎨 Span ${index}:`, {
                         dataType,
                         text,
                         backgroundColor: bgColor,
@@ -1172,18 +1173,18 @@ export class ToolbarHijacker {
             // 重新获取Markdown内容
             this.api.getBlockKramdown(blockId).then(response => {
                 if (response && response.code === 0 && response.data && response.data.kramdown) {
-                    console.log('📄 当前保存的Markdown内容:', response.data.kramdown);
+                    Logger.log('📄 当前保存的Markdown内容:', response.data.kramdown);
                 } else {
-                    console.log('❌ 获取Markdown内容失败:', response);
+                    Logger.log('❌ 获取Markdown内容失败:', response);
                 }
             }).catch(error => {
-                console.log('❌ 获取Markdown内容出错:', error);
+                Logger.log('❌ 获取Markdown内容出错:', error);
             });
             
-            console.log('🔍 ===== 界面显示效果打印完成 =====');
+            Logger.log('🔍 ===== 界面显示效果打印完成 =====');
             
         } catch (error) {
-            console.error('❌ 打印界面显示效果失败:', error);
+            Logger.error('❌ 打印界面显示效果失败:', error);
         }
     }
     
@@ -1192,37 +1193,37 @@ export class ToolbarHijacker {
      */
     private processLinkWithHighlights(linkSpan: HTMLElement): string {
         try {
-            console.log('[ToolbarHijacker] ===== 开始处理链接高亮 =====');
-            console.log('[ToolbarHijacker] 输入链接span:', linkSpan.outerHTML);
+            Logger.log('===== 开始处理链接高亮 =====');
+            Logger.log('输入链接span:', linkSpan.outerHTML);
             
             const href = linkSpan.getAttribute('data-href') || '';
-            console.log('[ToolbarHijacker] 链接href:', href);
+            Logger.log('链接href:', href);
             
             // 检查是否有高亮span
             const highlightSpans = linkSpan.querySelectorAll('span[data-type="text"][style*="background-color"]');
-            console.log('[ToolbarHijacker] 找到高亮span数量:', highlightSpans.length);
+            Logger.log('找到高亮span数量:', highlightSpans.length);
             
             if (highlightSpans.length === 0) {
                 // 没有高亮，返回普通链接
                 const textContent = linkSpan.textContent || '';
                 const result = `[${textContent}](${href})`;
-                console.log('[ToolbarHijacker] 无高亮，返回普通链接:', result);
+                Logger.log('无高亮，返回普通链接:', result);
                 return result;
             }
             
             // 有高亮，需要构建包含高亮的链接
             // 思源笔记不支持在链接内部使用高亮语法，我们需要将链接和高亮分开
-            console.log('[ToolbarHijacker] 开始构建包含高亮的链接文本');
-            console.log('[ToolbarHijacker] 思源笔记不支持链接内部高亮，将链接和高亮分开处理');
+            Logger.log('开始构建包含高亮的链接文本');
+            Logger.log('思源笔记不支持链接内部高亮，将链接和高亮分开处理');
             
             // 构建包含高亮的链接文本
             let linkText = '';
             const childNodes = Array.from(linkSpan.childNodes);
-            console.log('[ToolbarHijacker] 子节点数量:', childNodes.length);
+            Logger.log('子节点数量:', childNodes.length);
             
             for (let i = 0; i < childNodes.length; i++) {
                 const node = childNodes[i];
-                console.log(`[ToolbarHijacker] 处理子节点 ${i}:`, {
+                Logger.log(`处理子节点 ${i}:`, {
                     nodeType: node.nodeType,
                     textContent: node.textContent,
                     tagName: node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement).tagName : 'TEXT'
@@ -1232,11 +1233,11 @@ export class ToolbarHijacker {
                     // 纯文本节点
                     const text = node.textContent || '';
                     linkText += text;
-                    console.log('[ToolbarHijacker] 添加纯文本:', text, '当前linkText:', linkText);
+                    Logger.log('添加纯文本:', text, '当前linkText:', linkText);
                 } else if (node.nodeType === Node.ELEMENT_NODE) {
                     const element = node as HTMLElement;
                     const dataType = element.getAttribute('data-type');
-                    console.log('[ToolbarHijacker] 处理元素节点:', {
+                    Logger.log('处理元素节点:', {
                         tagName: element.tagName,
                         dataType: dataType,
                         textContent: element.textContent,
@@ -1247,24 +1248,24 @@ export class ToolbarHijacker {
                         // 高亮span，直接添加文本，不添加高亮语法
                         const text = element.textContent || '';
                         linkText += text;
-                        console.log('[ToolbarHijacker] 添加高亮文本(无语法):', text, '当前linkText:', linkText);
+                        Logger.log('添加高亮文本(无语法):', text, '当前linkText:', linkText);
                     } else {
                         // 其他元素，保持原样
                         const text = element.textContent || '';
                         linkText += text;
-                        console.log('[ToolbarHijacker] 添加其他元素文本:', text, '当前linkText:', linkText);
+                        Logger.log('添加其他元素文本:', text, '当前linkText:', linkText);
                     }
                 }
             }
             
             // 使用普通链接格式，不包含高亮语法
             const result = `[${linkText}](${href})`;
-            console.log('[ToolbarHijacker] 最终结果(普通链接):', result);
-            console.log('[ToolbarHijacker] ===== 链接高亮处理完成 =====');
+            Logger.log('最终结果(普通链接):', result);
+            Logger.log('===== 链接高亮处理完成 =====');
             return result;
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 处理包含高亮的链接失败:', error);
+            Logger.error('处理包含高亮的链接失败:', error);
             return linkSpan.outerHTML;
         }
     }
@@ -1288,7 +1289,7 @@ export class ToolbarHijacker {
                 const isLinkItself = dataType === 'a';
                 
                 if (isInsideLink && !isLinkItself) {
-                    console.log('[ToolbarHijacker] 跳过链接内部的子span:', span.textContent, 'data-type:', dataType);
+                    Logger.log('跳过链接内部的子span:', span.textContent, 'data-type:', dataType);
                     return;
                 }
                 
@@ -1299,7 +1300,7 @@ export class ToolbarHijacker {
                 if (dataType === 'text') {
                     // 我们添加的高亮span
                     const bgColor = span.style.backgroundColor;
-                    console.log('[ToolbarHijacker] 处理高亮span:', text, 'bgColor:', bgColor);
+                    Logger.log('处理高亮span:', text, 'bgColor:', bgColor);
                     
                     if (bgColor && bgColor !== 'transparent') {
                         // 保留颜色信息，使用SiYuan的颜色高亮语法
@@ -1308,24 +1309,24 @@ export class ToolbarHijacker {
                     }
                 } else if (dataType === 'em') {
                     // 斜体类型，转换为Markdown斜体语法
-                    console.log('[ToolbarHijacker] 处理斜体span:', text, 'dataType:', dataType);
+                    Logger.log('处理斜体span:', text, 'dataType:', dataType);
                     if (text && text.trim()) {
                         markdownText = `*${text}*`;
                         shouldReplace = true;
                     } else {
                         // 空的斜体span，直接跳过
-                        console.log('[ToolbarHijacker] 跳过空的斜体span');
+                        Logger.log('跳过空的斜体span');
                         shouldReplace = false;
                     }
                 } else if (dataType === 'strong') {
                     // 粗体类型，转换为Markdown粗体语法
-                    console.log('[ToolbarHijacker] 处理粗体span:', text, 'dataType:', dataType);
+                    Logger.log('处理粗体span:', text, 'dataType:', dataType);
                     if (text && text.trim()) {
                         markdownText = `**${text}**`;
                         shouldReplace = true;
                     } else {
                         // 空的粗体span，直接跳过
-                        console.log('[ToolbarHijacker] 跳过空的粗体span');
+                        Logger.log('跳过空的粗体span');
                         shouldReplace = false;
                     }
                 } else if (dataType === 'tag') {
@@ -1334,36 +1335,36 @@ export class ToolbarHijacker {
                     shouldReplace = true;
                 } else if (dataType === 'a') {
                     // 链接类型，需要特殊处理
-                    console.log('[ToolbarHijacker] ===== 开始处理链接 =====');
-                    console.log('[ToolbarHijacker] 链接span:', span.outerHTML);
+                    Logger.log('===== 开始处理链接 =====');
+                    Logger.log('链接span:', span.outerHTML);
                     
                     const href = span.getAttribute('data-href') || '';
                     const hasChildSpans = span.querySelector('span');
                     
-                    console.log('[ToolbarHijacker] 链接href:', href);
-                    console.log('[ToolbarHijacker] 是否有子span:', !!hasChildSpans);
+                    Logger.log('链接href:', href);
+                    Logger.log('是否有子span:', !!hasChildSpans);
                     
                     if (hasChildSpans) {
                         // 如果链接内部有子span（如高亮），需要特殊处理
-                        console.log('[ToolbarHijacker] 调用processLinkWithHighlights处理包含子span的链接');
+                        Logger.log('调用processLinkWithHighlights处理包含子span的链接');
                         const processedInnerHTML = this.processLinkWithHighlights(span);
                         markdownText = processedInnerHTML;
                         shouldReplace = true;
-                        console.log('[ToolbarHijacker] 链接处理结果:', processedInnerHTML);
+                        Logger.log('链接处理结果:', processedInnerHTML);
                     } else {
                         // 如果链接内部没有子span，转换为Markdown链接语法
                         markdownText = `[${text}](${href})`;
                         shouldReplace = true;
-                        console.log('[ToolbarHijacker] 无子span，返回普通链接:', markdownText);
+                        Logger.log('无子span，返回普通链接:', markdownText);
                     }
-                    console.log('[ToolbarHijacker] ===== 链接处理完成 =====');
+                    Logger.log('===== 链接处理完成 =====');
                 } else if (dataType === 'mark') {
                     // 原有的mark类型，保持为高亮语法
                     markdownText = `==${text}==`;
                     shouldReplace = true;
                 } else if (dataType === 'inline-memo') {
                     // 备注类型，保留原样
-                    console.log('[ToolbarHijacker] 处理备注span:', text, '备注内容:', span.getAttribute('data-inline-memo-content'));
+                    Logger.log('处理备注span:', text, '备注内容:', span.getAttribute('data-inline-memo-content'));
                     markdownText = span.outerHTML;
                     shouldReplace = false; // 保留原HTML
                 } else if (span.style.backgroundColor && span.style.backgroundColor !== 'transparent') {
@@ -1392,7 +1393,7 @@ export class ToolbarHijacker {
             return tempDiv.innerHTML;
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 转换高亮 span 失败:', error);
+            Logger.error('转换高亮 span 失败:', error);
             return html;
         }
     }
@@ -1489,7 +1490,7 @@ export class ToolbarHijacker {
             // 销毁闪卡快切管理器
             if (this.flashcardQuickSwitchManager) {
                 this.flashcardQuickSwitchManager.destroy().catch((error) => {
-                    console.error('[ToolbarHijacker] 销毁FlashcardQuickSwitchManager失败:', error);
+                    Logger.error('销毁FlashcardQuickSwitchManager失败:', error);
                 });
             }
         } catch (error) {
@@ -1639,13 +1640,13 @@ export class ToolbarHijacker {
     ): Promise<void> {
         // 验证参数
         if (!protyle || !protyle.toolbar || typeof protyle.toolbar.setInlineMark !== 'function') {
-            console.error('protyle.toolbar.setInlineMark 不可用');
+            Logger.error('protyle.toolbar.setInlineMark 不可用');
             return;
         }
 
         const selectedText = range.toString().trim();
         if (!selectedText) {
-            console.warn('没有选中文本');
+            Logger.warn('没有选中文本');
             return;
         }
 
@@ -1673,7 +1674,7 @@ export class ToolbarHijacker {
         // 使用思源原生方法
         protyle.toolbar.setInlineMark(protyle, "text", "range", colorConfig);
 
-        console.log(`✅ 已应用${colorName}高亮`);
+        Logger.log(`✅ 已应用${colorName}高亮`);
     }
 
     /**
@@ -1695,7 +1696,7 @@ export class ToolbarHijacker {
             
             // 如果找不到块元素，认为是跨块
             if (!startBlock || !endBlock) {
-                console.log('[ToolbarHijacker] 无法找到块元素，可能跨块选择');
+                Logger.log('无法找到块元素，可能跨块选择');
                 return true;
             }
             
@@ -1705,7 +1706,7 @@ export class ToolbarHijacker {
             
             // 如果块ID不同，则为跨块选择
             if (startBlockId !== endBlockId) {
-                console.log('[ToolbarHijacker] 跨块选择检测:', {
+                Logger.log('跨块选择检测:', {
                     startBlockId,
                     endBlockId,
                     selectedText: range.toString().substring(0, 50) + '...'
@@ -1716,7 +1717,7 @@ export class ToolbarHijacker {
             return false;
             
         } catch (error) {
-            console.error('[ToolbarHijacker] 跨块检测失败:', error);
+            Logger.error('跨块检测失败:', error);
             // 出错时为安全起见，认为是跨块选择
             return true;
         }
@@ -1729,16 +1730,16 @@ export class ToolbarHijacker {
         try {
             const blockElement = document.querySelector(`[data-node-id="${blockId}"]`);
             if (!blockElement) {
-                console.warn('未找到要恢复只读状态的块元素');
+                Logger.warn('未找到要恢复只读状态的块元素');
                 return;
             }
 
-            console.log('[ToolbarHijacker] 恢复块的只读状态:', blockId);
+            Logger.log('恢复块的只读状态:', blockId);
 
             // 查找所有可编辑的div元素
             const editableDivs = blockElement.querySelectorAll('div[contenteditable="true"]');
             editableDivs.forEach(div => {
-                console.log('[ToolbarHijacker] 将div设置为只读:', div);
+                Logger.log('将div设置为只读:', div);
                 div.setAttribute('contenteditable', 'false');
             });
 
@@ -1754,11 +1755,11 @@ export class ToolbarHijacker {
             const contentDiv = blockElement.querySelector('div[contenteditable]');
             if (contentDiv) {
                 contentDiv.setAttribute('contenteditable', 'false');
-                console.log('[ToolbarHijacker] 内容区域已设置为只读');
+                Logger.log('内容区域已设置为只读');
             }
 
         } catch (error) {
-            console.error('[ToolbarHijacker] 恢复只读状态失败:', error);
+            Logger.error('恢复只读状态失败:', error);
         }
     }
 
@@ -1786,8 +1787,8 @@ export class ToolbarHijacker {
                     }
                     lastSelectionText = selectedText;
                     
-                    console.log('\n[ToolbarHijacker] 📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
-                    console.log('[ToolbarHijacker] 选中文本:', selectedText.substring(0, 50));
+                    Logger.log('\n📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
+                    Logger.log('选中文本:', selectedText.substring(0, 50));
                     
                     // 🔍 在工具栏显示之前检查只读状态 - 根据当前选区找到对应的面包屑锁按钮
                     const range = selection.getRangeAt(0);
@@ -1810,7 +1811,7 @@ export class ToolbarHijacker {
                         
                         isDocReadonly = isLocked;
                         
-                        console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（工具栏显示前-宽松检查）:', {
+                        Logger.log('🔐 面包屑锁按钮状态（工具栏显示前-宽松检查）:', {
                             'aria-label': ariaLabel,
                             'data-subtype': dataSubtype,
                             '图标href': iconHref,
@@ -1820,16 +1821,16 @@ export class ToolbarHijacker {
                             '检查时间': new Date().toLocaleTimeString()
                         });
                     } else {
-                        console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮');
+                        Logger.warn('⚠️ 未找到面包屑锁按钮');
                     }
                     
                     // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
                     if (!isDocReadonly) {
-                        console.log('[ToolbarHijacker] ⛔ 文档未加锁（可编辑状态），不显示自定义工具栏');
+                        Logger.log('⛔ 文档未加锁（可编辑状态），不显示自定义工具栏');
                         return;
                     }
                     
-                    console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示自定义工具栏');
+                    Logger.log('✅ 文档已加锁（只读状态），允许显示自定义工具栏');
                     
                     // 检查是否跨块选择
                     if (this.isCrossBlockSelection(range)) {
@@ -2017,13 +2018,13 @@ export class ToolbarHijacker {
             // 获取当前编辑器的protyle对象
             const editors = getAllEditor();
             if (editors.length === 0) {
-                console.warn('没有可用的编辑器');
+                Logger.warn('没有可用的编辑器');
                 return;
             }
             
             const currentEditor = editors[0];
             if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
-                console.warn('编辑器toolbar不可用');
+                Logger.warn('编辑器toolbar不可用');
                 return;
             }
 
@@ -2039,7 +2040,7 @@ export class ToolbarHijacker {
             );
             
         } catch (error) {
-            console.error('应用自定义高亮出错:', error);
+            Logger.error('应用自定义高亮出错:', error);
         }
     }
     
@@ -2053,13 +2054,13 @@ export class ToolbarHijacker {
         // 获取当前编辑器的protyle对象
         const editors = getAllEditor();
         if (editors.length === 0) {
-            console.warn('没有可用的编辑器');
+            Logger.warn('没有可用的编辑器');
             return;
         }
         
         const currentEditor = editors[0];
         if (!currentEditor.protyle || !currentEditor.protyle.toolbar) {
-            console.warn('编辑器toolbar不可用');
+            Logger.warn('编辑器toolbar不可用');
             return;
         }
 
@@ -2083,7 +2084,7 @@ export class ToolbarHijacker {
             color: ""
         });
 
-        console.log('✅ 删除自定义高亮完成');
+        Logger.log('✅ 删除自定义高亮完成');
     }
 
     // 已移除旧的 restoreReadonlyModeEnhanced 方法，现在使用统一的操作包装器
@@ -2121,7 +2122,7 @@ export class ToolbarHijacker {
      * 修复：用事件驱动代替愚蠢的定时轮询
      */
     private setupReadonlyButtonListener(): void {
-        console.log('[ToolbarHijacker] 🔒 设置锁按钮点击监听器，实时响应状态变化...');
+        Logger.log('🔒 设置锁按钮点击监听器，实时响应状态变化...');
         
         // 监听所有锁按钮的点击事件
         document.addEventListener('click', (event) => {
@@ -2129,7 +2130,7 @@ export class ToolbarHijacker {
             
             // 检查是否点击了锁按钮
             if (target.closest('button[data-type="readonly"]')) {
-                console.log('[ToolbarHijacker] 🔒 检测到锁按钮点击，延迟刷新状态...');
+                Logger.log('🔒 检测到锁按钮点击，延迟刷新状态...');
                 
                 // 延迟一下让按钮状态更新完成
                 setTimeout(() => {
@@ -2138,7 +2139,7 @@ export class ToolbarHijacker {
             }
         });
         
-        console.log('[ToolbarHijacker] ✅ 锁按钮点击监听器已设置');
+        Logger.log('✅ 锁按钮点击监听器已设置');
     }
     
     /**
@@ -2146,7 +2147,7 @@ export class ToolbarHijacker {
      * 修复BUG：tab切换时编辑状态无法感知的问题
      */
     private setupTabSwitchListener(): void {
-        console.log('[ToolbarHijacker] 🎯 设置tab切换监听器，修复编辑状态识别问题...');
+        Logger.log('🎯 设置tab切换监听器，修复编辑状态识别问题...');
         
         try {
             // 使用插件事件总线监听思源的 switch-protyle-mode 事件
@@ -2157,7 +2158,7 @@ export class ToolbarHijacker {
                         try {
                             const data = JSON.parse(event.data);
                             if (data.cmd === 'switch-protyle-mode') {
-                                console.log('[ToolbarHijacker] 🔄 检测到protyle模式切换事件');
+                                Logger.log('🔄 检测到protyle模式切换事件');
                                 this.handleProtyleModeSwitch(data);
                             }
                         } catch (e) {
@@ -2165,7 +2166,7 @@ export class ToolbarHijacker {
                         }
                     });
                     
-                    console.log('[ToolbarHijacker] ✅ 已监听 switch-protyle-mode 事件');
+                    Logger.log('✅ 已监听 switch-protyle-mode 事件');
                 }
             }
             
@@ -2179,7 +2180,7 @@ export class ToolbarHijacker {
             this.setupSelectionChangeListener();
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 设置tab切换监听器失败:', error);
+            Logger.error('❌ 设置tab切换监听器失败:', error);
         }
     }
     
@@ -2187,7 +2188,7 @@ export class ToolbarHijacker {
      * 处理protyle模式切换事件
      */
     private handleProtyleModeSwitch(data: any): void {
-        console.log('[ToolbarHijacker] 🔄 处理protyle模式切换:', data);
+        Logger.log('🔄 处理protyle模式切换:', data);
         
         // 延迟处理，等待DOM更新
         setTimeout(() => {
@@ -2229,7 +2230,7 @@ export class ToolbarHijacker {
             });
             
             if (hasTabChange) {
-                console.log('[ToolbarHijacker] 🔄 检测到tab相关DOM变化，刷新编辑状态缓存');
+                Logger.log('🔄 检测到tab相关DOM变化，刷新编辑状态缓存');
                 setTimeout(() => {
                     this.refreshEditingStateCache();
                 }, 300);
@@ -2244,7 +2245,7 @@ export class ToolbarHijacker {
             attributeFilter: ['class', 'data-type']
         });
         
-        console.log('[ToolbarHijacker] ✅ DOM变化监听器已设置');
+        Logger.log('✅ DOM变化监听器已设置');
     }
     
     /**
@@ -2259,7 +2260,7 @@ export class ToolbarHijacker {
             if (now - lastFocusTime < 500) return;
             lastFocusTime = now;
             
-            console.log('[ToolbarHijacker] 🔄 窗口焦点变化，检查编辑状态');
+            Logger.log('🔄 窗口焦点变化，检查编辑状态');
             setTimeout(() => {
                 this.refreshEditingStateCache();
             }, 100);
@@ -2268,7 +2269,7 @@ export class ToolbarHijacker {
         window.addEventListener('focus', handleFocus);
         document.addEventListener('focusin', handleFocus);
         
-        console.log('[ToolbarHijacker] ✅ 窗口焦点监听器已设置');
+        Logger.log('✅ 窗口焦点监听器已设置');
     }
     
     /**
@@ -2286,7 +2287,7 @@ export class ToolbarHijacker {
             if (activeElement !== lastActiveElement) {
                 const isInEditor = activeElement?.closest('.protyle-wysiwyg') !== null;
                 if (isInEditor && now - lastSelectionTime > 300) {
-                    console.log('[ToolbarHijacker] 🔄 检测到编辑器切换，刷新编辑状态');
+                    Logger.log('🔄 检测到编辑器切换，刷新编辑状态');
                     this.refreshEditingStateCache();
                     lastSelectionTime = now;
                 }
@@ -2296,7 +2297,7 @@ export class ToolbarHijacker {
         
         document.addEventListener('selectionchange', handleSelectionChange);
         
-        console.log('[ToolbarHijacker] ✅ 选择变化监听器已设置');
+        Logger.log('✅ 选择变化监听器已设置');
     }
     
     /**
@@ -2305,7 +2306,7 @@ export class ToolbarHijacker {
      */
     private refreshEditingStateCache(): void {
         try {
-            console.log('[ToolbarHijacker] 🔄 刷新编辑状态缓存...');
+            Logger.log('🔄 刷新编辑状态缓存...');
             
             // 🔑 强制清理所有可能的状态缓存
             this.clearEditingStateCache();
@@ -2316,7 +2317,7 @@ export class ToolbarHijacker {
             }, 300); // 给足够时间让DOM更新
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 刷新编辑状态缓存失败:', error);
+            Logger.error('❌ 刷新编辑状态缓存失败:', error);
         }
     }
     
@@ -2325,11 +2326,11 @@ export class ToolbarHijacker {
      */
     private performDelayedStateCheck(): void {
         try {
-            console.log('[ToolbarHijacker] ⏰ 执行延迟状态检查...');
+            Logger.log('⏰ 执行延迟状态检查...');
             
             // 重新检查当前活动的编辑器状态
             const currentReadonlyState = this.getCurrentReadonlyState();
-            console.log('[ToolbarHijacker] 📋 当前编辑状态（延迟检查）:', {
+            Logger.log('📋 当前编辑状态（延迟检查）:', {
                 isReadonly: currentReadonlyState.isReadonly,
                 source: currentReadonlyState.source,
                 timestamp: new Date().toLocaleTimeString()
@@ -2337,14 +2338,14 @@ export class ToolbarHijacker {
             
             // 如果有活动的自定义工具栏，根据新状态决定是否隐藏
             if (!currentReadonlyState.isReadonly) {
-                console.log('[ToolbarHijacker] ⛔ 文档现在是可编辑状态，隐藏自定义工具栏');
+                Logger.log('⛔ 文档现在是可编辑状态，隐藏自定义工具栏');
                 this.hideCustomToolbar();
             } else {
-                console.log('[ToolbarHijacker] ✅ 文档现在是只读状态，允许显示自定义工具栏');
+                Logger.log('✅ 文档现在是只读状态，允许显示自定义工具栏');
             }
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 延迟状态检查失败:', error);
+            Logger.error('❌ 延迟状态检查失败:', error);
         }
     }
     
@@ -2353,7 +2354,7 @@ export class ToolbarHijacker {
      */
     private clearEditingStateCache(): void {
         try {
-            console.log('[ToolbarHijacker] 🧹 强制清理编辑状态缓存...');
+            Logger.log('🧹 强制清理编辑状态缓存...');
             
             // 🔑 清理可能的内部缓存状态
             // 这里可以清理任何缓存的状态信息
@@ -2361,10 +2362,10 @@ export class ToolbarHijacker {
             // 🔑 强制重新获取DOM元素（避免缓存的DOM引用）
             // 清除可能缓存的按钮引用等
             
-            console.log('[ToolbarHijacker] ✅ 编辑状态缓存已清理');
+            Logger.log('✅ 编辑状态缓存已清理');
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 清理编辑状态缓存失败:', error);
+            Logger.error('❌ 清理编辑状态缓存失败:', error);
         }
     }
     
@@ -2375,7 +2376,7 @@ export class ToolbarHijacker {
     private findReadonlyButtonForRange(range: Range): HTMLElement | null {
         try {
             if (!range) {
-                console.warn('[ToolbarHijacker] ⚠️ 没有选区，无法定位面包屑锁按钮');
+                Logger.warn('⚠️ 没有选区，无法定位面包屑锁按钮');
                 return null;
             }
             
@@ -2396,7 +2397,7 @@ export class ToolbarHijacker {
             }
             
             if (!protyleElement) {
-                console.warn('[ToolbarHijacker] ⚠️ 未找到protyle容器');
+                Logger.warn('⚠️ 未找到protyle容器');
                 return this.fallbackFindReadonlyButton();
             }
             
@@ -2404,15 +2405,15 @@ export class ToolbarHijacker {
             const readonlyBtn = protyleElement.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
             
             if (readonlyBtn) {
-                console.log('[ToolbarHijacker] ✅ 找到当前文档的面包屑锁按钮');
+                Logger.log('✅ 找到当前文档的面包屑锁按钮');
                 return readonlyBtn;
             } else {
-                console.warn('[ToolbarHijacker] ⚠️ 当前protyle容器内未找到面包屑锁按钮');
+                Logger.warn('⚠️ 当前protyle容器内未找到面包屑锁按钮');
                 return this.fallbackFindReadonlyButton();
             }
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 查找面包屑锁按钮失败:', error);
+            Logger.error('❌ 查找面包屑锁按钮失败:', error);
             return this.fallbackFindReadonlyButton();
         }
     }
@@ -2438,16 +2439,16 @@ export class ToolbarHijacker {
         let result: HTMLElement | null = null;
         
         if (isMobileEnv) {
-            console.log('[ToolbarHijacker] 📱 移动端模式：使用DOM查询方式查找面包屑锁按钮...');
+            Logger.log('📱 移动端模式：使用DOM查询方式查找面包屑锁按钮...');
             result = this.findReadonlyButtonForMobile();
         } else {
-            console.log('[ToolbarHijacker] 🖥️ 桌面版模式：使用思源官方API查找当前活跃tab的面包屑锁按钮...');
+            Logger.log('🖥️ 桌面版模式：使用思源官方API查找当前活跃tab的面包屑锁按钮...');
             result = this.findReadonlyButtonForDesktop();
         }
         
         // 如果平台特定方法失败，使用通用兜底方法
         if (!result) {
-            console.log('[ToolbarHijacker] 🔄 平台特定方法失败，尝试通用兜底方法...');
+            Logger.log('🔄 平台特定方法失败，尝试通用兜底方法...');
             result = this.fallbackFindAnyReadonlyButton();
         }
         
@@ -2461,12 +2462,12 @@ export class ToolbarHijacker {
         try {
             // 移动端通常只有一个活跃的编辑器
             const protyleElements = document.querySelectorAll('.protyle:not(.fn__none)');
-            console.log(`[ToolbarHijacker] 📱 找到 ${protyleElements.length} 个可见的protyle元素`);
+            Logger.log(`📱 找到 ${protyleElements.length} 个可见的protyle元素`);
             
             for (const protyle of protyleElements) {
                 const readonlyBtn = protyle.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
-                    console.log('[ToolbarHijacker] ✅ 移动端找到面包屑锁按钮');
+                    Logger.log('✅ 移动端找到面包屑锁按钮');
                     return readonlyBtn;
                 }
             }
@@ -2476,16 +2477,16 @@ export class ToolbarHijacker {
             for (const breadcrumb of visibleBreadcrumbs) {
                 const readonlyBtn = breadcrumb.querySelector('button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
-                    console.log('[ToolbarHijacker] ✅ 移动端通过可见面包屑找到锁按钮');
+                    Logger.log('✅ 移动端通过可见面包屑找到锁按钮');
                     return readonlyBtn;
                 }
             }
             
-            console.warn('[ToolbarHijacker] ⚠️ 移动端未找到面包屑锁按钮');
+            Logger.warn('⚠️ 移动端未找到面包屑锁按钮');
             return null;
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 移动端查找锁按钮失败:', error);
+            Logger.error('❌ 移动端查找锁按钮失败:', error);
             return null;
         }
     }
@@ -2497,7 +2498,7 @@ export class ToolbarHijacker {
         try {
             // 检查getActiveTab是否存在（桌面版才有）
             if (typeof getActiveTab !== 'function') {
-                console.warn('[ToolbarHijacker] ⚠️ getActiveTab函数不存在，可能在移动端环境');
+                Logger.warn('⚠️ getActiveTab函数不存在，可能在移动端环境');
                 return this.findReadonlyButtonForMobile();
             }
 
@@ -2505,7 +2506,7 @@ export class ToolbarHijacker {
             const activeTab = getActiveTab();
             
             if (activeTab) {
-                console.log('[ToolbarHijacker] ✅ 通过思源官方API找到活跃tab:', {
+                Logger.log('✅ 通过思源官方API找到活跃tab:', {
                     tabId: activeTab.id,
                     title: activeTab.title,
                     type: activeTab.model?.type
@@ -2523,20 +2524,20 @@ export class ToolbarHijacker {
                     // 在protyle元素中查找面包屑锁按钮
                     const readonlyBtn = protyle.element.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                     if (readonlyBtn) {
-                        console.log('[ToolbarHijacker] ✅ 通过思源官方API找到面包屑锁按钮');
+                        Logger.log('✅ 通过思源官方API找到面包屑锁按钮');
                         return readonlyBtn;
                     } else {
-                        console.warn('[ToolbarHijacker] ⚠️ 活跃tab的protyle中未找到锁按钮');
+                        Logger.warn('⚠️ 活跃tab的protyle中未找到锁按钮');
                     }
                 } else {
-                    console.warn('[ToolbarHijacker] ⚠️ 活跃tab没有有效的protyle');
+                    Logger.warn('⚠️ 活跃tab没有有效的protyle');
                 }
             } else {
-                console.warn('[ToolbarHijacker] ⚠️ 思源官方API未找到活跃tab');
+                Logger.warn('⚠️ 思源官方API未找到活跃tab');
             }
             
         } catch (error) {
-            console.error('[ToolbarHijacker] ❌ 使用思源官方API查找活跃tab失败:', error);
+            Logger.error('❌ 使用思源官方API查找活跃tab失败:', error);
             // 降级到移动端方案
             return this.findReadonlyButtonForMobile();
         }
@@ -2551,12 +2552,12 @@ export class ToolbarHijacker {
         // 方案：查找当前有焦点的编辑器
         const focusedElement = document.activeElement;
         if (focusedElement) {
-            console.log(`[ToolbarHijacker] 🔍 尝试通过焦点元素查找: ${focusedElement.tagName}.${focusedElement.className}`);
+            Logger.log(`🔍 尝试通过焦点元素查找: ${focusedElement.tagName}.${focusedElement.className}`);
             const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
             if (protyleContainer) {
                 const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
-                    console.log('[ToolbarHijacker] ✅ 通过焦点元素找到面包屑锁按钮');
+                    Logger.log('✅ 通过焦点元素找到面包屑锁按钮');
                     return readonlyBtn;
                 }
             }
@@ -2565,9 +2566,9 @@ export class ToolbarHijacker {
         // 最后兜底（显示明确警告）
         const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
         if (readonlyBtn) {
-            console.warn('[ToolbarHijacker] ⚠️ 使用兜底方案找到面包屑锁按钮（可能不准确！！！）');
+            Logger.warn('⚠️ 使用兜底方案找到面包屑锁按钮（可能不准确！！！）');
         } else {
-            console.error('[ToolbarHijacker] ❌ 完全找不到任何面包屑锁按钮');
+            Logger.error('❌ 完全找不到任何面包屑锁按钮');
         }
         return readonlyBtn;
     }
@@ -2626,3 +2627,5 @@ export class ToolbarHijacker {
     }
     
 }
+
+

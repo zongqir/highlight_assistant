@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 标签搜索管理器 - 处理搜索范围和分组
  */
@@ -53,7 +54,7 @@ export class TagSearchManager {
      */
     private debugLog(...args: any[]): void {
         if (this.debugMode) {
-            console.log(...args);
+            Logger.log(...args);
         }
     }
 
@@ -62,29 +63,29 @@ export class TagSearchManager {
      */
     private async getCurrentDocInfo(): Promise<{ docId: string, notebookId: string, docPath: string } | null> {
         try {
-            console.log('[TagSearchManager] 🔍 开始获取当前文档信息...');
+            Logger.log('🔍 开始获取当前文档信息...');
             
             // 方法0: 通过 getAllEditor 获取当前编辑器的 protyle.block.rootID (SiYuan官方方法)
             try {
-                console.log('[TagSearchManager] 方法0 - 检查window.siyuan:', !!window.siyuan);
-                console.log('[TagSearchManager] 方法0 - 检查getAllEditor:', !!(window as any).siyuan?.getAllEditor);
+                Logger.log('方法0 - 检查window.siyuan:', !!window.siyuan);
+                Logger.log('方法0 - 检查getAllEditor:', !!(window as any).siyuan?.getAllEditor);
                 const editors = (window as any).siyuan?.getAllEditor?.() || [];
-                console.log('[TagSearchManager] 方法0 - 找到', editors.length, '个编辑器');
+                Logger.log('方法0 - 找到', editors.length, '个编辑器');
                 
                 if (editors.length === 0) {
-                    console.log('[TagSearchManager] 方法0 - 无编辑器，跳过');
+                    Logger.log('方法0 - 无编辑器，跳过');
                 }
                 
                 for (const editor of editors) {
                     if (editor?.protyle?.block?.rootID) {
                         const rootID = editor.protyle.block.rootID;
-                        console.log('[TagSearchManager] 🎯 找到编辑器的rootID:', rootID);
+                        Logger.log('🎯 找到编辑器的rootID:', rootID);
                         
                         const response = await fetchSyncPost('/api/block/getBlockInfo', { id: rootID });
-                        console.log('[TagSearchManager] rootID信息完整响应:', JSON.stringify(response, null, 2));
+                        Logger.log('rootID信息完整响应:', JSON.stringify(response, null, 2));
                         
                         if (response.code === 0 && response.data) {
-                            console.log('[TagSearchManager] ✅ 方法0成功！文档ID:', rootID, '笔记本ID:', response.data.box);
+                            Logger.log('✅ 方法0成功！文档ID:', rootID, '笔记本ID:', response.data.box);
                             return {
                                 docId: rootID,
                                 notebookId: response.data.box || '',
@@ -93,27 +94,27 @@ export class TagSearchManager {
                         }
                     }
                 }
-                console.log('[TagSearchManager] ⚠️ 方法0失败，尝试方法1...');
+                Logger.log('⚠️ 方法0失败，尝试方法1...');
             } catch (error) {
-                console.error('[TagSearchManager] 方法0异常:', error);
+                Logger.error('方法0异常:', error);
             }
             
             // 方法1: 从编辑器内的文档根块获取
             const rootBlock = document.querySelector('.protyle-wysiwyg [data-type="NodeDocument"][data-node-id]');
-            console.log('[TagSearchManager] 方法1 - 文档根块:', rootBlock);
+            Logger.log('方法1 - 文档根块:', rootBlock);
             
             if (rootBlock) {
                 const docId = rootBlock.getAttribute('data-node-id');
-                console.log('[TagSearchManager] 从根块获取文档 ID:', docId);
+                Logger.log('从根块获取文档 ID:', docId);
                 
                 if (docId) {
                     try {
                         const response = await fetchSyncPost('/api/block/getBlockInfo', { id: docId });
-                        console.log('[TagSearchManager] getBlockInfo 响应:', response);
+                        Logger.log('getBlockInfo 响应:', response);
                         
                         if (response.code === 0 && response.data && response.data.rootID && response.data.box) {
                             // rootID 就是文档ID，box 就是笔记本ID
-                            console.log('[TagSearchManager] ✅ 方法1成功！文档ID:', response.data.rootID, '笔记本ID:', response.data.box);
+                            Logger.log('✅ 方法1成功！文档ID:', response.data.rootID, '笔记本ID:', response.data.box);
                             return {
                                 docId: response.data.rootID,
                                 notebookId: response.data.box,
@@ -121,38 +122,38 @@ export class TagSearchManager {
                             };
                         }
                     } catch (error) {
-                        console.error('[TagSearchManager] getBlockInfo 调用失败:', error);
+                        Logger.error('getBlockInfo 调用失败:', error);
                     }
                 }
             }
 
             // 方法2: 从任何带有 data-node-id 的元素获取，然后通过API确认是文档
             const anyBlocks = document.querySelectorAll('.protyle-wysiwyg [data-node-id]');
-            console.log('[TagSearchManager] 方法2 - 找到', anyBlocks.length, '个带ID的块');
+            Logger.log('方法2 - 找到', anyBlocks.length, '个带ID的块');
             
             for (let i = 0; i < anyBlocks.length; i++) {
                 const block = anyBlocks[i];
                 const blockId = block.getAttribute('data-node-id');
-                console.log('[TagSearchManager] 检查块', i, ':', blockId);
+                Logger.log('检查块', i, ':', blockId);
                 
                 if (blockId) {
                     try {
                         const response = await fetchSyncPost('/api/block/getBlockInfo', { id: blockId });
-                        console.log('[TagSearchManager] 块信息 - ID:', blockId);
-                        console.log('[TagSearchManager] 块信息 - 完整响应:', JSON.stringify(response, null, 2));
+                        Logger.log('块信息 - ID:', blockId);
+                        Logger.log('块信息 - 完整响应:', JSON.stringify(response, null, 2));
                         
                         if (response?.data) {
-                            console.log('[TagSearchManager] 块信息 - data字段详情:');
-                            console.log('  - type:', response.data.type);
-                            console.log('  - rootID:', response.data.rootID);
-                            console.log('  - box:', response.data.box);
-                            console.log('  - path:', response.data.path);
-                            console.log('  - 所有字段:', Object.keys(response.data));
+                            Logger.log('块信息 - data字段详情:');
+                            Logger.log('  - type:', response.data.type);
+                            Logger.log('  - rootID:', response.data.rootID);
+                            Logger.log('  - box:', response.data.box);
+                            Logger.log('  - path:', response.data.path);
+                            Logger.log('  - 所有字段:', Object.keys(response.data));
                         }
                         
                         if (response.code === 0 && response.data && response.data.rootID && response.data.box) {
                             // rootID 就是文档ID，box 就是笔记本ID，不需要检查type
-                            console.log('[TagSearchManager] ✅ 找到文档块！笔记本ID:', response.data.box);
+                            Logger.log('✅ 找到文档块！笔记本ID:', response.data.box);
                             return {
                                 docId: response.data.rootID,
                                 notebookId: response.data.box,
@@ -160,21 +161,21 @@ export class TagSearchManager {
                             };
                         } else if (response.code === 0 && response.data && response.data.rootID) {
                             // 如果是普通块，尝试用 rootID 获取文档信息
-                            console.log('[TagSearchManager] 🔍 普通块，尝试用 rootID 获取文档:', response.data.rootID);
+                            Logger.log('🔍 普通块，尝试用 rootID 获取文档:', response.data.rootID);
                             const docResponse = await fetchSyncPost('/api/block/getBlockInfo', { id: response.data.rootID });
-                            console.log('[TagSearchManager] 文档信息完整响应:', JSON.stringify(docResponse, null, 2));
+                            Logger.log('文档信息完整响应:', JSON.stringify(docResponse, null, 2));
                             
                             if (docResponse?.data) {
-                                console.log('[TagSearchManager] 文档信息 - data字段详情:');
-                                console.log('  - type:', docResponse.data.type);
-                                console.log('  - box:', docResponse.data.box);
-                                console.log('  - path:', docResponse.data.path);
-                                console.log('  - 所有字段:', Object.keys(docResponse.data));
+                                Logger.log('文档信息 - data字段详情:');
+                                Logger.log('  - type:', docResponse.data.type);
+                                Logger.log('  - box:', docResponse.data.box);
+                                Logger.log('  - path:', docResponse.data.path);
+                                Logger.log('  - 所有字段:', Object.keys(docResponse.data));
                             }
                             
                             if (docResponse.code === 0 && docResponse.data && docResponse.data.rootID && docResponse.data.box) {
                                 // rootID 就是文档ID，box 就是笔记本ID，不需要检查type
-                                console.log('[TagSearchManager] ✅ 通过rootID找到文档块！笔记本ID:', docResponse.data.box);
+                                Logger.log('✅ 通过rootID找到文档块！笔记本ID:', docResponse.data.box);
                                 return {
                                     docId: response.data.rootID,
                                     notebookId: docResponse.data.box,
@@ -183,16 +184,16 @@ export class TagSearchManager {
                             }
                         }
                     } catch (error) {
-                        console.error('[TagSearchManager] 检查块', blockId, '失败:', error);
+                        Logger.error('检查块', blockId, '失败:', error);
                         continue; // 继续检查下一个块
                     }
                 }
             }
 
-            console.log('[TagSearchManager] ❌ 无法获取当前文档信息');
+            Logger.log('❌ 无法获取当前文档信息');
             return null;
         } catch (error) {
-            console.error('[TagSearchManager] ❌ 获取文档信息失败:', error);
+            Logger.error('❌ 获取文档信息失败:', error);
             return null;
         }
     }
@@ -202,23 +203,23 @@ export class TagSearchManager {
      * 根据范围获取搜索路径
      */
     private async getSearchPaths(scope: SearchScope): Promise<string[]> {
-        console.log('[TagSearchManager] 📂 ========== 开始获取搜索路径 ==========');
-        console.log('[TagSearchManager] 搜索范围:', scope);
+        Logger.log('📂 ========== 开始获取搜索路径 ==========');
+        Logger.log('搜索范围:', scope);
         
         const docInfo = await this.getCurrentDocInfo();
-        console.log('[TagSearchManager] 当前文档信息:', docInfo);
+        Logger.log('当前文档信息:', docInfo);
         
         switch (scope) {
             case 'doc':
                 // 本文档：使用 box + path
-                console.log('[TagSearchManager] 📄 doc 模式 - docInfo:', docInfo);
+                Logger.log('📄 doc 模式 - docInfo:', docInfo);
                 
                 if (docInfo?.docId) {
                     try {
                         const response = await fetchSyncPost('/api/block/getBlockInfo', {
                             id: docInfo.docId
                         });
-                        console.log('[TagSearchManager] getBlockInfo 响应:', response);
+                        Logger.log('getBlockInfo 响应:', response);
                         
                         if (response.code === 0 && response.data) {
                             // 对于本文档：box + path (确保包含.sy扩展名)
@@ -226,30 +227,30 @@ export class TagSearchManager {
                             const path = response.data.path.startsWith('/') ? response.data.path.substring(1) : response.data.path;
                             const fullPath = `${box}/${path}`;
                             
-                            console.log('[TagSearchManager] box:', box);
-                            console.log('[TagSearchManager] 原始path:', response.data.path);
-                            console.log('[TagSearchManager] 处理后path:', path);
-                            console.log('[TagSearchManager] ✅ 本文档完整路径:', fullPath);
-                            console.log('[TagSearchManager] 📋 用户期望格式示例: 20251001192613-0qb17u2/20251001192616-lokuemy.sy');
+                            Logger.log('box:', box);
+                            Logger.log('原始path:', response.data.path);
+                            Logger.log('处理后path:', path);
+                            Logger.log('✅ 本文档完整路径:', fullPath);
+                            Logger.log('📋 用户期望格式示例: 20251001192613-0qb17u2/20251001192616-lokuemy.sy');
                             return [fullPath];
                         }
                     } catch (error) {
-                        console.error('[TagSearchManager] ❌ 获取文档路径失败:', error);
+                        Logger.error('❌ 获取文档路径失败:', error);
                     }
                 }
-                console.log('[TagSearchManager] ❌ doc 模式失败，返回空数组');
+                Logger.log('❌ doc 模式失败，返回空数组');
                 return [];
                 
             case 'subdocs':
                 // 文档及子文档：box + path (去掉.sy扩展名)
-                console.log('[TagSearchManager] 📁 subdocs 模式 - docInfo:', docInfo);
+                Logger.log('📁 subdocs 模式 - docInfo:', docInfo);
                 
                 if (docInfo?.docId) {
                     try {
                         const response = await fetchSyncPost('/api/block/getBlockInfo', {
                             id: docInfo.docId
                         });
-                        console.log('[TagSearchManager] getBlockInfo 响应:', response);
+                        Logger.log('getBlockInfo 响应:', response);
                         
                         if (response.code === 0 && response.data) {
                             // 对于文档及子文档：box + path (去掉.sy扩展名)
@@ -260,34 +261,34 @@ export class TagSearchManager {
                             const pathWithoutExt = path.endsWith('.sy') ? path.substring(0, path.length - 3) : path;
                             const fullDirPath = `${box}/${pathWithoutExt}`;
                             
-                            console.log('[TagSearchManager] box:', box);
-                            console.log('[TagSearchManager] 原始path:', response.data.path);
-                            console.log('[TagSearchManager] 去掉.sy后path:', pathWithoutExt);
-                            console.log('[TagSearchManager] ✅ 文档及子文档路径:', fullDirPath);
-                            console.log('[TagSearchManager] 📋 用户期望格式示例: 20251001192613-0qb17u2/20251001192616-lokuemy');
+                            Logger.log('box:', box);
+                            Logger.log('原始path:', response.data.path);
+                            Logger.log('去掉.sy后path:', pathWithoutExt);
+                            Logger.log('✅ 文档及子文档路径:', fullDirPath);
+                            Logger.log('📋 用户期望格式示例: 20251001192613-0qb17u2/20251001192616-lokuemy');
                             
                             return [fullDirPath];
                         }
                     } catch (error) {
-                        console.error('[TagSearchManager] ❌ 获取文档目录路径失败:', error);
+                        Logger.error('❌ 获取文档目录路径失败:', error);
                     }
                 }
-                console.log('[TagSearchManager] ❌ subdocs 模式失败，返回空数组');
+                Logger.log('❌ subdocs 模式失败，返回空数组');
                 return [];
                 
             case 'notebook':
                 // 本笔记本：使用笔记本 ID
-                console.log('[TagSearchManager] 📚 notebook 模式 - docInfo:', docInfo);
+                Logger.log('📚 notebook 模式 - docInfo:', docInfo);
                 
                 if (docInfo?.notebookId) {
-                    console.log('[TagSearchManager] ✅ 笔记本ID:', docInfo.notebookId);
+                    Logger.log('✅ 笔记本ID:', docInfo.notebookId);
                     return [docInfo.notebookId];
                 }
-                console.log('[TagSearchManager] ❌ notebook 模式失败，返回空数组');
+                Logger.log('❌ notebook 模式失败，返回空数组');
                 return [];
                 
             default:
-                console.log('[TagSearchManager] ⚠️ 未知搜索范围，使用笔记本模式');
+                Logger.log('⚠️ 未知搜索范围，使用笔记本模式');
                 return currentDoc ? [currentDoc.notebookId] : [];
         }
     }
@@ -317,11 +318,11 @@ export class TagSearchManager {
      * 获取当前文档中所有可用的标签
      */
     public async getAllAvailableTags(scope: SearchScope = 'notebook'): Promise<string[]> {
-        console.log('[TagSearchManager] 📋 ========== 获取可用标签 ==========');
+        Logger.log('📋 ========== 获取可用标签 ==========');
         
         try {
             const paths = await this.getSearchPaths(scope);
-            console.log('[TagSearchManager] 🔍 搜索路径:', paths);
+            Logger.log('🔍 搜索路径:', paths);
             
             // 搜索所有标签（使用通配符）
             const requestBody = {
@@ -354,11 +355,11 @@ export class TagSearchManager {
                 requestBody.paths = paths;
             }
             
-            console.log('[TagSearchManager] 📤 发起标签搜索请求');
+            Logger.log('📤 发起标签搜索请求');
             const response = await fetchSyncPost('/api/search/fullTextSearchBlock', requestBody);
             
             if (!response || response.code !== 0) {
-                console.error('[TagSearchManager] ❌ 标签搜索失败:', response);
+                Logger.error('❌ 标签搜索失败:', response);
                 return [];
             }
             
@@ -375,7 +376,7 @@ export class TagSearchManager {
                     content = this.extractTextContent(block.content);
                 }
                 
-                console.log(`[TagSearchManager] 🔍 处理块内容:`, content.substring(0, 100) + '...');
+                Logger.log(`🔍 处理块内容:`, content.substring(0, 100) + '...');
                 
                 // 匹配标签格式：#标签名#
                 const tagMatches = content.match(/#[^#\s<>]+#/g);
@@ -386,20 +387,20 @@ export class TagSearchManager {
                         const finalTag = cleanTag.replace(/&[^;]+;/g, '').trim();
                         if (finalTag && !finalTag.includes('<') && !finalTag.includes('>')) {
                             tagSet.add(finalTag);
-                            console.log(`[TagSearchManager] ✅ 找到标签: ${finalTag}`);
+                            Logger.log(`✅ 找到标签: ${finalTag}`);
                         }
                     });
                 }
             });
             
             const availableTags = Array.from(tagSet).sort();
-            console.log('[TagSearchManager] 🏷️ 找到可用标签:', availableTags);
-            console.log('[TagSearchManager] ========== 获取标签完成 ==========');
+            Logger.log('🏷️ 找到可用标签:', availableTags);
+            Logger.log('========== 获取标签完成 ==========');
             
             return availableTags;
             
         } catch (error) {
-            console.error('[TagSearchManager] ❌ 获取标签失败:', error);
+            Logger.error('❌ 获取标签失败:', error);
             return [];
         }
     }
@@ -412,8 +413,8 @@ export class TagSearchManager {
         scope: SearchScope = 'notebook'
     ): Promise<TagSearchResult[]> {
         try {
-            console.log('[TagSearchManager] 🔍 开始搜索标签:', tagText);
-            console.log('[TagSearchManager] 搜索范围:', scope);
+            Logger.log('🔍 开始搜索标签:', tagText);
+            Logger.log('搜索范围:', scope);
             
             // 清理零宽字符
             let cleanedText = tagText
@@ -430,11 +431,11 @@ export class TagSearchManager {
                 searchQuery = searchQuery + '#';
             }
             
-            console.log('[TagSearchManager] 搜索查询:', searchQuery);
+            Logger.log('搜索查询:', searchQuery);
             
             // 获取搜索路径
             const paths = await this.getSearchPaths(scope);
-            console.log('[TagSearchManager] 搜索路径:', paths);
+            Logger.log('搜索路径:', paths);
             
             // 构建请求
             const requestBody: any = {
@@ -467,42 +468,42 @@ export class TagSearchManager {
             };
             
             // 添加路径限制
-            console.log('[TagSearchManager] 🔍 检查路径:', { pathsLength: paths.length, paths });
-            console.log('[TagSearchManager] 🔍 paths 详细信息:', JSON.stringify(paths));
+            Logger.log('🔍 检查路径:', { pathsLength: paths.length, paths });
+            Logger.log('🔍 paths 详细信息:', JSON.stringify(paths));
             
             if (paths.length > 0) {
                 requestBody.paths = paths;
-                console.log('[TagSearchManager] ✅ 已添加 paths 到请求，搜索范围:', scope);
+                Logger.log('✅ 已添加 paths 到请求，搜索范围:', scope);
             } else {
-                console.log('[TagSearchManager] ⚠️ 搜索但 paths 为空，可能有问题！搜索范围:', scope);
+                Logger.log('⚠️ 搜索但 paths 为空，可能有问题！搜索范围:', scope);
             }
             
-            console.log('[TagSearchManager] 🔍 ========== API 调用详情 ==========');
-            console.log('[TagSearchManager] 搜索范围:', scope);
-            console.log('[TagSearchManager] 搜索路径:', paths);
-            console.log('[TagSearchManager] 请求体:', JSON.stringify(requestBody, null, 2));
+            Logger.log('🔍 ========== API 调用详情 ==========');
+            Logger.log('搜索范围:', scope);
+            Logger.log('搜索路径:', paths);
+            Logger.log('请求体:', JSON.stringify(requestBody, null, 2));
             
             const response = await fetchSyncPost('/api/search/fullTextSearchBlock', requestBody);
             
-            console.log('[TagSearchManager] API 响应码:', response.code);
-            console.log('[TagSearchManager] API 响应消息:', response.msg);
-            console.log('[TagSearchManager] API 数据:', response.data);
-            console.log('[TagSearchManager] 匹配的块数:', response.data?.matchedBlockCount);
-            console.log('[TagSearchManager] 匹配的根文档数:', response.data?.matchedRootCount);
-            console.log('[TagSearchManager] ========== API 调用结束 ==========');
+            Logger.log('API 响应码:', response.code);
+            Logger.log('API 响应消息:', response.msg);
+            Logger.log('API 数据:', response.data);
+            Logger.log('匹配的块数:', response.data?.matchedBlockCount);
+            Logger.log('匹配的根文档数:', response.data?.matchedRootCount);
+            Logger.log('========== API 调用结束 ==========');
             
             if (response.code === 0 && response.data && response.data.blocks) {
-                console.log('[TagSearchManager] 原始 blocks 数量:', response.data.blocks.length);
-                console.log('[TagSearchManager] 原始 blocks 结构:', response.data.blocks);
+                Logger.log('原始 blocks 数量:', response.data.blocks.length);
+                Logger.log('原始 blocks 结构:', response.data.blocks);
                 
                 // 递归展开树形结构（因为 groupBy: 1 返回的是树）
                 const flattenedBlocks = this.flattenBlocks(response.data.blocks);
-                console.log('[TagSearchManager] 展开后的 blocks 数量:', flattenedBlocks.length);
+                Logger.log('展开后的 blocks 数量:', flattenedBlocks.length);
                 
                 // 分析每个结果的来源
-                console.log('[TagSearchManager] 📊 结果分析:');
+                Logger.log('📊 结果分析:');
                 flattenedBlocks.forEach((block, index) => {
-                    console.log(`[TagSearchManager] 块 #${index}:`, {
+                    Logger.log(`块 #${index}:`, {
                         id: block.id,
                         box: block.box,
                         path: block.path,
@@ -524,14 +525,14 @@ export class TagSearchManager {
                     updated: block.updated || block.ial?.updated || ''
                 }));
                 
-                console.log('[TagSearchManager] ✅ 搜索成功，找到', blocks.length, '个结果');
+                Logger.log('✅ 搜索成功，找到', blocks.length, '个结果');
                 return blocks;
             }
             
-            console.log('[TagSearchManager] ⚠️ 未找到结果');
+            Logger.log('⚠️ 未找到结果');
             return [];
         } catch (error) {
-            console.error('[TagSearchManager] ❌ 搜索失败:', error);
+            Logger.error('❌ 搜索失败:', error);
             return [];
         }
     }
@@ -540,8 +541,8 @@ export class TagSearchManager {
      * 将搜索结果按文档分组
      */
     public groupByDocument(results: TagSearchResult[]): GroupedResults {
-        console.log('[TagSearchManager] 📊 ========== 开始文档分组 ==========');
-        console.log('[TagSearchManager] 输入结果数量:', results.length);
+        Logger.log('📊 ========== 开始文档分组 ==========');
+        Logger.log('输入结果数量:', results.length);
         
         const grouped: GroupedResults = {};
         
@@ -557,13 +558,13 @@ export class TagSearchManager {
                     notebookId: block.box,
                     blocks: []
                 };
-                console.log(`[TagSearchManager] 创建文档组: ${docName}`);
+                Logger.log(`创建文档组: ${docName}`);
             }
             
             grouped[docId].blocks.push(block);
         });
         
-        console.log('[TagSearchManager] 📊 分组完成:', Object.keys(grouped).length, '个文档');
+        Logger.log('📊 分组完成:', Object.keys(grouped).length, '个文档');
         return grouped;
     }
 
@@ -581,7 +582,7 @@ export class TagSearchManager {
             tempDiv.innerHTML = htmlContent;
             return tempDiv.textContent || tempDiv.innerText || '';
         } catch (error) {
-            console.warn('[TagSearchManager] HTML内容解析失败，使用正则清理:', error);
+            Logger.warn('HTML内容解析失败，使用正则清理:', error);
             // 备用方案：使用正则表达式简单清理HTML标签
             return htmlContent.replace(/<[^>]*>/g, '');
         }
@@ -602,36 +603,36 @@ export class TagSearchManager {
      * 获取笔记本真实名称（使用SiYuan官方方法）
      */
     private getNotebookName(notebookId: string): string {
-        console.log('[TagSearchManager] 📚 ========== 使用SiYuan官方方法获取笔记本名称 ==========');
-        console.log('[TagSearchManager] 📚 笔记本ID:', notebookId);
+        Logger.log('📚 ========== 使用SiYuan官方方法获取笔记本名称 ==========');
+        Logger.log('📚 笔记本ID:', notebookId);
         
         // 检查window.siyuan.notebooks是否存在
         if (!window.siyuan || !window.siyuan.notebooks) {
-            console.log('[TagSearchManager] ❌ window.siyuan.notebooks不存在');
+            Logger.log('❌ window.siyuan.notebooks不存在');
             return `📚 笔记本 ${notebookId.substring(0, 8)}...`;
         }
         
-        console.log('[TagSearchManager] 📚 笔记本总数:', window.siyuan.notebooks.length);
-        console.log('[TagSearchManager] 📚 所有笔记本:', window.siyuan.notebooks.map(nb => ({id: nb.id, name: nb.name})));
+        Logger.log('📚 笔记本总数:', window.siyuan.notebooks.length);
+        Logger.log('📚 所有笔记本:', window.siyuan.notebooks.map(nb => ({id: nb.id, name: nb.name})));
         
         // 使用SiYuan官方方法：从window.siyuan.notebooks中查找
         let rootPath = "";
         const found = window.siyuan.notebooks.find((item) => {
             if (item.id === notebookId) {
                 rootPath = item.name;
-                console.log('[TagSearchManager] ✅ 找到匹配的笔记本:', { id: item.id, name: item.name });
+                Logger.log('✅ 找到匹配的笔记本:', { id: item.id, name: item.name });
                 return true;
             }
             return false;
         });
         
         if (found && rootPath) {
-            console.log('[TagSearchManager] ✅ 成功获取笔记本名称:', rootPath);
-            console.log('[TagSearchManager] ========== 获取笔记本名称结束 ==========');
+            Logger.log('✅ 成功获取笔记本名称:', rootPath);
+            Logger.log('========== 获取笔记本名称结束 ==========');
             return `📚 ${rootPath}`;
         } else {
-            console.log('[TagSearchManager] ❌ 未找到匹配的笔记本ID，使用后备名称');
-            console.log('[TagSearchManager] ========== 获取笔记本名称结束（失败） ==========');
+            Logger.log('❌ 未找到匹配的笔记本ID，使用后备名称');
+            Logger.log('========== 获取笔记本名称结束（失败） ==========');
             return `📚 笔记本 ${notebookId.substring(0, 8)}...`;
         }
     }
@@ -650,4 +651,6 @@ export class TagSearchManager {
 }
 
 export const tagSearchManager = new TagSearchManager();
+
+
 

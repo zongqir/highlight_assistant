@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 闪卡快切模块 - 统一导出接口
  */

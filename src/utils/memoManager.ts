@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 备注管理器 - 处理所有备注相关功能
  */
@@ -31,7 +32,7 @@ export class MemoManager {
      * 初始化备注功能
      */
     public initialize(): void {
-        console.log('[MemoManager] ✅ 备注管理器初始化完成（移除了全局监听器，改为主动控制）');
+        Logger.log('✅ 备注管理器初始化完成（移除了全局监听器，改为主动控制）');
         // 移除了 startMemoUIWatcher()，不再使用全局监听器
         
         // 🔑 初始化公共操作包装器
@@ -43,7 +44,7 @@ export class MemoManager {
         // 🔑 延迟设置初始化完成标记
         setTimeout(() => {
             this.isInitialized = true;
-            console.log('[MemoManager] ✅ 备注管理器初始化完成，现在允许执行加锁操作');
+            Logger.log('✅ 备注管理器初始化完成，现在允许执行加锁操作');
         }, 2000);
     }
 
@@ -51,7 +52,7 @@ export class MemoManager {
      * 设置点击备注弹出编辑框的功能
      */
     private setupClickToEditMemo(): void {
-        console.log('[MemoManager] 🎯 设置点击备注弹出编辑框功能...');
+        Logger.log('🎯 设置点击备注弹出编辑框功能...');
         
         // 监听点击事件（使用事件捕获，确保能够拦截）
         document.addEventListener('click', (e) => {
@@ -63,7 +64,7 @@ export class MemoManager {
                 e.stopPropagation();
                 e.stopImmediatePropagation();
                 
-                console.log('[MemoManager] 🎯 点击了备注元素，显示编辑框');
+                Logger.log('🎯 点击了备注元素，显示编辑框');
                 
                 // 显示自定义备注编辑对话框
                 this.showCustomMemoDialog(target);
@@ -72,7 +73,7 @@ export class MemoManager {
             }
         }, true); // 使用捕获阶段拦截
         
-        console.log('[MemoManager] ✅ 点击备注编辑功能已启动');
+        Logger.log('✅ 点击备注编辑功能已启动');
     }
 
     // 已移除重复的解锁-加锁逻辑，改用公共 operationWrapper
@@ -83,11 +84,11 @@ export class MemoManager {
     private restoreReadonlyMode(): void {
         // 🔑 安全检查：只有在初始化完成后才执行加锁操作
         if (!this.isInitialized) {
-            console.log('[MemoManager] ⚠️ 备注管理器尚未完全初始化，跳过加锁操作（避免启动时意外加锁）');
+            Logger.log('⚠️ 备注管理器尚未完全初始化，跳过加锁操作（避免启动时意外加锁）');
             return;
         }
         
-        console.log('[MemoManager] 🔒 开始无脑加锁...');
+        Logger.log('🔒 开始无脑加锁...');
         
         let attempts = 0;
         const maxAttempts = 3;
@@ -99,16 +100,16 @@ export class MemoManager {
             
             if (readonlyBtn) {
                 const currentLabel = readonlyBtn.getAttribute('aria-label');
-                console.log(`[MemoManager] 🔒 第${attempts}次尝试加锁，按钮状态:`, currentLabel);
+                Logger.log(`🔒 第${attempts}次尝试加锁，按钮状态:`, currentLabel);
                 
                 // 无脑点击锁按钮
                 readonlyBtn.click();
-                console.log(`[MemoManager] 🔒 第${attempts}次点击已执行`);
+                Logger.log(`🔒 第${attempts}次点击已执行`);
                 
                 // 检查是否成功（延迟检查）
         setTimeout(() => {
                     const newLabel = readonlyBtn.getAttribute('aria-label');
-                    console.log(`[MemoManager] 🔒 第${attempts}次点击后状态:`, newLabel);
+                    Logger.log(`🔒 第${attempts}次点击后状态:`, newLabel);
                     
                     // 检查是否已经锁定
                     // 🔑 修复：正确判断锁定状态
@@ -116,17 +117,17 @@ export class MemoManager {
                     const isLocked = newLabel && (newLabel.includes('临时解锁') || newLabel.includes('解除锁定'));
                     
                     if (!isLocked && attempts < maxAttempts) {
-                        console.log(`[MemoManager] 🔒 未锁定，${300}ms后重试`);
+                        Logger.log(`🔒 未锁定，${300}ms后重试`);
                         setTimeout(tryToLock, 300);
                     } else if (isLocked) {
-                        console.log('[MemoManager] ✅ 成功加锁！');
+                        Logger.log('✅ 成功加锁！');
                     } else {
-                        console.log('[MemoManager] ⚠️ 已达最大尝试次数，放弃');
+                        Logger.log('⚠️ 已达最大尝试次数，放弃');
                     }
                 }, 200);
                 
             } else {
-                console.log('[MemoManager] ❌ 未找到锁按钮');
+                Logger.log('❌ 未找到锁按钮');
             }
         };
         
@@ -155,9 +156,9 @@ export class MemoManager {
                 return originalPrompt.call(window, message, defaultText);
             };
             
-            console.log('已设置备注方法拦截');
+            Logger.log('已设置备注方法拦截');
         } catch (error) {
-            console.log('备注方法拦截设置完成');
+            Logger.log('备注方法拦截设置完成');
         }
     }
 
@@ -165,19 +166,19 @@ export class MemoManager {
      * 显示自定义备注对话框 - 使用统一的解锁-操作-加锁包装
      */
     private async showCustomMemoDialog(memoElement?: HTMLElement): Promise<void> {
-        console.log('\n[MemoManager] 💬 ========== 显示备注弹窗 ==========');
+        Logger.log('\n💬 ========== 显示备注弹窗 ==========');
         
         if (!memoElement) {
-            console.warn('[MemoManager] 备注元素不存在');
+            Logger.warn('备注元素不存在');
             return;
         }
 
         const existingContent = memoElement.getAttribute('data-inline-memo-content') || '';
         const selectedText = memoElement.textContent || '';
         
-        console.log('[MemoManager] 🎨 准备显示备注输入对话框...');
+        Logger.log('🎨 准备显示备注输入对话框...');
         const memoText = await this.showEnhancedMemoInput(selectedText, existingContent);
-        console.log('[MemoManager] 📤 用户输入结果:', memoText ? '有内容' : '取消或为空');
+        Logger.log('📤 用户输入结果:', memoText ? '有内容' : '取消或为空');
         
         if (memoText !== null) {
             if (memoText === '__DELETE_MEMO__') {
@@ -199,7 +200,7 @@ export class MemoManager {
             }
         }
         
-        console.log('[MemoManager] ========== 备注弹窗流程结束 ==========\n');
+        Logger.log('========== 备注弹窗流程结束 ==========\n');
     }
 
     /**
@@ -233,7 +234,7 @@ export class MemoManager {
             throw new Error('备注删除失败');
         }
 
-        console.log('[MemoManager] ✅ 备注删除成功');
+        Logger.log('✅ 备注删除成功');
     }
 
     /**
@@ -242,7 +243,7 @@ export class MemoManager {
     private async performUpdateMemo(memoElement: HTMLElement, memoText: string): Promise<void> {
         // 更新备注内容
         memoElement.setAttribute('data-inline-memo-content', memoText);
-        console.log('[MemoManager] ✅ 备注已更新:', memoText);
+        Logger.log('✅ 备注已更新:', memoText);
         
         // 保存到思源
         await this.saveMemoToSiYuanWithoutLock(memoElement, memoText);
@@ -270,7 +271,7 @@ export class MemoManager {
             throw new Error('备注保存失败');
         }
         
-        console.log('[MemoManager] ✅ 备注保存成功');
+        Logger.log('✅ 备注保存成功');
     }
 
     /**
@@ -281,13 +282,13 @@ export class MemoManager {
             // 找到包含备注的块
             const blockElement = this.findBlockElement(memoElement);
             if (!blockElement) {
-                console.warn('未找到块元素');
+                Logger.warn('未找到块元素');
                 return;
             }
 
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                console.warn('未找到块ID');
+                Logger.warn('未找到块ID');
                 return;
             }
 
@@ -304,14 +305,14 @@ export class MemoManager {
             const updateResult = await updateBlock("dom", newContent, blockId);
 
             if (updateResult) {
-                console.log('✅ 备注删除成功');
+                Logger.log('✅ 备注删除成功');
             } else {
-                console.error('❌ 备注删除失败');
+                Logger.error('❌ 备注删除失败');
                 // 恢复原始内容
                 blockElement.innerHTML = oldContent;
             }
         } catch (error) {
-            console.error('删除备注出错:', error);
+            Logger.error('删除备注出错:', error);
         }
     }
 
@@ -323,13 +324,13 @@ export class MemoManager {
             // 找到包含备注的块
             const blockElement = this.findBlockElement(memoElement);
             if (!blockElement) {
-                console.warn('未找到块元素');
+                Logger.warn('未找到块元素');
                 return;
             }
 
             const blockId = blockElement.getAttribute("data-node-id");
             if (!blockId) {
-                console.warn('未找到块ID');
+                Logger.warn('未找到块ID');
                 return;
             }
 
@@ -338,12 +339,12 @@ export class MemoManager {
             const updateResult = await updateBlock("dom", newContent, blockId);
 
             if (updateResult) {
-                console.log('✅ 备注保存成功');
+                Logger.log('✅ 备注保存成功');
             } else {
-                console.error('❌ 备注保存失败');
+                Logger.error('❌ 备注保存失败');
             }
         } catch (error) {
-            console.error('保存备注出错:', error);
+            Logger.error('保存备注出错:', error);
         }
     }
 
@@ -353,7 +354,7 @@ export class MemoManager {
     public async addMemoWithPrompt(range: Range): Promise<void> {
             const selectedText = range.toString().trim();
             if (!selectedText) {
-                console.warn('请先选择要添加备注的文本');
+                Logger.warn('请先选择要添加备注的文本');
                 return;
             }
 
@@ -404,12 +405,12 @@ export class MemoManager {
                 const textarea = popup?.querySelector('textarea.b3-text-field') as HTMLTextAreaElement;
                 
                 if (popup && textarea) {
-                    console.log('[MemoManager] 🎯 找到原生备注弹窗，开始处理');
+                    Logger.log('🎯 找到原生备注弹窗，开始处理');
                     this.handleNativePopupDirectlyWithoutLock(popup, textarea, selectedText)
                         .then(resolve)
                         .catch(reject);
                 } else if (attempts >= maxAttempts) {
-                    console.error('[MemoManager] 等待原生弹窗超时');
+                    Logger.error('等待原生弹窗超时');
                     reject(new Error('等待原生弹窗超时'));
                 } else {
                     // 继续等待
@@ -437,12 +438,12 @@ export class MemoManager {
                 const textarea = popup?.querySelector('textarea.b3-text-field') as HTMLTextAreaElement;
                 
                 if (popup && textarea) {
-                    console.log('[MemoManager] 🎯 找到原生备注弹窗，开始处理');
+                    Logger.log('🎯 找到原生备注弹窗，开始处理');
                     this.handleNativePopupDirectly(popup, textarea, selectedText)
                         .then(resolve)
                         .catch(reject);
                 } else if (attempts >= maxAttempts) {
-                    console.error('[MemoManager] 等待原生弹窗超时');
+                    Logger.error('等待原生弹窗超时');
                     reject(new Error('等待原生弹窗超时'));
                 } else {
                     // 继续等待
@@ -470,7 +471,7 @@ export class MemoManager {
             const userInput = await this.showEnhancedMemoInput(selectedText);
             
             if (userInput) {
-                console.log('[MemoManager] ✅ 用户输入内容，填入原生弹窗:', userInput);
+                Logger.log('✅ 用户输入内容，填入原生弹窗:', userInput);
                 
                 // 填入原生textarea
                 nativeTextArea.value = userInput;
@@ -480,11 +481,11 @@ export class MemoManager {
                 const confirmBtn = nativePopup.querySelector('button') as HTMLButtonElement;
                 if (confirmBtn) {
                     confirmBtn.click();
-                    console.log('[MemoManager] ✅ 已触发确认');
+                    Logger.log('✅ 已触发确认');
                     // 注意：不再调用 restoreReadonlyMode()，由 operationWrapper 统一处理
                 }
             } else {
-                console.log('[MemoManager] ❌ 用户取消');
+                Logger.log('❌ 用户取消');
                 
                 // 点击取消按钮
                 const closeBtn = nativePopup.querySelector('[data-type="close"]') as HTMLButtonElement;
@@ -495,7 +496,7 @@ export class MemoManager {
             }
             
         } catch (error) {
-            console.error('[MemoManager] 处理原生弹窗出错:', error);
+            Logger.error('处理原生弹窗出错:', error);
             
             // 恢复原生弹窗显示
             nativePopup.style.display = '';
@@ -521,7 +522,7 @@ export class MemoManager {
             const userInput = await this.showEnhancedMemoInput(selectedText);
             
             if (userInput) {
-                console.log('[MemoManager] ✅ 用户输入内容，填入原生弹窗:', userInput);
+                Logger.log('✅ 用户输入内容，填入原生弹窗:', userInput);
                 
                 // 填入原生textarea
                 nativeTextArea.value = userInput;
@@ -531,7 +532,7 @@ export class MemoManager {
                 const confirmBtn = nativePopup.querySelector('button') as HTMLButtonElement;
                 if (confirmBtn) {
                     confirmBtn.click();
-                    console.log('[MemoManager] ✅ 已触发确认');
+                    Logger.log('✅ 已触发确认');
                     
                     // 步骤4: 🔒 加锁（增加延迟，让思源完成保存）
                     setTimeout(() => {
@@ -539,7 +540,7 @@ export class MemoManager {
                     }, 800);
                 }
             } else {
-                console.log('[MemoManager] ❌ 用户取消');
+                Logger.log('❌ 用户取消');
                 
                 // 点击取消按钮
                 const closeBtn = nativePopup.querySelector('[data-type="close"]') as HTMLButtonElement;
@@ -554,7 +555,7 @@ export class MemoManager {
             }
 
         } catch (error) {
-            console.error('[MemoManager] 处理原生弹窗出错:', error);
+            Logger.error('处理原生弹窗出错:', error);
             
             // 恢复原生弹窗显示
             nativePopup.style.display = '';
@@ -778,7 +779,7 @@ export class MemoManager {
                     !className.includes('protyle-wysiwyg') &&
                     !className.includes('protyle-html')) {
                     
-                    console.log('[MemoManager] 找到块元素:', {
+                    Logger.log('找到块元素:', {
                         blockId: element.getAttribute('data-node-id'),
                         dataType: element.getAttribute('data-type'),
                         className: className.substring(0, 50)
@@ -790,7 +791,7 @@ export class MemoManager {
             current = current.parentNode!;
         }
         
-        console.warn('[MemoManager] 未找到有效的块元素');
+        Logger.warn('未找到有效的块元素');
         return null;
     }
 
@@ -801,7 +802,7 @@ export class MemoManager {
         try {
             const blockId = blockElement.getAttribute('data-node-id');
             if (!blockId) {
-                console.warn('[MemoManager] 未找到块ID，使用DOM解析');
+                Logger.warn('未找到块ID，使用DOM解析');
                 return this.extractContentFromDOM(blockElement);
             }
 
@@ -810,19 +811,19 @@ export class MemoManager {
             const result = await this.api.getBlockKramdown(blockId);
                 if (result && result.code === 0 && result.data && result.data.kramdown) {
                     const originalMarkdown = result.data.kramdown;
-                    console.log('[MemoManager] 获取原始Markdown成功，合并DOM修改...');
+                    Logger.log('获取原始Markdown成功，合并DOM修改...');
                     // 🔑 关键：合并当前DOM修改到Markdown中
                     return this.mergeContentIntoMarkdown(originalMarkdown, blockElement);
                 }
             } catch (apiError) {
-                console.warn('[MemoManager] API获取失败，使用DOM解析:', apiError);
+                Logger.warn('API获取失败，使用DOM解析:', apiError);
             }
 
             // 🔑 方案2: 备用方案 - 直接从DOM提取
             return this.extractContentFromDOM(blockElement);
 
         } catch (error) {
-            console.error('[MemoManager] 提取Markdown内容出错:', error);
+            Logger.error('提取Markdown内容出错:', error);
             throw error;
         }
     }
@@ -844,12 +845,12 @@ export class MemoManager {
         }
         
         if (contentDiv) {
-            console.log('[MemoManager] 从contentDiv提取内容');
+            Logger.log('从contentDiv提取内容');
             // 🔑 直接返回修改后的HTML（思源支持HTML格式，会自动处理）
             return contentDiv.innerHTML;
         }
         
-        console.log('[MemoManager] 未找到contentDiv，返回原始Markdown');
+        Logger.log('未找到contentDiv，返回原始Markdown');
         return originalMarkdown;
     }
 
@@ -870,12 +871,14 @@ export class MemoManager {
         }
         
         if (contentDiv && contentDiv.innerHTML.trim() && contentDiv.innerHTML.trim() !== '​') {
-            console.log('[MemoManager] DOM提取成功');
+            Logger.log('DOM提取成功');
             return contentDiv.innerHTML;
         }
         
-        console.warn('[MemoManager] 无法从DOM提取内容，使用blockElement.innerHTML');
+        Logger.warn('无法从DOM提取内容，使用blockElement.innerHTML');
         return blockElement.innerHTML;
     }
 }
+
+
 

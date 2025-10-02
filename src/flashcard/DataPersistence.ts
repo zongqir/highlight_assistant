@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 数据持久化模块 - 负责闪卡快切数据的存储和读取
  */
@@ -19,16 +20,16 @@ export class DataPersistence {
         try {
             const storedData = localStorage.getItem(this.storageKey);
             if (!storedData) {
-                console.log('[DataPersistence] 未找到存储数据，返回默认数据');
+                Logger.log('未找到存储数据，返回默认数据');
                 return this.createDefaultData();
             }
 
             const data = JSON.parse(storedData);
-            console.log('[DataPersistence] 成功加载数据:', data);
+            Logger.log('成功加载数据:', data);
             return this.validateAndMigrateData(data);
 
         } catch (error) {
-            console.error(`[DataPersistence] 加载数据失败:`, error);
+            Logger.error(`加载数据失败:`, error);
             // 返回默认数据，避免功能完全失效
             return this.createDefaultData();
         }
@@ -41,10 +42,10 @@ export class DataPersistence {
         try {
             const jsonString = JSON.stringify(data, null, 2);
             localStorage.setItem(this.storageKey, jsonString);
-            console.log('[DataPersistence] 数据保存成功:', data);
+            Logger.log('数据保存成功:', data);
 
         } catch (error) {
-            console.error(`[DataPersistence] 保存数据失败:`, error);
+            Logger.error(`保存数据失败:`, error);
             throw new Error(`${ErrorCode.DATA_SAVE_FAILED}: ${error.message}`);
         }
     }
@@ -55,10 +56,10 @@ export class DataPersistence {
     async cleanupData(): Promise<void> {
         try {
             localStorage.removeItem(this.storageKey);
-            console.log('[DataPersistence] 数据清理完成');
+            Logger.log('数据清理完成');
 
         } catch (error) {
-            console.error(`[DataPersistence] 清理数据失败:`, error);
+            Logger.error(`清理数据失败:`, error);
             // 清理失败不应该阻止插件卸载
         }
     }
@@ -71,10 +72,10 @@ export class DataPersistence {
             const data = await this.loadData();
             const backupKey = `${this.storageKey}.backup.${Date.now()}`;
             localStorage.setItem(backupKey, JSON.stringify(data, null, 2));
-            console.log('[DataPersistence] 数据备份成功:', backupKey);
+            Logger.log('数据备份成功:', backupKey);
 
         } catch (error) {
-            console.error(`[DataPersistence] 备份数据失败:`, error);
+            Logger.error(`备份数据失败:`, error);
         }
     }
 
@@ -95,7 +96,7 @@ export class DataPersistence {
     private validateAndMigrateData(data: any): FlashcardQuickSwitchData {
         // 基本结构验证
         if (!data || typeof data !== 'object') {
-            console.warn('[DataPersistence] 数据格式无效，使用默认数据');
+            Logger.warn('数据格式无效，使用默认数据');
             return this.createDefaultData();
         }
 
@@ -169,9 +170,9 @@ export class DataPersistence {
             const data = JSON.parse(jsonString);
             const validatedData = this.validateAndMigrateData(data);
             await this.saveData(validatedData);
-            console.log('[DataPersistence] 数据导入成功');
+            Logger.log('数据导入成功');
         } catch (error) {
-            console.error('[DataPersistence] 数据导入失败:', error);
+            Logger.error('数据导入失败:', error);
             throw new Error(`导入数据失败: ${error.message}`);
         }
     }
@@ -200,8 +201,9 @@ export class DataPersistence {
             };
 
         } catch (error) {
-            console.error('[DataPersistence] 获取数据信息失败:', error);
+            Logger.error('获取数据信息失败:', error);
             return { exists: false };
         }
     }
 }
+

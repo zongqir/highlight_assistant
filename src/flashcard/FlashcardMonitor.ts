@@ -1,3 +1,4 @@
+﻿import Logger from '../utils/logger';
 /**
  * 闪卡筛选监听器 - 负责监听思源闪卡面板的筛选操作
  */
@@ -14,7 +15,7 @@ export class FlashcardMonitor {
     private eventListeners: Array<() => void> = [];
 
     constructor() {
-        console.log('[FlashcardMonitor] 闪卡监听器已创建');
+        Logger.log('闪卡监听器已创建');
     }
 
     /**
@@ -22,7 +23,7 @@ export class FlashcardMonitor {
      */
     startMonitoring(): void {
         if (this.isActive) {
-            console.warn('[FlashcardMonitor] 监听器已经在运行');
+            Logger.warn('监听器已经在运行');
             return;
         }
 
@@ -30,10 +31,10 @@ export class FlashcardMonitor {
             this.setupMutationObserver();
             this.scanExistingPanels();
             this.isActive = true;
-            console.log('[FlashcardMonitor] 开始监听闪卡面板');
+            Logger.log('开始监听闪卡面板');
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 启动监听失败:', error);
+            Logger.error('启动监听失败:', error);
         }
     }
 
@@ -53,10 +54,10 @@ export class FlashcardMonitor {
             this.currentPanels.clear();
             this.lastFilterState.clear();
             this.isActive = false;
-            console.log('[FlashcardMonitor] 停止监听闪卡面板');
+            Logger.log('停止监听闪卡面板');
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 停止监听失败:', error);
+            Logger.error('停止监听失败:', error);
         }
     }
 
@@ -217,7 +218,7 @@ export class FlashcardMonitor {
             return null;
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 识别闪卡面板失败:', error);
+            Logger.error('识别闪卡面板失败:', error);
             return null;
         }
     }
@@ -231,7 +232,7 @@ export class FlashcardMonitor {
         }
 
         this.currentPanels.set(panelInfo.panel, panelInfo);
-        console.log(`[FlashcardMonitor] 检测到闪卡面板: ${panelInfo.type}`);
+        Logger.log(`检测到闪卡面板: ${panelInfo.type}`);
 
         // 设置筛选监听
         if (panelInfo.filterButton) {
@@ -263,7 +264,7 @@ export class FlashcardMonitor {
         panelsToRemove.forEach(panel => {
             this.currentPanels.delete(panel);
             this.lastFilterState.delete(panel);
-            console.log('[FlashcardMonitor] 闪卡面板已移除');
+            Logger.log('闪卡面板已移除');
         });
     }
 
@@ -280,7 +281,7 @@ export class FlashcardMonitor {
 
         // 监听筛选按钮点击
         const handleFilterClick = () => {
-            console.log('[FlashcardMonitor] 检测到筛选按钮点击');
+            Logger.log('检测到筛选按钮点击');
             
             // 延迟检查筛选状态变化
             setTimeout(() => {
@@ -298,7 +299,7 @@ export class FlashcardMonitor {
             filterButton.removeEventListener('click', handleFilterClick);
         });
 
-        console.log('[FlashcardMonitor] 已附加筛选监听');
+        Logger.log('已附加筛选监听');
     }
 
     /**
@@ -318,7 +319,7 @@ export class FlashcardMonitor {
                 
                 if (label && label !== '全部' && label !== '文件树') {
                     // 这可能是一个具体的筛选选择
-                    console.log(`[FlashcardMonitor] 检测到菜单选择: ${label}`);
+                    Logger.log(`检测到菜单选择: ${label}`);
                     
                     // 等待筛选应用完成
                     setTimeout(() => {
@@ -390,7 +391,7 @@ export class FlashcardMonitor {
             
             // 如果获取不到名称，使用ID作为回退
             if (!filterName) {
-                console.warn(`[FlashcardMonitor] 无法获取筛选名称，使用ID作为回退: ${filterId}`);
+                Logger.warn(`无法获取筛选名称，使用ID作为回退: ${filterId}`);
                 filterName = filterId;
             }
 
@@ -402,14 +403,14 @@ export class FlashcardMonitor {
                 timestamp: Date.now()
             };
 
-            console.log(`[FlashcardMonitor] 检测到筛选变化:`, event);
+            Logger.log(`检测到筛选变化:`, event);
 
             if (this.filterCallback) {
                 this.filterCallback(event);
             }
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 处理筛选变化失败:', error);
+            Logger.error('处理筛选变化失败:', error);
         }
     }
 
@@ -418,7 +419,7 @@ export class FlashcardMonitor {
      */
     private async getFilterName(filterId: string, filterType: string): Promise<string | null> {
         try {
-            console.log(`[FlashcardMonitor] 获取筛选名称: ${filterId} (${filterType})`);
+            Logger.log(`获取筛选名称: ${filterId} (${filterType})`);
             
             let apiEndpoint = '';
             let requestBody: any = {};
@@ -442,17 +443,17 @@ export class FlashcardMonitor {
             });
 
             if (!response.ok) {
-                console.warn(`[FlashcardMonitor] API请求失败: ${response.status}`);
+                Logger.warn(`API请求失败: ${response.status}`);
                 return null;
             }
 
             const result = await response.json();
             if (result.code !== 0) {
-                console.warn(`[FlashcardMonitor] API返回错误: ${result.code} - ${result.msg}`);
+                Logger.warn(`API返回错误: ${result.code} - ${result.msg}`);
                 return null;
             }
 
-            console.log(`[FlashcardMonitor] API返回数据:`, result.data);
+            Logger.log(`API返回数据:`, result.data);
 
             if (filterType === 'doc') {
                 // 尝试多个可能的字段来获取文档名称
@@ -463,7 +464,7 @@ export class FlashcardMonitor {
                            result.data?.box; // 如果都没有，至少返回笔记本名
                 
                 if (name) {
-                    console.log(`[FlashcardMonitor] 获取到文档名称: ${name}`);
+                    Logger.log(`获取到文档名称: ${name}`);
                     return name;
                 }
 
@@ -476,16 +477,16 @@ export class FlashcardMonitor {
                 const name = notebook?.name;
                 
                 if (name) {
-                    console.log(`[FlashcardMonitor] 获取到笔记本名称: ${name}`);
+                    Logger.log(`获取到笔记本名称: ${name}`);
                     return name;
                 }
             }
 
-            console.warn(`[FlashcardMonitor] 未能获取到有效名称`);
+            Logger.warn(`未能获取到有效名称`);
             return null;
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 获取筛选名称失败:', error);
+            Logger.error('获取筛选名称失败:', error);
             return null; // 改为返回null而不是ID，让调用方处理
         }
     }
@@ -495,7 +496,7 @@ export class FlashcardMonitor {
      */
     private async getDocNameFromTree(docId: string): Promise<string | null> {
         try {
-            console.log(`[FlashcardMonitor] 尝试从文档树获取名称: ${docId}`);
+            Logger.log(`尝试从文档树获取名称: ${docId}`);
             
             const response = await fetch('/api/filetree/getDoc', {
                 method: 'POST',
@@ -510,7 +511,7 @@ export class FlashcardMonitor {
 
             const name = result.data?.name || result.data?.title;
             if (name) {
-                console.log(`[FlashcardMonitor] 从文档树获取到名称: ${name}`);
+                Logger.log(`从文档树获取到名称: ${name}`);
                 return name;
             }
 
@@ -521,7 +522,7 @@ export class FlashcardMonitor {
                 const fileName = pathParts[pathParts.length - 1];
                 if (fileName && fileName !== docId) {
                     const nameWithoutExt = fileName.replace(/\.sy$/, '');
-                    console.log(`[FlashcardMonitor] 从路径解析得到名称: ${nameWithoutExt}`);
+                    Logger.log(`从路径解析得到名称: ${nameWithoutExt}`);
                     return nameWithoutExt;
                 }
             }
@@ -529,7 +530,7 @@ export class FlashcardMonitor {
             return null;
 
         } catch (error) {
-            console.error('[FlashcardMonitor] 从文档树获取名称失败:', error);
+            Logger.error('从文档树获取名称失败:', error);
             return null;
         }
     }
@@ -571,7 +572,7 @@ export class FlashcardMonitor {
                     if (!document.contains(panelInfo.panel)) {
                         this.currentPanels.delete(panelInfo.panel);
                         this.lastFilterState.delete(panelInfo.panel);
-                        console.log('[FlashcardMonitor] 面板已关闭');
+                        Logger.log('面板已关闭');
                     }
                 }, 100);
             };
@@ -630,7 +631,7 @@ export class FlashcardMonitor {
      * 手动触发筛选检测
      */
     manualTriggerCheck(): void {
-        console.log('[FlashcardMonitor] 手动触发筛选检测');
+        Logger.log('手动触发筛选检测');
         this.detectFilterChange();
     }
 
@@ -641,6 +642,7 @@ export class FlashcardMonitor {
         this.stopMonitoring();
         this.filterCallback = undefined;
         this.panelCallback = undefined;
-        console.log('[FlashcardMonitor] 监听器已销毁');
+        Logger.log('监听器已销毁');
     }
 }
+

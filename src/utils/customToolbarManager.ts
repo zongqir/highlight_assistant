@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 自定义工具栏管理器 - 负责自定义工具栏的显示、隐藏和位置调整
  * 从 toolbarHijacker.ts 中提取，减少主文件大小
@@ -58,8 +59,8 @@ export class CustomToolbarManager {
                     }
                     lastSelectionText = selectedText;
                     
-                    console.log('\n[ToolbarHijacker] 📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
-                    console.log('[ToolbarHijacker] 选中文本:', selectedText.substring(0, 50));
+                    Logger.log('\n📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
+                    Logger.log('选中文本:', selectedText.substring(0, 50));
                     
                     // 🔍 在工具栏显示之前检查当前活跃文档的只读状态
                     const readonlyBtn = this.getCurrentActiveReadonlyButton();
@@ -72,27 +73,27 @@ export class CustomToolbarManager {
                         // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
                         isDocReadonly = iconHref !== '#iconUnlock';
                         
-                        console.log('[ToolbarHijacker] 🔐 当前活跃文档锁按钮状态:', {
+                        Logger.log('🔐 当前活跃文档锁按钮状态:', {
                             '图标href': iconHref,
                             '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
                         });
                     } else {
-                        console.warn('[ToolbarHijacker] ⚠️ 未找到当前活跃文档的面包屑锁按钮');
+                        Logger.warn('⚠️ 未找到当前活跃文档的面包屑锁按钮');
                     }
                     
                     // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
                     if (!isDocReadonly) {
-                        console.log('[ToolbarHijacker] ⛔ 文档未加锁（可编辑状态），不显示自定义工具栏');
+                        Logger.log('⛔ 文档未加锁（可编辑状态），不显示自定义工具栏');
                         return;
                     }
                     
                     // 🎨 检查选中内容是否在代码块或数学公式中，如果是则不显示工具栏
                     if (this.isInRestrictedBlock(selection)) {
-                        console.log('[ToolbarHijacker] ⛔ 选中内容在代码块或数学公式中，不显示自定义工具栏');
+                        Logger.log('⛔ 选中内容在代码块或数学公式中，不显示自定义工具栏');
                         return;
                     }
                     
-                    console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示自定义工具栏');
+                    Logger.log('✅ 文档已加锁（只读状态），允许显示自定义工具栏');
                     
                     // 检查是否跨块选择
                     if (this.isCrossBlockSelection(selection.getRangeAt(0))) {
@@ -313,7 +314,7 @@ export class CustomToolbarManager {
             return false;
             
         } catch (error) {
-            console.error('[CustomToolbarManager] ❌ 检查受限制块失败:', error);
+            Logger.error('❌ 检查受限制块失败:', error);
             // 出错时保守处理，阻止显示工具栏
             return true;
         }
@@ -333,7 +334,7 @@ export class CustomToolbarManager {
                 blockElement.querySelector('code') ||
                 blockElement.classList.contains('code-block') ||
                 innerHTML.includes('hljs')) {
-                console.log('[CustomToolbarManager] 💻 检测到代码块，禁止显示工具栏');
+                Logger.log('💻 检测到代码块，禁止显示工具栏');
                 return true;
             }
             
@@ -343,7 +344,7 @@ export class CustomToolbarManager {
                 innerHTML.includes('\\(') || 
                 innerHTML.includes('\\[') ||
                 innerHTML.includes('katex')) {
-                console.log('[CustomToolbarManager] 📐 检测到数学公式，禁止显示工具栏');
+                Logger.log('📐 检测到数学公式，禁止显示工具栏');
                 return true;
             }
             
@@ -352,7 +353,7 @@ export class CustomToolbarManager {
             return false;
             
         } catch (error) {
-            console.error('[CustomToolbarManager] ❌ 检查块类型失败:', error);
+            Logger.error('❌ 检查块类型失败:', error);
             return true;
         }
     }
@@ -362,13 +363,13 @@ export class CustomToolbarManager {
      */
     private getCurrentActiveReadonlyButton(): HTMLElement | null {
         try {
-            console.log('[CustomToolbarManager] 🔍 开始查找当前活跃文档的锁按钮...');
+            Logger.log('🔍 开始查找当前活跃文档的锁按钮...');
             
             // 先检查思源的 getActiveTab API
             try {
                 const { getActiveTab } = require('siyuan');
                 const activeTab = getActiveTab();
-                console.log('[CustomToolbarManager] 🔍 思源getActiveTab返回:', {
+                Logger.log('🔍 思源getActiveTab返回:', {
                     hasActiveTab: !!activeTab,
                     tabId: activeTab?.id,
                     title: activeTab?.title,
@@ -382,7 +383,7 @@ export class CustomToolbarManager {
                     const readonlyBtn = protyle.element?.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
                     if (readonlyBtn) {
                         const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                        console.log('[CustomToolbarManager] ✅ 通过getActiveTab找到锁按钮:', {
+                        Logger.log('✅ 通过getActiveTab找到锁按钮:', {
                             iconHref,
                             ariaLabel: readonlyBtn.getAttribute('aria-label'),
                             dataSubtype: readonlyBtn.getAttribute('data-subtype'),
@@ -392,12 +393,12 @@ export class CustomToolbarManager {
                     }
                 }
             } catch (error) {
-                console.log('[CustomToolbarManager] ⚠️ getActiveTab API不可用:', error.message);
+                Logger.log('⚠️ getActiveTab API不可用:', error.message);
             }
             
             // 方法1: 尝试通过焦点元素查找
             const focusedElement = document.activeElement;
-            console.log('[CustomToolbarManager] 🔍 当前焦点元素:', {
+            Logger.log('🔍 当前焦点元素:', {
                 tagName: focusedElement?.tagName,
                 className: focusedElement?.className,
                 id: focusedElement?.id
@@ -405,7 +406,7 @@ export class CustomToolbarManager {
             
             if (focusedElement) {
                 const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
-                console.log('[CustomToolbarManager] 🔍 找到的protyle容器:', {
+                Logger.log('🔍 找到的protyle容器:', {
                     found: !!protyleContainer,
                     className: protyleContainer?.className,
                     dataNodeId: protyleContainer?.getAttribute('data-node-id')
@@ -415,7 +416,7 @@ export class CustomToolbarManager {
                     const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                     if (readonlyBtn) {
                         const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                        console.log('[CustomToolbarManager] ✅ 方法1成功 - 通过焦点元素找到锁按钮:', {
+                        Logger.log('✅ 方法1成功 - 通过焦点元素找到锁按钮:', {
                             iconHref,
                             ariaLabel: readonlyBtn.getAttribute('aria-label'),
                             dataSubtype: readonlyBtn.getAttribute('data-subtype')
@@ -427,7 +428,7 @@ export class CustomToolbarManager {
             
             // 方法2: 查找活跃窗口中的锁按钮
             const activeWnd = document.querySelector('.layout__wnd--active');
-            console.log('[CustomToolbarManager] 🔍 活跃窗口:', {
+            Logger.log('🔍 活跃窗口:', {
                 found: !!activeWnd,
                 className: activeWnd?.className
             });
@@ -436,7 +437,7 @@ export class CustomToolbarManager {
                 const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
                 if (readonlyBtn) {
                     const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                    console.log('[CustomToolbarManager] ✅ 方法2成功 - 通过活跃窗口找到锁按钮:', {
+                    Logger.log('✅ 方法2成功 - 通过活跃窗口找到锁按钮:', {
                         iconHref,
                         ariaLabel: readonlyBtn.getAttribute('aria-label'),
                         dataSubtype: readonlyBtn.getAttribute('data-subtype')
@@ -447,12 +448,12 @@ export class CustomToolbarManager {
             
             // 方法3: 列出所有锁按钮，看看到底有多少个
             const allReadonlyBtns = document.querySelectorAll('.protyle-breadcrumb button[data-type="readonly"]');
-            console.log('[CustomToolbarManager] 🔍 发现的所有锁按钮数量:', allReadonlyBtns.length);
+            Logger.log('🔍 发现的所有锁按钮数量:', allReadonlyBtns.length);
             
             allReadonlyBtns.forEach((btn, index) => {
                 const iconHref = btn.querySelector('use')?.getAttribute('xlink:href') || '';
                 const protyle = btn.closest('.protyle');
-                console.log(`[CustomToolbarManager] 🔍 锁按钮 ${index + 1}:`, {
+                Logger.log(`🔍 锁按钮 ${index + 1}:`, {
                     iconHref,
                     ariaLabel: btn.getAttribute('aria-label'),
                     dataSubtype: btn.getAttribute('data-subtype'),
@@ -465,7 +466,7 @@ export class CustomToolbarManager {
             const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
             if (readonlyBtn) {
                 const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                console.warn('[CustomToolbarManager] ⚠️ 方法3兜底 - 使用第一个找到的锁按钮（可能不准确）:', {
+                Logger.warn('⚠️ 方法3兜底 - 使用第一个找到的锁按钮（可能不准确）:', {
                     iconHref,
                     ariaLabel: readonlyBtn.getAttribute('aria-label'),
                     dataSubtype: readonlyBtn.getAttribute('data-subtype')
@@ -473,13 +474,15 @@ export class CustomToolbarManager {
                 return readonlyBtn;
             }
             
-            console.error('[CustomToolbarManager] ❌ 完全找不到任何锁按钮');
+            Logger.error('❌ 完全找不到任何锁按钮');
             return null;
             
         } catch (error) {
-            console.error('[CustomToolbarManager] ❌ 获取当前活跃文档锁按钮失败:', error);
+            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
             return null;
         }
     }
 }
+
+
 

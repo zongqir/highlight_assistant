@@ -1,3 +1,4 @@
+﻿import Logger from './logger';
 /**
  * 高亮点击管理器 - 处理点击高亮文本弹出快速删除对话框
  */
@@ -18,7 +19,7 @@ export class HighlightClickManager {
      */
     public enableDebug(): void {
         this.debugMode = true;
-        console.log('[HighlightClickManager] ✅ 调试模式已开启');
+        Logger.log('✅ 调试模式已开启');
     }
     
     /**
@@ -26,7 +27,7 @@ export class HighlightClickManager {
      */
     public disableDebug(): void {
         this.debugMode = false;
-        console.log('[HighlightClickManager] ❌ 调试模式已关闭');
+        Logger.log('❌ 调试模式已关闭');
     }
     
     /**
@@ -34,7 +35,7 @@ export class HighlightClickManager {
      */
     private debugLog(...args: any[]): void {
         if (this.debugMode) {
-            console.log(...args);
+            Logger.log(...args);
         }
     }
     
@@ -42,7 +43,7 @@ export class HighlightClickManager {
      * 初始化高亮点击功能
      */
     public initialize(): void {
-        console.log('[HighlightClickManager] 🚀 高亮点击管理器初始化...');
+        Logger.log('🚀 高亮点击管理器初始化...');
         
         // 立即设置点击高亮弹出快速删除框的功能
         this.setupClickToEditHighlight();
@@ -50,7 +51,7 @@ export class HighlightClickManager {
         // 延迟设置初始化完成标记
         setTimeout(() => {
             this.isInitialized = true;
-            console.log('[HighlightClickManager] ✅ 高亮点击管理器初始化完成');
+            Logger.log('✅ 高亮点击管理器初始化完成');
         }, 2000);
     }
     
@@ -83,7 +84,7 @@ export class HighlightClickManager {
             document.addEventListener(eventType, handler, true); // 使用捕获阶段拦截
         });
         
-        console.log('[HighlightClickManager] ✅ 点击高亮事件监听器已注册');
+        Logger.log('✅ 点击高亮事件监听器已注册');
     }
     
     /**
@@ -149,7 +150,7 @@ export class HighlightClickManager {
      */
     private async showHighlightQuickDialog(highlightElement: HTMLElement): Promise<void> {
         if (!highlightElement) {
-            console.warn('[HighlightClickManager] 高亮元素不存在');
+            Logger.warn('高亮元素不存在');
             return;
         }
 
@@ -157,11 +158,11 @@ export class HighlightClickManager {
         const isDocReadonly = this.checkDocumentReadonly();
         
         if (!isDocReadonly) {
-            console.log('[HighlightClickManager] ⛔ 文档未锁定（可编辑状态），不显示快速删除对话框');
+            Logger.log('⛔ 文档未锁定（可编辑状态），不显示快速删除对话框');
             return;
         }
         
-        console.log('[HighlightClickManager] ✅ 文档已锁定（只读状态），显示快速删除对话框');
+        Logger.log('✅ 文档已锁定（只读状态），显示快速删除对话框');
 
         const selectedText = highlightElement.textContent || '';
         const backgroundColor = highlightElement.style.backgroundColor;
@@ -187,7 +188,7 @@ export class HighlightClickManager {
         const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
         
         if (!readonlyBtn) {
-            this.debugLog('[HighlightClickManager] ⚠️ 未找到面包屑锁按钮');
+            this.debugLog('⚠️ 未找到面包屑锁按钮');
             return false;
         }
         
@@ -207,7 +208,7 @@ export class HighlightClickManager {
         
         const isReadonly = !isUnlocked;
         
-        this.debugLog('[HighlightClickManager] 🔐 文档状态检查:', {
+        this.debugLog('🔐 文档状态检查:', {
             '找到按钮': true,
             'aria-label': ariaLabel,
             'data-subtype': dataSubtype,
@@ -263,7 +264,7 @@ export class HighlightClickManager {
                 selection.removeAllRanges();
             }
         } catch (error) {
-            console.error('[HighlightClickManager] ❌ 高亮删除失败:', error);
+            Logger.error('❌ 高亮删除失败:', error);
             throw error;
         }
     }
@@ -397,4 +398,6 @@ export class HighlightClickManager {
         });
     }
 }
+
+
 
