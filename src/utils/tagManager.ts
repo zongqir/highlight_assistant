@@ -180,6 +180,12 @@ export class TagManager {
         
         this.debugLog('[TagManager] 显示标签面板:', { blockId, blockText });
         
+        // 🎨 检查块是否包含复杂样式，如果有则阻止打标签
+        if (this.hasComplexStyles(blockElement)) {
+            this.showStyleWarningDialog();
+            return;
+        }
+        
         // 显示标签选择对话框
         const selectedTag = await this.showTagSelectionDialog(blockText);
         
@@ -194,6 +200,202 @@ export class TagManager {
                 }
             );
         }
+    }
+    
+    /**
+     * 检查块是否包含复杂样式，避免标签操作破坏格式
+     * 检测：内联样式、代码块、数学公式
+     */
+    private hasComplexStyles(blockElement: HTMLElement): boolean {
+        try {
+            // 获取块的HTML内容
+            const innerHTML = blockElement.innerHTML;
+            
+            // 🎨 检查是否包含内联样式 style=
+            if (innerHTML.includes('style=')) {
+                console.log('[TagManager] 🎨 检测到内联样式，阻止打标签');
+                return true;
+            }
+            
+            // 💻 检查是否是代码块
+            if (blockElement.getAttribute('data-type') === 'code' || 
+                blockElement.querySelector('code') ||
+                blockElement.classList.contains('code-block') ||
+                innerHTML.includes('hljs')) {
+                console.log('[TagManager] 💻 检测到代码块，阻止打标签');
+                return true;
+            }
+            
+            // 📐 检查是否是数学公式块
+            if (blockElement.getAttribute('data-type') === 'mathBlock' ||
+                blockElement.querySelector('.katex') ||
+                innerHTML.includes('\\(') || 
+                innerHTML.includes('\\[') ||
+                innerHTML.includes('katex')) {
+                console.log('[TagManager] 📐 检测到数学公式，阻止打标签');
+                return true;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('[TagManager] ❌ 样式检查失败:', error);
+            // 出错时保守处理，阻止打标签
+            return true;
+        }
+    }
+    
+    /**
+     * 显示样式警告对话框
+     */
+    private showStyleWarningDialog(): void {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 0.25s ease-out;
+        `;
+        
+        // 创建警告对话框
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: var(--b3-theme-background);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            border: 1px solid var(--b3-theme-surface-lighter);
+            max-width: 90vw;
+            width: 480px;
+            text-align: center;
+            transform: scale(0.9);
+            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        `;
+        
+        // 警告图标和标题
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div style="font-size: 64px; margin-bottom: 16px;">🎨</div>
+            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: var(--b3-theme-on-background);">
+                检测到复杂样式
+            </h2>
+        `;
+        
+        // 警告内容
+        const content = document.createElement('div');
+        content.style.cssText = `
+            color: var(--b3-theme-on-surface);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        `;
+        content.innerHTML = `
+            <p style="margin: 0 0 12px 0;">这个块包含以下内容之一：</p>
+            <ul style="text-align: left; margin: 0 0 12px 0; padding-left: 20px; list-style: none;">
+                <li style="margin: 6px 0;">🎨 内联样式 (style属性)</li>
+                <li style="margin: 6px 0;">💻 代码块或代码高亮</li>
+                <li style="margin: 6px 0;">📐 数学公式</li>
+            </ul>
+            <p style="margin: 0; color: var(--b3-theme-error);">
+                <strong>为避免破坏格式，已阻止添加标签操作</strong>
+            </p>
+        `;
+        
+        // 确定按钮
+        const okButton = document.createElement('button');
+        okButton.textContent = '我知道了';
+        okButton.style.cssText = `
+            background: var(--b3-theme-primary);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 2px 8px var(--b3-theme-primary)40;
+        `;
+        
+        okButton.addEventListener('mouseenter', () => {
+            okButton.style.transform = 'translateY(-2px) scale(1.02)';
+            okButton.style.boxShadow = `0 6px 16px var(--b3-theme-primary)60`;
+        });
+        
+        okButton.addEventListener('mouseleave', () => {
+            okButton.style.transform = 'translateY(0) scale(1)';
+            okButton.style.boxShadow = `0 4px 12px var(--b3-theme-primary)40`;
+        });
+        
+        okButton.addEventListener('click', () => {
+            cleanup();
+        });
+        
+        // 组装界面
+        dialog.appendChild(header);
+        dialog.appendChild(content);
+        dialog.appendChild(okButton);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes popIn {
+                from { 
+                    opacity: 0;
+                    transform: scale(0.8) translateY(20px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 清理函数
+        const cleanup = () => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            if (style.parentNode) {
+                style.parentNode.removeChild(style);
+            }
+        };
+        
+        // ESC关闭
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+        
+        // 点击遮罩关闭
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                cleanup();
+            }
+        });
+        
+        // 3秒后自动关闭
+        setTimeout(cleanup, 3000);
     }
     
     /**

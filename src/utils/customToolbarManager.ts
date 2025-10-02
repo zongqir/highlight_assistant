@@ -96,6 +96,12 @@ export class CustomToolbarManager {
                         return;
                     }
                     
+                    // 🎨 检查选中内容是否在代码块或数学公式中，如果是则不显示工具栏
+                    if (this.isInRestrictedBlock(selection)) {
+                        console.log('[ToolbarHijacker] ⛔ 选中内容在代码块或数学公式中，不显示自定义工具栏');
+                        return;
+                    }
+                    
                     console.log('[ToolbarHijacker] ✅ 文档已加锁（只读状态），允许显示自定义工具栏');
                     
                     // 检查是否跨块选择
@@ -278,6 +284,87 @@ export class CustomToolbarManager {
         this.hideCustomToolbar();
         this.activeEventListeners.forEach(cleanup => cleanup());
         this.activeEventListeners = [];
+    }
+    
+    /**
+     * 检查选中内容是否在受限制的块中（代码块、数学公式等）
+     */
+    private isInRestrictedBlock(selection: Selection): boolean {
+        try {
+            if (!selection.rangeCount) return false;
+            
+            const range = selection.getRangeAt(0);
+            let currentElement = range.commonAncestorContainer;
+            
+            // 如果是文本节点，获取其父元素
+            if (currentElement.nodeType === Node.TEXT_NODE) {
+                currentElement = currentElement.parentElement!;
+            }
+            
+            // 向上遍历DOM树，查找块元素
+            let blockElement = currentElement as HTMLElement;
+            let depth = 0;
+            const maxDepth = 10;
+            
+            while (blockElement && depth < maxDepth) {
+                // 检查是否是思源的块元素
+                const nodeId = blockElement.getAttribute('data-node-id');
+                const dataType = blockElement.getAttribute('data-type');
+                
+                if (nodeId && dataType) {
+                    // 找到了块元素，检查是否是受限制的类型
+                    return this.isRestrictedBlockType(blockElement);
+                }
+                
+                blockElement = blockElement.parentElement!;
+                depth++;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            console.error('[CustomToolbarManager] ❌ 检查受限制块失败:', error);
+            // 出错时保守处理，阻止显示工具栏
+            return true;
+        }
+    }
+    
+    /**
+     * 检查块是否是受限制的类型
+     * 高亮工具栏只禁止代码块和数学公式，允许内联样式
+     */
+    private isRestrictedBlockType(blockElement: HTMLElement): boolean {
+        try {
+            const innerHTML = blockElement.innerHTML;
+            const dataType = blockElement.getAttribute('data-type');
+            
+            // 💻 检查是否是代码块
+            if (dataType === 'code' || 
+                blockElement.querySelector('code') ||
+                blockElement.classList.contains('code-block') ||
+                innerHTML.includes('hljs')) {
+                console.log('[CustomToolbarManager] 💻 检测到代码块，禁止显示工具栏');
+                return true;
+            }
+            
+            // 📐 检查是否是数学公式块
+            if (dataType === 'mathBlock' ||
+                blockElement.querySelector('.katex') ||
+                innerHTML.includes('\\(') || 
+                innerHTML.includes('\\[') ||
+                innerHTML.includes('katex')) {
+                console.log('[CustomToolbarManager] 📐 检测到数学公式，禁止显示工具栏');
+                return true;
+            }
+            
+            // 🎨 高亮工具栏允许内联样式块，不检查 style= 属性
+            
+            return false;
+            
+        } catch (error) {
+            console.error('[CustomToolbarManager] ❌ 检查块类型失败:', error);
+            return true;
+        }
     }
 }
 
