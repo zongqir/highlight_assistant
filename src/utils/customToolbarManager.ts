@@ -6,6 +6,8 @@
 
 import { StyleManager, HIGHLIGHT_COLORS } from './styleManager';
 import { MemoManager } from './memoManager';
+import { getCurrentActiveReadonlyButton } from './readonlyButtonUtils';
+import { readonlyStateMonitor } from './readonlyStateMonitor';
 
 export class CustomToolbarManager {
     private isMobile: boolean;
@@ -17,6 +19,7 @@ export class CustomToolbarManager {
     private findBlockElement: (node: Node) => HTMLElement | null;
     private isCrossBlockSelection: (range: Range) => boolean;
     private activeEventListeners: (() => void)[] = [];
+    private unsubscribeStateMonitor: (() => void) | null = null;
 
     constructor(
         isMobile: boolean,
@@ -34,6 +37,24 @@ export class CustomToolbarManager {
         this.onHighlightRemove = callbacks.onHighlightRemove;
         this.findBlockElement = callbacks.findBlockElement;
         this.isCrossBlockSelection = callbacks.isCrossBlockSelection;
+        
+        // 订阅只读状态变化
+        this.subscribeToReadonlyState();
+    }
+    
+    /**
+     * 订阅只读状态变化
+     */
+    private subscribeToReadonlyState(): void {
+        this.unsubscribeStateMonitor = readonlyStateMonitor.subscribe((isReadonly: boolean) => {
+            Logger.log('🔔 [CustomToolbar] 收到状态变化通知:', isReadonly ? '🔒 只读' : '✏️ 可编辑');
+            
+            // 如果状态变为可编辑（解锁），立即隐藏工具栏
+            if (!isReadonly) {
+                Logger.log('⚡ [CustomToolbar] 文档已解锁，立即隐藏自定义工具栏');
+                this.hideCustomToolbar();
+            }
+        });
     }
 
     /**
@@ -63,7 +84,7 @@ export class CustomToolbarManager {
                     Logger.log('选中文本:', selectedText.substring(0, 50));
                     
                     // 🔍 在工具栏显示之前检查当前活跃文档的只读状态
-                    const readonlyBtn = this.getCurrentActiveReadonlyButton();
+                    const readonlyBtn = getCurrentActiveReadonlyButton();
                     let isDocReadonly = false;
                     
                     if (readonlyBtn) {
@@ -269,10 +290,19 @@ export class CustomToolbarManager {
     }
 
     /**
-     * 清理所有事件监听器
+     * 清理所有事件监听器和资源
      */
     cleanup(): void {
+        // 取消订阅状态监听
+        if (this.unsubscribeStateMonitor) {
+            this.unsubscribeStateMonitor();
+            this.unsubscribeStateMonitor = null;
+        }
+        
+        // 隐藏工具栏
         this.hideCustomToolbar();
+        
+        // 清理事件监听器
         this.activeEventListeners.forEach(cleanup => cleanup());
         this.activeEventListeners = [];
     }
@@ -355,131 +385,6 @@ export class CustomToolbarManager {
         } catch (error) {
             Logger.error('❌ 检查块类型失败:', error);
             return true;
-        }
-    }
-    
-    /**
-     * 获取当前活跃文档的锁按钮 - 增强调试版本
-     */
-    private getCurrentActiveReadonlyButton(): HTMLElement | null {
-        try {
-            Logger.log('🔍 开始查找当前活跃文档的锁按钮...');
-            
-            // 先检查思源的 getActiveTab API
-            try {
-                const { getActiveTab } = require('siyuan');
-                const activeTab = getActiveTab();
-                Logger.log('🔍 思源getActiveTab返回:', {
-                    hasActiveTab: !!activeTab,
-                    tabId: activeTab?.id,
-                    title: activeTab?.title,
-                    modelType: activeTab?.model?.type,
-                    hasEditor: !!(activeTab?.model?.editor),
-                    hasProtyle: !!(activeTab?.model?.protyle)
-                });
-                
-                if (activeTab?.model?.editor?.protyle) {
-                    const protyle = activeTab.model.editor.protyle;
-                    const readonlyBtn = protyle.element?.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
-                    if (readonlyBtn) {
-                        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                        Logger.log('✅ 通过getActiveTab找到锁按钮:', {
-                            iconHref,
-                            ariaLabel: readonlyBtn.getAttribute('aria-label'),
-                            dataSubtype: readonlyBtn.getAttribute('data-subtype'),
-                            protyleNodeId: protyle.element?.getAttribute('data-node-id')
-                        });
-                        return readonlyBtn as HTMLElement;
-                    }
-                }
-            } catch (error) {
-                Logger.log('⚠️ getActiveTab API不可用:', error.message);
-            }
-            
-            // 方法1: 尝试通过焦点元素查找
-            const focusedElement = document.activeElement;
-            Logger.log('🔍 当前焦点元素:', {
-                tagName: focusedElement?.tagName,
-                className: focusedElement?.className,
-                id: focusedElement?.id
-            });
-            
-            if (focusedElement) {
-                const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
-                Logger.log('🔍 找到的protyle容器:', {
-                    found: !!protyleContainer,
-                    className: protyleContainer?.className,
-                    dataNodeId: protyleContainer?.getAttribute('data-node-id')
-                });
-                
-                if (protyleContainer) {
-                    const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                    if (readonlyBtn) {
-                        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                        Logger.log('✅ 方法1成功 - 通过焦点元素找到锁按钮:', {
-                            iconHref,
-                            ariaLabel: readonlyBtn.getAttribute('aria-label'),
-                            dataSubtype: readonlyBtn.getAttribute('data-subtype')
-                        });
-                        return readonlyBtn;
-                    }
-                }
-            }
-            
-            // 方法2: 查找活跃窗口中的锁按钮
-            const activeWnd = document.querySelector('.layout__wnd--active');
-            Logger.log('🔍 活跃窗口:', {
-                found: !!activeWnd,
-                className: activeWnd?.className
-            });
-            
-            if (activeWnd) {
-                const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                if (readonlyBtn) {
-                    const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                    Logger.log('✅ 方法2成功 - 通过活跃窗口找到锁按钮:', {
-                        iconHref,
-                        ariaLabel: readonlyBtn.getAttribute('aria-label'),
-                        dataSubtype: readonlyBtn.getAttribute('data-subtype')
-                    });
-                    return readonlyBtn;
-                }
-            }
-            
-            // 方法3: 列出所有锁按钮，看看到底有多少个
-            const allReadonlyBtns = document.querySelectorAll('.protyle-breadcrumb button[data-type="readonly"]');
-            Logger.log('🔍 发现的所有锁按钮数量:', allReadonlyBtns.length);
-            
-            allReadonlyBtns.forEach((btn, index) => {
-                const iconHref = btn.querySelector('use')?.getAttribute('xlink:href') || '';
-                const protyle = btn.closest('.protyle');
-                Logger.log(`🔍 锁按钮 ${index + 1}:`, {
-                    iconHref,
-                    ariaLabel: btn.getAttribute('aria-label'),
-                    dataSubtype: btn.getAttribute('data-subtype'),
-                    protyleVisible: protyle ? !protyle.classList.contains('fn__none') : false,
-                    protyleDataNodeId: protyle?.getAttribute('data-node-id')
-                });
-            });
-            
-            // 方法3: 兜底方案 - 全局查找第一个
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-            if (readonlyBtn) {
-                const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-                Logger.warn('⚠️ 方法3兜底 - 使用第一个找到的锁按钮（可能不准确）:', {
-                    iconHref,
-                    ariaLabel: readonlyBtn.getAttribute('aria-label'),
-                    dataSubtype: readonlyBtn.getAttribute('data-subtype')
-                });
-                return readonlyBtn;
-            }
-            
-            Logger.error('❌ 完全找不到任何锁按钮');
-            return null;
-            
-        } catch (error) {
-            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
-            return null;
         }
     }
 }

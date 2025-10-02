@@ -10,6 +10,7 @@ import Logger from "./utils/logger";
 
 // 导入高亮助手模块
 import { ToolbarHijacker } from "./utils/toolbarHijacker";
+import { readonlyStateMonitor } from "./utils/readonlyStateMonitor";
 
 export default class HighlightAssistantPlugin extends Plugin {
     private isMobile: boolean;
@@ -47,6 +48,12 @@ export default class HighlightAssistantPlugin extends Plugin {
     }
 
     onLayoutReady() {
+        // 🔔 启动只读状态监听器（在编辑器完全加载后）
+        setTimeout(() => {
+            Logger.log('[Plugin] 🔔 启动只读状态监听器...');
+            readonlyStateMonitor.startMonitoring();
+        }, 500);
+        
         // 在 onLayoutReady 中启动工具栏劫持（确保编辑器完全加载）
         if ((this.isMobile || this.isDesktop) && this.toolbarHijacker) {
             setTimeout(async () => {
@@ -162,6 +169,10 @@ export default class HighlightAssistantPlugin extends Plugin {
 
     async onunload() {
         Logger.log(this.i18n.byePlugin);
+        
+        // 停止只读状态监听器
+        Logger.log('[Plugin] 🔔 停止只读状态监听器...');
+        readonlyStateMonitor.stopMonitoring();
         
         // 销毁工具栏劫持器
         if (this.toolbarHijacker) {

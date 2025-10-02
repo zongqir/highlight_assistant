@@ -1,4 +1,6 @@
 ﻿import Logger from './logger';
+import { isCurrentDocumentEditable, getCurrentActiveReadonlyButton } from './readonlyButtonUtils';
+
 /**
  * 操作包装器 - 统一的解锁-操作-加锁抽象
  * 所有文本写入操作都必须通过这个包装器执行
@@ -44,7 +46,7 @@ export class OperationWrapper {
         Logger.log(`🚀 开始执行写入操作: ${operationName}`);
         
         // 🛡️ 兜底防御：检查文档是否处于可编辑状态，如果是则拒绝操作
-        if (this.isDocumentEditable()) {
+        if (isCurrentDocumentEditable()) {
             Logger.error(`🛡️ 兜底防御触发：文档处于可编辑状态，拒绝执行 ${operationName} 操作`);
             throw new Error(`文档未锁定，禁止执行 ${operationName} 操作`);
         }
@@ -79,7 +81,8 @@ export class OperationWrapper {
     private async forceUnlock(operationName: string): Promise<boolean> {
         Logger.log(`🔓 [${operationName}] 开始强制解锁...`);
         
-        const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+        // 🎯 使用统一工具获取当前活跃tab的锁按钮
+        const readonlyBtn = getCurrentActiveReadonlyButton();
         
         if (readonlyBtn) {
             const beforeLabel = readonlyBtn.getAttribute('aria-label');
@@ -118,7 +121,8 @@ export class OperationWrapper {
         const tryToLock = () => {
             attempts++;
             
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+            // 🎯 使用统一工具获取当前活跃tab的锁按钮
+            const readonlyBtn = getCurrentActiveReadonlyButton();
             
             if (readonlyBtn) {
                 const currentLabel = readonlyBtn.getAttribute('aria-label');
@@ -155,84 +159,6 @@ export class OperationWrapper {
         tryToLock();
     }
     
-    /**
-     * 🛡️ 兜底防御：检查当前活跃文档是否处于可编辑状态
-     * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
-     * @returns true 如果文档可编辑（未锁定），false 如果文档已锁定
-     */
-    private isDocumentEditable(): boolean {
-        try {
-            // 🎯 关键：每次都获取当前活跃的tab和对应的锁按钮
-            const readonlyBtn = this.getCurrentActiveReadonlyButton();
-            
-            if (!readonlyBtn) {
-                Logger.warn('🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
-                return true; // 找不到锁按钮时保守处理，认为可编辑
-            }
-            
-            const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-            
-            // 🎯 基于思源源码的正确判断逻辑：
-            // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
-            const isReadonly = iconHref !== '#iconUnlock';
-            const isEditable = !isReadonly;
-            
-            Logger.log(`🛡️ 兜底防御检查（当前活跃文档）:`, {
-                '图标href': iconHref,
-                '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
-                '是否可编辑': isEditable ? '🔓 是（可编辑）' : '🔒 否（只读）'
-            });
-            
-            return isEditable;
-            
-        } catch (error) {
-            Logger.error('🛡️ 兜底防御检查失败:', error);
-            return true; // 出错时保守处理，认为可编辑
-        }
-    }
-    
-    /**
-     * 获取当前活跃文档的锁按钮
-     */
-    private getCurrentActiveReadonlyButton(): HTMLElement | null {
-        try {
-            // 方法1: 尝试通过焦点元素查找
-            const focusedElement = document.activeElement;
-            if (focusedElement) {
-                const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
-                if (protyleContainer) {
-                    const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                    if (readonlyBtn) {
-                        Logger.log('✅ 通过焦点元素找到当前文档锁按钮');
-                        return readonlyBtn;
-                    }
-                }
-            }
-            
-            // 方法2: 查找活跃窗口中的锁按钮
-            const activeWnd = document.querySelector('.layout__wnd--active');
-            if (activeWnd) {
-                const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                if (readonlyBtn) {
-                    Logger.log('✅ 通过活跃窗口找到当前文档锁按钮');
-                    return readonlyBtn;
-                }
-            }
-            
-            // 方法3: 兜底方案 - 全局查找（可能不准确）
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-            if (readonlyBtn) {
-                Logger.warn('⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
-                return readonlyBtn;
-            }
-            
-            return null;
-            
-        } catch (error) {
-            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
-            return null;
-        }
-    }
 }
 
 // 导出单例实例

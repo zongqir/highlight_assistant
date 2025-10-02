@@ -6,6 +6,7 @@
 import { operationWrapper } from './operationWrapper';
 import { getAllEditor } from "siyuan";
 import { getBlockByID, updateBlock } from '../api';
+import { isCurrentDocumentReadonly, isCurrentDocumentEditable } from './readonlyButtonUtils';
 
 // 内置标签配置
 const PRESET_TAGS = [
@@ -83,7 +84,7 @@ export class TagManager {
             
             if (blockElement) {
                 // 检查是否处于只读状态
-                const isDocReadonly = this.checkDocumentReadonly();
+                const isDocReadonly = isCurrentDocumentReadonly();
                 
                 if (isDocReadonly) {
                     // 阻止默认右键菜单
@@ -113,7 +114,7 @@ export class TagManager {
                 // 设置长按定时器（500ms）
                 touchTimer = setTimeout(() => {
                     // 检查是否处于只读状态
-                    const isDocReadonly = this.checkDocumentReadonly();
+                    const isDocReadonly = isCurrentDocumentReadonly();
                     
                     if (isDocReadonly) {
                         // 阻止默认行为
@@ -411,34 +412,8 @@ export class TagManager {
      * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
      */
     private isDocumentEditableCheck(): boolean {
-        try {
-            // 🎯 关键：每次都获取当前活跃的tab和对应的锁按钮
-            const readonlyBtn = this.getCurrentActiveReadonlyButton();
-            
-            if (!readonlyBtn) {
-                Logger.warn('🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
-                return true;
-            }
-            
-            const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-            
-            // 🎯 基于思源源码的正确判断逻辑：
-            // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
-            const isReadonly = iconHref !== '#iconUnlock';
-            const isEditable = !isReadonly;
-            
-            Logger.log(`🛡️ 兜底防御检查（当前活跃文档）:`, {
-                '图标href': iconHref,
-                '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
-                '是否可编辑': isEditable ? '🔓 是（可编辑）' : '🔒 否（只读）'
-            });
-            
-            return isEditable;
-            
-        } catch (error) {
-            Logger.error('🛡️ 兜底防御检查失败:', error);
-            return true;
-        }
+        // 使用统一的工具函数
+        return isCurrentDocumentEditable();
     }
     
     /**
@@ -592,74 +567,6 @@ export class TagManager {
         setTimeout(cleanup, 3000);
     }
     
-    /**
-     * 检查当前活跃文档是否处于只读状态
-     * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
-     */
-    private checkDocumentReadonly(): boolean {
-        const readonlyBtn = this.getCurrentActiveReadonlyButton();
-        
-        if (!readonlyBtn) {
-            this.debugLog('⚠️ 未找到当前活跃文档的面包屑锁按钮');
-            return false;
-        }
-        
-        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
-        
-        // 🎯 基于思源源码的正确判断逻辑：
-        // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
-        const isReadonly = iconHref !== '#iconUnlock';
-        
-        this.debugLog('🔐 当前活跃文档锁按钮状态:', {
-            '图标href': iconHref,
-            '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
-        });
-        
-        return isReadonly;
-    }
-    
-    /**
-     * 获取当前活跃文档的锁按钮
-     */
-    private getCurrentActiveReadonlyButton(): HTMLElement | null {
-        try {
-            // 方法1: 尝试通过焦点元素查找
-            const focusedElement = document.activeElement;
-            if (focusedElement) {
-                const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
-                if (protyleContainer) {
-                    const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                    if (readonlyBtn) {
-                        Logger.log('✅ 通过焦点元素找到当前文档锁按钮');
-                        return readonlyBtn;
-                    }
-                }
-            }
-            
-            // 方法2: 查找活跃窗口中的锁按钮
-            const activeWnd = document.querySelector('.layout__wnd--active');
-            if (activeWnd) {
-                const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-                if (readonlyBtn) {
-                    Logger.log('✅ 通过活跃窗口找到当前文档锁按钮');
-                    return readonlyBtn;
-                }
-            }
-            
-            // 方法3: 兜底方案 - 全局查找（可能不准确）
-            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
-            if (readonlyBtn) {
-                Logger.warn('⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
-                return readonlyBtn;
-            }
-            
-            return null;
-            
-        } catch (error) {
-            Logger.error('❌ 获取当前活跃文档锁按钮失败:', error);
-            return null;
-        }
-    }
     
     /**
      * 显示标签选择对话框
