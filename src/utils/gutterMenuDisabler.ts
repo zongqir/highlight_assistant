@@ -37,10 +37,13 @@ export class GutterMenuDisabler {
         
         // 检查是否只在手机版禁用
         if (this.mobileOnly) {
-            // 🔧 使用 siyuan 配置判断平台，而不是 body 类名
+            // 🔧 使用与 index.ts 一致的方法检测平台
+            // 从 window.siyuan 获取 frontEnd，与 getFrontend() 返回值一致
             const frontEnd = (window as any).siyuan?.config?.system?.container || '';
-            const isMobile = frontEnd === 'mobile' || frontEnd.includes('mobile');
+            const isMobile = frontEnd === 'mobile' || frontEnd === 'browser-mobile';
+            
             Logger.log(`🔍 Gutter 菜单禁用器：检测平台 - frontEnd: ${frontEnd}, isMobile: ${isMobile}`);
+            
             if (!isMobile) {
                 Logger.log('🚫 Gutter 菜单禁用器：只在手机版启用，当前是桌面版');
                 return;

@@ -38,8 +38,8 @@ export default class HighlightAssistantPlugin extends Plugin {
             touchSupport: 'ontouchstart' in window
         });
         
-        // ⭐ 初始化 Gutter 菜单禁用器（全平台禁用 gutter 菜单）
-        initGutterMenuDisabler({ enabled: true, mobileOnly: false });
+        // ⭐ 初始化 Gutter 菜单禁用器（仅手机版禁用 gutter 菜单）
+        initGutterMenuDisabler({ enabled: true, mobileOnly: true });
         
         // 静默加载，不显示弹窗
         
