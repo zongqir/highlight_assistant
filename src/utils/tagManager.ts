@@ -4,7 +4,6 @@
  */
 
 import { operationWrapper } from './operationWrapper';
-import { getAllEditor } from "siyuan";
 import { getBlockByID, updateBlock } from '../api';
 import { isCurrentDocumentReadonly, isCurrentDocumentEditable } from './readonlyButtonUtils';
 
@@ -77,7 +76,16 @@ export class TagManager {
         document.addEventListener('contextmenu', (e) => {
             const target = e.target as HTMLElement;
             
-            this.debugLog('🎯 检测到右键点击');
+            Logger.log('🎯 检测到 contextmenu 事件');
+            
+            // 🔑 关键：手机长按会触发 contextmenu，需要检查是否有文本被选中
+            const selection = window.getSelection();
+            const selectedText = selection ? selection.toString().trim() : '';
+            
+            if (selectedText.length > 0) {
+                Logger.log('🎯 ⛔ 检测到文本选中，不显示标签面板');
+                return; // 有文本选中，不显示标签面板
+            }
             
             // 查找块元素
             const blockElement = this.findBlockElementFromNode(target);
@@ -91,28 +99,79 @@ export class TagManager {
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    this.debugLog('找到块元素，显示标签面板');
+                    Logger.log('🎯 ✅ 右键/长按无文本选中，显示标签面板');
                     this.showTagPanel(blockElement);
                 }
             }
         }, true);
         
-        // 手机版：监听长按（touch事件）
-        let touchTimer: NodeJS.Timeout | null = null;
-        let touchStartElement: HTMLElement | null = null;
+        // 手机版：监听双击（touch事件）
+        let lastTouchTime = 0;
+        let lastTouchTarget: HTMLElement | null = null;
+        let touchStartTime = 0;
+        let hasMoved = false;
+        let lastLongPressTime = 0; // 记录上次长按的时间
+        const doubleTapDelay = 300; // 双击间隔时间（毫秒）
+        const longPressThreshold = 500; // 长按阈值，超过这个时间不算点击
+        const longPressCooldown = 1000; // 长按后的冷却时间（1秒内不响应双击）
         
-        document.addEventListener('touchstart', (e) => {
+        // 记录 touchstart
+        document.addEventListener('touchstart', () => {
+            touchStartTime = Date.now();
+            hasMoved = false;
+        }, { passive: true, capture: true });
+        
+        // 检测是否移动（长按选择文字会移动）
+        document.addEventListener('touchmove', () => {
+            hasMoved = true;
+        }, { passive: true, capture: true });
+        
+        // 检测双击
+        document.addEventListener('touchend', (e) => {
             const target = e.target as HTMLElement;
-            touchStartElement = target;
+            const currentTime = Date.now();
+            const touchDuration = currentTime - touchStartTime;
+            const timeSinceLastTouch = currentTime - lastTouchTime;
+            const timeSinceLastLongPress = currentTime - lastLongPressTime;
             
-            this.debugLog('📱 检测到触摸开始');
+            Logger.log(`📱 touchend: duration=${touchDuration}ms, moved=${hasMoved}, timeSinceLastLongPress=${timeSinceLastLongPress}ms`);
+            
+            // 🔑 关键1：如果刚刚有过长按（1秒内），禁用双击
+            if (timeSinceLastLongPress < longPressCooldown) {
+                Logger.log('📱 ⛔ 长按冷却期内，禁用双击');
+                lastTouchTime = 0;
+                lastTouchTarget = null;
+                return;
+            }
+            
+            // 🔑 关键2：如果是长按（超过500ms）或者有移动，不算点击
+            if (touchDuration > longPressThreshold || hasMoved) {
+                Logger.log('📱 ⛔ 长按或移动，记录长按时间');
+                lastLongPressTime = currentTime; // 记录长按时间
+                lastTouchTime = 0;
+                lastTouchTarget = null;
+                return;
+            }
+            
+            // 🔑 关键3：检查是否有文本被选中（长按选择文字后）
+            const selection = window.getSelection();
+            const selectedText = selection ? selection.toString().trim() : '';
+            if (selectedText.length > 0) {
+                Logger.log('📱 ⛔ 检测到文本选中，禁用双击');
+                lastLongPressTime = currentTime; // 也记录为长按
+                lastTouchTime = 0;
+                lastTouchTarget = null;
+                return;
+            }
             
             // 查找块元素
             const blockElement = this.findBlockElementFromNode(target);
             
             if (blockElement) {
-                // 设置长按定时器（500ms）
-                touchTimer = setTimeout(() => {
+                // 检查是否是双击（同一个块，且间隔小于300ms）
+                if (lastTouchTarget === blockElement && timeSinceLastTouch < doubleTapDelay) {
+                    Logger.log('📱 ✅ 检测到双击！');
+                    
                     // 检查是否处于只读状态
                     const isDocReadonly = isCurrentDocumentReadonly();
                     
@@ -120,30 +179,23 @@ export class TagManager {
                         // 阻止默认行为
                         e.preventDefault();
                         
-                        this.debugLog('📱 长按触发，显示标签面板');
+                        Logger.log('📱 ✅ 双击触发，显示标签面板');
                         this.showTagPanel(blockElement);
-                        
-                        // 清除定时器
-                        touchTimer = null;
                     }
-                }, 500); // 500ms 长按
+                    
+                    // 重置，避免三击触发
+                    lastTouchTime = 0;
+                    lastTouchTarget = null;
+                } else {
+                    // 记录这次点击
+                    lastTouchTime = currentTime;
+                    lastTouchTarget = blockElement;
+                    Logger.log('📱 记录第一次点击');
+                }
             }
         }, { passive: false, capture: true });
         
-        // 触摸结束或移动时取消长按
-        const cancelTouch = () => {
-            if (touchTimer) {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-                this.debugLog('📱 长按取消');
-            }
-        };
-        
-        document.addEventListener('touchend', cancelTouch, true);
-        document.addEventListener('touchmove', cancelTouch, true);
-        document.addEventListener('touchcancel', cancelTouch, true);
-        
-        Logger.log('✅ 块点击监听已注册（右键点击 + 长按）');
+        Logger.log('✅ 块点击监听已注册（右键点击 + 双击）');
     }
     
     /**
