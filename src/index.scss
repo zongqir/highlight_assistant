@@ -114,10 +114,10 @@
     border: 1px solid var(--b3-theme-border);
 }
 
-/* 浮动工具栏 */
+/* 移动端基础工具栏样式重写 - 确保所有移动端都使用大尺寸 */
 .highlight-assistant-toolbar {
     position: fixed !important;
-    z-index: 999999 !important; /* 确保在思源界面之上 */
+    z-index: 999999 !important;
     background: var(--toolbar-bg);
     border: 1px solid var(--toolbar-border);
     border-radius: var(--toolbar-radius);
@@ -133,7 +133,76 @@
     pointer-events: auto;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    max-width: 90vw; /* 防止在小屏幕上溢出 */
+    max-width: 90vw;
+}
+
+/* 移动端强制重写 - 使用更高优先级 */
+@media (max-width: 768px) {
+    body .highlight-assistant-toolbar,
+    .protyle-wysiwyg .highlight-assistant-toolbar,
+    #app .highlight-assistant-toolbar {
+        /* 极其巨大的工具栏整体尺寸 */
+        padding: 36px 32px !important;
+        gap: 28px !important;
+        border-radius: 36px !important;
+        min-width: 520px !important;
+        max-width: 95vw !important;
+        transform-origin: center !important;
+        backdrop-filter: blur(30px) !important;
+        -webkit-backdrop-filter: blur(30px) !important;
+        box-shadow: 
+            0 24px 80px rgba(0, 0, 0, 0.5), 
+            0 12px 30px rgba(0, 0, 0, 0.3),
+            0 6px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    body .highlight-assistant-toolbar-btn,
+    .protyle-wysiwyg .highlight-assistant-toolbar-btn,
+    #app .highlight-assistant-toolbar-btn {
+        /* 极其巨大按钮尺寸，确保易于点击 */
+        width: 84px !important;
+        height: 84px !important;
+        font-size: 38px !important;
+        border-radius: 24px !important;
+        font-weight: 800 !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 5px solid rgba(255, 255, 255, 0.12) !important;
+        backdrop-filter: blur(10px) !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    body .highlight-assistant-toolbar-btn:active,
+    .protyle-wysiwyg .highlight-assistant-toolbar-btn:active,
+    #app .highlight-assistant-toolbar-btn:active {
+        transform: scale(0.88) !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    body .highlight-assistant-delete-btn,
+    body .highlight-assistant-comment-btn,
+    .protyle-wysiwyg .highlight-assistant-delete-btn,
+    .protyle-wysiwyg .highlight-assistant-comment-btn,
+    #app .highlight-assistant-delete-btn,
+    #app .highlight-assistant-comment-btn {
+        font-size: 42px !important;
+        font-weight: 900 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    body .highlight-assistant-span,
+    .protyle-wysiwyg [data-type] .highlight-assistant-span {
+        padding: 12px 18px !important;
+        margin: 0 6px !important;
+        border-radius: 14px !important;
+        min-height: 52px !important;
+        min-width: 36px !important;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
 }
 
 .highlight-assistant-toolbar.highlight-assistant-toolbar-visible {
@@ -168,6 +237,11 @@
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
+    
+    /* 改善移动端触摸识别 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
 }
 
 .highlight-assistant-toolbar-btn:hover {
@@ -208,37 +282,187 @@
     background-color: #0056b3 !important;
 }
 
-/* 移动端适配 */
+/* 移动端适配 - 极其巨大尺寸优化触摸体验 */
 @media (max-width: 768px) {
     .highlight-assistant-span {
-        padding: 3px 5px !important;
-        margin: 0 2px !important;
-        border-radius: 4px !important;
+        padding: 8px 12px !important;
+        margin: 0 4px !important;
+        border-radius: 10px !important;
+        /* 增大点击区域，改善触摸体验 */
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-weight: 600;
+        font-size: 16px !important;
     }
     
     .highlight-assistant-toolbar {
-        padding: 10px;
-        gap: 8px;
-        border-radius: 12px;
+        /* 极其巨大的工具栏整体尺寸 */
+        padding: 32px 28px !important;
+        gap: 24px !important;
+        border-radius: 32px !important;
+        /* 增强阴影效果，提升视觉层次 */
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.4), 
+            0 10px 24px rgba(0, 0, 0, 0.25),
+            0 4px 8px rgba(0, 0, 0, 0.15) !important;
+        /* 最小宽度确保足够大 */
+        min-width: 480px !important;
+        /* 居中显示 */
+        transform-origin: center !important;
+        /* 增强背景效果 */
+        backdrop-filter: blur(25px) !important;
+        -webkit-backdrop-filter: blur(25px) !important;
     }
     
     .highlight-assistant-toolbar-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 18px;
-        border-radius: 8px;
+        /* 极其巨大按钮尺寸，确保易于点击 */
+        width: 72px !important;
+        height: 72px !important;
+        font-size: 32px !important;
+        border-radius: 20px !important;
+        /* 增强触摸反馈 */
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        /* 确保按钮有足够的视觉重量 */
+        border: 4px solid transparent !important;
+        backdrop-filter: blur(8px) !important;
+        font-weight: 700 !important;
+        /* 增加按钮背景透明度 */
+        background: rgba(255, 255, 255, 0.12) !important;
     }
     
+    /* 移动端按钮触摸效果极大优化 */
+    .highlight-assistant-toolbar-btn:hover,
+    .highlight-assistant-toolbar-btn:active {
+        transform: scale(1.12) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.4) !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    /* 移动端颜色按钮极大增强 */
+    .highlight-assistant-color-btn {
+        border: 5px solid transparent !important;
+        box-shadow: 
+            0 6px 18px rgba(0, 0, 0, 0.25),
+            inset 0 2px 0 rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .highlight-assistant-color-btn:hover {
+        border-color: var(--b3-theme-primary) !important;
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.35),
+            0 0 0 3px var(--b3-theme-primary-lighter) !important;
+    }
+    
+    /* 移动端功能按钮极大优化 */
+    .highlight-assistant-delete-btn,
+    .highlight-assistant-comment-btn {
+        font-weight: 800 !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+        font-size: 36px !important;
+    }
+    
+    /* 备注标识极大优化 */
     .highlight-with-comment::after {
-        font-size: 12px;
-        top: -5px;
-        right: -5px;
-        width: 16px;
-        height: 16px;
+        font-size: 18px !important;
+        top: -10px !important;
+        right: -10px !important;
+        width: 28px !important;
+        height: 28px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        border: 3px solid var(--b3-theme-border) !important;
+    }
+    
+    /* 工具栏分隔符移动端极大优化 */
+    .highlight-assistant-toolbar .separator {
+        width: 4px !important;
+        height: 48px !important;
+        border-radius: 2px !important;
+        margin: 0 10px !important;
+        opacity: 0.5 !important;
+        background: linear-gradient(to bottom, 
+            transparent, 
+            var(--b3-theme-border), 
+            transparent) !important;
     }
 }
 
-/* 电脑版适配 */
+/* 移动端专用极限巨大尺寸样式 - 针对纯触摸设备 */
+@media (max-width: 768px) and (hover: none) and (pointer: coarse) {
+    /* 专门针对移动设备的极限巨大样式优化 */
+    .highlight-assistant-toolbar {
+        /* 移动端极限巨大触摸目标 */
+        padding: 40px 32px !important;
+        gap: 28px !important;
+        border-radius: 36px !important;
+        /* 增强触摸视觉反馈 */
+        backdrop-filter: blur(30px) !important;
+        -webkit-backdrop-filter: blur(30px) !important;
+        /* 移动端特有的极强阴影效果 */
+        box-shadow: 
+            0 24px 80px rgba(0, 0, 0, 0.5),
+            0 12px 30px rgba(0, 0, 0, 0.3),
+            0 6px 12px rgba(0, 0, 0, 0.2),
+            inset 0 3px 0 rgba(255, 255, 255, 0.2) !important;
+        /* 确保极其宽大 */
+        min-width: 520px !important;
+    }
+    
+    .highlight-assistant-toolbar-btn {
+        /* 移动端极限巨大触摸尺寸 */
+        width: 80px !important;
+        height: 80px !important;
+        font-size: 36px !important;
+        border-radius: 24px !important;
+        /* 增强触摸反馈动画 */
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        /* 移动端按钮极强背景 */
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: 5px solid rgba(255, 255, 255, 0.12) !important;
+        font-weight: 800 !important;
+    }
+    
+    /* 移动端极限巨大触摸态优化 */
+    .highlight-assistant-toolbar-btn:active {
+        transform: scale(0.9) !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    /* 移动端颜色按钮极限巨大特殊处理 */
+    .highlight-assistant-color-btn {
+        border: 6px solid rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.3),
+            inset 0 3px 0 rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    /* 移动端功能按钮极限巨大优化 */
+    .highlight-assistant-delete-btn,
+    .highlight-assistant-comment-btn {
+        font-size: 40px !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    /* 移动端高亮元素极限巨大优化 */
+    .highlight-assistant-span {
+        /* 更巨大的触摸区域 */
+        padding: 10px 16px !important;
+        margin: 0 5px !important;
+        border-radius: 12px !important;
+        min-height: 48px !important;
+        min-width: 32px !important;
+        display: inline-flex;
+        align-items: center;
+        font-weight: 700 !important;
+        font-size: 18px !important;
+        /* 改善移动端选中体验 */
+        -webkit-user-select: text !important;
+        user-select: text !important;
+    }
+}
 @media (min-width: 769px) {
     .highlight-assistant-span {
         padding: 2px 4px !important;

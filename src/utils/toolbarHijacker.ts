@@ -2418,13 +2418,89 @@ export class ToolbarHijacker {
     }
     
     /**
+     * 检测当前环境是否为移动端
+     */
+    private detectMobileEnvironment(): boolean {
+        return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               window.innerWidth <= 768 ||
+               document.body.classList.contains('body--mobile') ||
+               document.querySelector('.toolbar--mobile') !== null;
+    }
+
+    /**
      * 备用方案：查找面包屑锁按钮
-     * 使用思源笔记官方的 getActiveTab API - 正确的方式！
+     * 桌面版使用官方API，移动版使用DOM查询
      */
     private fallbackFindReadonlyButton(): HTMLElement | null {
-        console.log('[ToolbarHijacker] 🔄 使用思源官方API查找当前活跃tab的面包屑锁按钮...');
+        // 使用实时检测而不是构造时的属性，因为环境可能会变化
+        const isMobileEnv = this.detectMobileEnvironment();
         
+        let result: HTMLElement | null = null;
+        
+        if (isMobileEnv) {
+            console.log('[ToolbarHijacker] 📱 移动端模式：使用DOM查询方式查找面包屑锁按钮...');
+            result = this.findReadonlyButtonForMobile();
+        } else {
+            console.log('[ToolbarHijacker] 🖥️ 桌面版模式：使用思源官方API查找当前活跃tab的面包屑锁按钮...');
+            result = this.findReadonlyButtonForDesktop();
+        }
+        
+        // 如果平台特定方法失败，使用通用兜底方法
+        if (!result) {
+            console.log('[ToolbarHijacker] 🔄 平台特定方法失败，尝试通用兜底方法...');
+            result = this.fallbackFindAnyReadonlyButton();
+        }
+        
+        return result;
+    }
+
+    /**
+     * 移动端查找面包屑锁按钮
+     */
+    private findReadonlyButtonForMobile(): HTMLElement | null {
         try {
+            // 移动端通常只有一个活跃的编辑器
+            const protyleElements = document.querySelectorAll('.protyle:not(.fn__none)');
+            console.log(`[ToolbarHijacker] 📱 找到 ${protyleElements.length} 个可见的protyle元素`);
+            
+            for (const protyle of protyleElements) {
+                const readonlyBtn = protyle.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    console.log('[ToolbarHijacker] ✅ 移动端找到面包屑锁按钮');
+                    return readonlyBtn;
+                }
+            }
+            
+            // 备用方案：查找当前可见的面包屑
+            const visibleBreadcrumbs = document.querySelectorAll('.protyle-breadcrumb:not(.fn__none)');
+            for (const breadcrumb of visibleBreadcrumbs) {
+                const readonlyBtn = breadcrumb.querySelector('button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    console.log('[ToolbarHijacker] ✅ 移动端通过可见面包屑找到锁按钮');
+                    return readonlyBtn;
+                }
+            }
+            
+            console.warn('[ToolbarHijacker] ⚠️ 移动端未找到面包屑锁按钮');
+            return null;
+            
+        } catch (error) {
+            console.error('[ToolbarHijacker] ❌ 移动端查找锁按钮失败:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 桌面版查找面包屑锁按钮
+     */
+    private findReadonlyButtonForDesktop(): HTMLElement | null {
+        try {
+            // 检查getActiveTab是否存在（桌面版才有）
+            if (typeof getActiveTab !== 'function') {
+                console.warn('[ToolbarHijacker] ⚠️ getActiveTab函数不存在，可能在移动端环境');
+                return this.findReadonlyButtonForMobile();
+            }
+
             // 🎯 使用思源笔记官方API获取当前活跃tab
             const activeTab = getActiveTab();
             
@@ -2461,9 +2537,18 @@ export class ToolbarHijacker {
             
         } catch (error) {
             console.error('[ToolbarHijacker] ❌ 使用思源官方API查找活跃tab失败:', error);
+            // 降级到移动端方案
+            return this.findReadonlyButtonForMobile();
         }
         
-        // 方案2：查找当前有焦点的编辑器（保留作为备用）
+        return null;
+    }
+
+    /**
+     * 通用的兜底查找方法
+     */
+    private fallbackFindAnyReadonlyButton(): HTMLElement | null {
+        // 方案：查找当前有焦点的编辑器
         const focusedElement = document.activeElement;
         if (focusedElement) {
             console.log(`[ToolbarHijacker] 🔍 尝试通过焦点元素查找: ${focusedElement.tagName}.${focusedElement.className}`);
@@ -2477,7 +2562,7 @@ export class ToolbarHijacker {
             }
         }
         
-        // 方案3：最后兜底（显示明确警告）
+        // 最后兜底（显示明确警告）
         const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
         if (readonlyBtn) {
             console.warn('[ToolbarHijacker] ⚠️ 使用兜底方案找到面包屑锁按钮（可能不准确！！！）');
