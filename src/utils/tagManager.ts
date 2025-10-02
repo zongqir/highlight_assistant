@@ -201,13 +201,8 @@ export class TagManager {
                 return;
             }
             
-            // 应用标签
-            await operationWrapper.executeWithUnlockLock(
-                '添加标签',
-                async () => {
-                    await this.performAddTag(blockElement, selectedTag);
-                }
-            );
+            // 应用标签（performAddTag内部已有executeWithUnlockLock包装，不需要再包装）
+            await this.performAddTag(blockElement, selectedTag);
         }
     }
     
