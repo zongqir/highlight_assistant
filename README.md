@@ -1,16 +1,32 @@
 # Highlight Assistant
 
-A highlight tool designed for SiYuan mobile and desktop, providing WeChat Reading-style text highlighting and annotation features.
+A powerful enhancement tool for SiYuan Note, featuring text highlighting, smart annotations, quick tag marking, and flashcard quick switching.
 
 ## ✨ Features
 
-- 🎨 **Multi-color Highlighting**: 4 color options (yellow, blue, green, pink)
-- 💭 **Smart Annotations**: Add personal notes to highlighted text
-- 📱 **Mobile Optimized**: Floating toolbar designed for SiYuan mobile
-- 💻 **Desktop Support**: Full support for desktop version in read-only mode
-- 🔄 **State Management**: Support for modifying and deleting existing highlights and annotations
-- 🌙 **Theme Adaptive**: Perfect adaptation to light and dark theme switching
-- ⚡ **Performance Optimized**: Lightweight implementation that doesn't affect editing experience
+### 🎨 Highlighting & Annotations
+- **Multi-color Highlighting**: 4 color options (yellow, blue, green, pink)
+- **Smart Annotations**: Add personal notes to highlighted text
+- **Mobile Optimized**: Floating toolbar designed for SiYuan mobile
+- **Desktop Support**: Full support for desktop version in read-only mode
+- **State Management**: Support for modifying and deleting existing highlights and annotations
+- **Theme Adaptive**: Perfect adaptation to light and dark theme switching
+
+### 🏷️ Quick Tag Marking
+- **Fast Tagging**: Right-click or long-press to quickly add tags (desktop & mobile)
+- **Preset Tags**: 8 well-designed tags (Important⭐, Difficult🔥, Mistake⚡, Memory💭, Explore🔍, Check✅, Practice✍️, Question❓)
+- **Tag Search**: Click tags to search all blocks containing that tag
+- **Search Scope**: Support for current document, subdocuments, and notebook
+- **Smart Protection**: Auto-detect code blocks, math formulas to avoid format damage
+- **State Protection**: Read-only state protection for data safety
+
+### ⚡ Flashcard Quick Switch
+- **History Recording**: Auto-record flashcard filter history (max 10)
+- **Quick Access**: Floating ball widget for fast access to history
+- **Smart Management**: Support pinning favorites, deduplication, usage statistics
+- **One-click Switch**: Quickly switch to historical filter targets
+- **Flexible Customization**: Drag to adjust position
+- **Data Persistence**: Auto-save, cleanup on plugin uninstall
 
 ## 🚀 How to Use
 
@@ -56,6 +72,20 @@ pnpm run make-install
 ```
 
 ## 📝 Changelog
+
+### v2.0.0 (2025-10-02)
+- 🎉 **Major Update**: Quick Tag Marking System
+  - Right-click or long-press to quickly add tags
+  - 8 preset tags for various learning scenarios
+  - Click tags to quickly search
+  - Multiple search scope support
+  - Smart style protection and state protection
+- ⚡ **New Feature**: Flashcard Quick Switch
+  - Auto-record filter history
+  - Floating ball quick access
+  - Support pinning and managing history
+  - Smart deduplication and frequency statistics
+- 🔧 Technical improvements and performance optimization
 
 ### v1.1.0
 - ✅ Added desktop support for read-only mode
