@@ -211,7 +211,9 @@ export class TagClickManager {
             className.includes('menu') ||
             className.includes('dialog') ||
             className.includes('breadcrumb') ||
-            className.includes('tab')) {
+            className.includes('layout-tab-container') ||  // 更精确：只排除标签页容器
+            className.includes('file-tree') ||             // 文件树
+            className.includes('sy__backlink')) {          // 反向链接面板
             return false;
         }
         

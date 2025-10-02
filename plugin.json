@@ -2,7 +2,7 @@
   "name": "highlight-assistant",
   "author": "zongqir",
   "url": "https://github.com/zongqir/highlight_assistant",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,
   "backends": ["all"],
