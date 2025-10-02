@@ -806,6 +806,12 @@ export class TagManager {
     
     /**
      * 执行添加标签的核心逻辑
+     * 
+     * 修复说明：
+     * - 旧方法：使用 markdown 格式 #emoji+name# 添加标签
+     * - 问题：依赖于用户启用"Markdown 行级标签语法"设置，如果未启用，标签会变成纯文本
+     * - 新方法：使用 DOM 格式 <span data-type="tag">内容</span> 添加标签
+     * - 优势：不依赖设置，在手机版和桌面版都能正常工作
      */
     private async performAddTag(blockElement: HTMLElement, tag: typeof PRESET_TAGS[number]): Promise<void> {
         try {
@@ -830,23 +836,34 @@ export class TagManager {
                 
                 this.debugLog('当前块内容:', block.content);
                 
-                // 思源标签格式是 #表情+标签名#
-                const tagText = `#${tag.emoji}${tag.name}#`;
+                // 🔧 修复：使用 DOM 格式而不是 Markdown 格式
+                // 旧方法（依赖设置）: const tagText = `#${tag.emoji}${tag.name}#`;
+                // 新方法（通用）: <span data-type="tag">emoji+name</span>
+                const tagContent = `${tag.emoji}${tag.name}`;
+                const tagDOM = `<span data-type="tag">${tagContent}</span>`;
                 
-                // 在markdown内容末尾添加标签（使用空格分隔）
-                const newMarkdown = block.markdown.trim() + ' ' + tagText;
+                // 在 DOM 内容末尾添加标签（使用空格分隔）
+                let newContent = block.content.trim();
                 
-                this.debugLog('新markdown内容:', newMarkdown);
+                // 确保标签前有空格
+                if (newContent && !newContent.endsWith(' ')) {
+                    newContent += ' ';
+                }
                 
-                // 使用 markdown 格式更新块，思源会自动转换为正确的DOM格式
-                const result = await updateBlock('markdown', newMarkdown, blockId);
+                newContent += tagDOM;
+                
+                this.debugLog('新DOM内容:', newContent);
+                
+                // 使用 DOM 格式更新块
+                const result = await updateBlock('dom', newContent, blockId);
                 
                 this.debugLog('更新结果:', result);
                 
                 Logger.log('✅ 标签添加成功:', {
                     blockId,
                     tagName: tag.name,
-                    emoji: tag.emoji
+                    emoji: tag.emoji,
+                    method: 'DOM (修复后)'
                 });
             });
             
