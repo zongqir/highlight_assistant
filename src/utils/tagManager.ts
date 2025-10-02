@@ -192,6 +192,13 @@ export class TagManager {
         if (selectedTag) {
             console.log('[TagManager] 📤 用户选择标签:', selectedTag.name);
             
+            // 🛡️ 兜底防御：再次检查文档锁定状态
+            if (this.isDocumentEditableCheck()) {
+                console.error('[TagManager] 🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加标签');
+                this.showEditableWarningDialog();
+                return;
+            }
+            
             // 应用标签
             await operationWrapper.executeWithUnlockLock(
                 '添加标签',
@@ -399,26 +406,258 @@ export class TagManager {
     }
     
     /**
-     * 检查文档是否处于只读状态
+     * 🛡️ 兜底防御：检查当前活跃文档是否处于可编辑状态
+     * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
+     */
+    private isDocumentEditableCheck(): boolean {
+        try {
+            // 🎯 关键：每次都获取当前活跃的tab和对应的锁按钮
+            const readonlyBtn = this.getCurrentActiveReadonlyButton();
+            
+            if (!readonlyBtn) {
+                console.warn('[TagManager] 🛡️ 兜底防御：未找到当前活跃文档的锁按钮，假设文档可编辑');
+                return true;
+            }
+            
+            const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+            
+            // 🎯 基于思源源码的正确判断逻辑：
+            // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
+            const isReadonly = iconHref !== '#iconUnlock';
+            const isEditable = !isReadonly;
+            
+            console.log(`[TagManager] 🛡️ 兜底防御检查（当前活跃文档）:`, {
+                '图标href': iconHref,
+                '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）',
+                '是否可编辑': isEditable ? '🔓 是（可编辑）' : '🔒 否（只读）'
+            });
+            
+            return isEditable;
+            
+        } catch (error) {
+            console.error('[TagManager] 🛡️ 兜底防御检查失败:', error);
+            return true;
+        }
+    }
+    
+    /**
+     * 显示文档可编辑状态警告对话框
+     */
+    private showEditableWarningDialog(): void {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 0.25s ease-out;
+        `;
+        
+        // 创建警告对话框
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: var(--b3-theme-background);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            border: 1px solid var(--b3-theme-error);
+            max-width: 90vw;
+            width: 480px;
+            text-align: center;
+            transform: scale(0.9);
+            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        `;
+        
+        // 警告图标和标题
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div style="font-size: 64px; margin-bottom: 16px;">🛡️</div>
+            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: var(--b3-theme-error);">
+                兜底防御触发
+            </h2>
+        `;
+        
+        // 警告内容
+        const content = document.createElement('div');
+        content.style.cssText = `
+            color: var(--b3-theme-on-surface);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        `;
+        content.innerHTML = `
+            <p style="margin: 0 0 12px 0;">检测到文档处于<strong>可编辑状态</strong></p>
+            <p style="margin: 0; color: var(--b3-theme-error);">
+                <strong>为保护数据安全，已阻止标签操作</strong>
+            </p>
+            <p style="margin: 12px 0 0 0; font-size: 14px; color: var(--b3-theme-on-surface-light);">
+                请先锁定文档后再进行标签操作
+            </p>
+        `;
+        
+        // 确定按钮
+        const okButton = document.createElement('button');
+        okButton.textContent = '我知道了';
+        okButton.style.cssText = `
+            background: var(--b3-theme-error);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 2px 8px var(--b3-theme-error)40;
+        `;
+        
+        okButton.addEventListener('mouseenter', () => {
+            okButton.style.transform = 'translateY(-2px) scale(1.02)';
+            okButton.style.boxShadow = `0 6px 16px var(--b3-theme-error)60`;
+        });
+        
+        okButton.addEventListener('mouseleave', () => {
+            okButton.style.transform = 'translateY(0) scale(1)';
+            okButton.style.boxShadow = `0 4px 12px var(--b3-theme-error)40`;
+        });
+        
+        okButton.addEventListener('click', () => {
+            cleanup();
+        });
+        
+        // 组装界面
+        dialog.appendChild(header);
+        dialog.appendChild(content);
+        dialog.appendChild(okButton);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes popIn {
+                from { 
+                    opacity: 0;
+                    transform: scale(0.8) translateY(20px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 清理函数
+        const cleanup = () => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            if (style.parentNode) {
+                style.parentNode.removeChild(style);
+            }
+        };
+        
+        // ESC关闭
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                cleanup();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+        
+        // 点击遮罩关闭
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                cleanup();
+            }
+        });
+        
+        // 3秒后自动关闭
+        setTimeout(cleanup, 3000);
+    }
+    
+    /**
+     * 检查当前活跃文档是否处于只读状态
+     * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
      */
     private checkDocumentReadonly(): boolean {
-        const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+        const readonlyBtn = this.getCurrentActiveReadonlyButton();
         
         if (!readonlyBtn) {
-            this.debugLog('[TagManager] ⚠️ 未找到面包屑锁按钮');
+            this.debugLog('[TagManager] ⚠️ 未找到当前活跃文档的面包屑锁按钮');
             return false;
         }
         
-        const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
-        const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
         const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
         
-        const isUnlocked = 
-            dataSubtype === 'unlock' || 
-            ariaLabel.includes('取消') ||
-            iconHref === '#iconUnlock';
+        // 🎯 基于思源源码的正确判断逻辑：
+        // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
+        const isReadonly = iconHref !== '#iconUnlock';
         
-        return !isUnlocked;
+        this.debugLog('[TagManager] 🔐 当前活跃文档锁按钮状态:', {
+            '图标href': iconHref,
+            '是否只读': isReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
+        });
+        
+        return isReadonly;
+    }
+    
+    /**
+     * 获取当前活跃文档的锁按钮
+     */
+    private getCurrentActiveReadonlyButton(): HTMLElement | null {
+        try {
+            // 方法1: 尝试通过焦点元素查找
+            const focusedElement = document.activeElement;
+            if (focusedElement) {
+                const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
+                if (protyleContainer) {
+                    const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                    if (readonlyBtn) {
+                        console.log('[TagManager] ✅ 通过焦点元素找到当前文档锁按钮');
+                        return readonlyBtn;
+                    }
+                }
+            }
+            
+            // 方法2: 查找活跃窗口中的锁按钮
+            const activeWnd = document.querySelector('.layout__wnd--active');
+            if (activeWnd) {
+                const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    console.log('[TagManager] ✅ 通过活跃窗口找到当前文档锁按钮');
+                    return readonlyBtn;
+                }
+            }
+            
+            // 方法3: 兜底方案 - 全局查找（可能不准确）
+            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+            if (readonlyBtn) {
+                console.warn('[TagManager] ⚠️ 使用兜底方案找到锁按钮（可能不是当前文档）');
+                return readonlyBtn;
+            }
+            
+            return null;
+            
+        } catch (error) {
+            console.error('[TagManager] ❌ 获取当前活跃文档锁按钮失败:', error);
+            return null;
+        }
     }
     
     /**

@@ -61,33 +61,23 @@ export class CustomToolbarManager {
                     console.log('\n[ToolbarHijacker] 📱 ========== 检测到文本选中（mouseup/selectionchange）==========');
                     console.log('[ToolbarHijacker] 选中文本:', selectedText.substring(0, 50));
                     
-                    // 🔍 在工具栏显示之前检查只读状态 - 使用面包屑锁按钮（宽松检查）
-                    const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+                    // 🔍 在工具栏显示之前检查当前活跃文档的只读状态
+                    const readonlyBtn = this.getCurrentActiveReadonlyButton();
                     let isDocReadonly = false;
                     
                     if (readonlyBtn) {
-                        const ariaLabel = readonlyBtn.getAttribute('aria-label') || '';
-                        const dataSubtype = readonlyBtn.getAttribute('data-subtype') || '';
                         const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
                         
-                        // 宽松判断（多条件检查，更稳定）：
-                        // 注意："临时解锁"表示点击后会解锁，说明当前是锁定状态！
-                        const isUnlocked = 
-                            dataSubtype === 'unlock' || 
-                            ariaLabel.includes('取消') ||   // "取消临时解锁" → 当前已解锁
-                            iconHref === '#iconUnlock';
+                        // 🎯 基于思源源码的正确判断逻辑：
+                        // isReadonly = target.querySelector("use").getAttribute("xlink:href") !== "#iconUnlock"
+                        isDocReadonly = iconHref !== '#iconUnlock';
                         
-                        isDocReadonly = !isUnlocked;
-                        
-                        console.log('[ToolbarHijacker] 🔐 面包屑锁按钮状态（工具栏显示前-宽松检查）:', {
-                            'aria-label': ariaLabel,
-                            'data-subtype': dataSubtype,
+                        console.log('[ToolbarHijacker] 🔐 当前活跃文档锁按钮状态:', {
                             '图标href': iconHref,
-                            '是否解锁': isUnlocked ? '✏️ 是' : '🔒 否',
                             '是否只读': isDocReadonly ? '🔒 是（锁定）' : '✏️ 否（解锁）'
                         });
                     } else {
-                        console.warn('[ToolbarHijacker] ⚠️ 未找到面包屑锁按钮');
+                        console.warn('[ToolbarHijacker] ⚠️ 未找到当前活跃文档的面包屑锁按钮');
                     }
                     
                     // 🔒 核心限制：只有在加锁（只读）状态下才显示高亮工具栏
@@ -364,6 +354,131 @@ export class CustomToolbarManager {
         } catch (error) {
             console.error('[CustomToolbarManager] ❌ 检查块类型失败:', error);
             return true;
+        }
+    }
+    
+    /**
+     * 获取当前活跃文档的锁按钮 - 增强调试版本
+     */
+    private getCurrentActiveReadonlyButton(): HTMLElement | null {
+        try {
+            console.log('[CustomToolbarManager] 🔍 开始查找当前活跃文档的锁按钮...');
+            
+            // 先检查思源的 getActiveTab API
+            try {
+                const { getActiveTab } = require('siyuan');
+                const activeTab = getActiveTab();
+                console.log('[CustomToolbarManager] 🔍 思源getActiveTab返回:', {
+                    hasActiveTab: !!activeTab,
+                    tabId: activeTab?.id,
+                    title: activeTab?.title,
+                    modelType: activeTab?.model?.type,
+                    hasEditor: !!(activeTab?.model?.editor),
+                    hasProtyle: !!(activeTab?.model?.protyle)
+                });
+                
+                if (activeTab?.model?.editor?.protyle) {
+                    const protyle = activeTab.model.editor.protyle;
+                    const readonlyBtn = protyle.element?.querySelector('.protyle-breadcrumb button[data-type="readonly"]');
+                    if (readonlyBtn) {
+                        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                        console.log('[CustomToolbarManager] ✅ 通过getActiveTab找到锁按钮:', {
+                            iconHref,
+                            ariaLabel: readonlyBtn.getAttribute('aria-label'),
+                            dataSubtype: readonlyBtn.getAttribute('data-subtype'),
+                            protyleNodeId: protyle.element?.getAttribute('data-node-id')
+                        });
+                        return readonlyBtn as HTMLElement;
+                    }
+                }
+            } catch (error) {
+                console.log('[CustomToolbarManager] ⚠️ getActiveTab API不可用:', error.message);
+            }
+            
+            // 方法1: 尝试通过焦点元素查找
+            const focusedElement = document.activeElement;
+            console.log('[CustomToolbarManager] 🔍 当前焦点元素:', {
+                tagName: focusedElement?.tagName,
+                className: focusedElement?.className,
+                id: focusedElement?.id
+            });
+            
+            if (focusedElement) {
+                const protyleContainer = focusedElement.closest('.protyle') as HTMLElement;
+                console.log('[CustomToolbarManager] 🔍 找到的protyle容器:', {
+                    found: !!protyleContainer,
+                    className: protyleContainer?.className,
+                    dataNodeId: protyleContainer?.getAttribute('data-node-id')
+                });
+                
+                if (protyleContainer) {
+                    const readonlyBtn = protyleContainer.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                    if (readonlyBtn) {
+                        const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                        console.log('[CustomToolbarManager] ✅ 方法1成功 - 通过焦点元素找到锁按钮:', {
+                            iconHref,
+                            ariaLabel: readonlyBtn.getAttribute('aria-label'),
+                            dataSubtype: readonlyBtn.getAttribute('data-subtype')
+                        });
+                        return readonlyBtn;
+                    }
+                }
+            }
+            
+            // 方法2: 查找活跃窗口中的锁按钮
+            const activeWnd = document.querySelector('.layout__wnd--active');
+            console.log('[CustomToolbarManager] 🔍 活跃窗口:', {
+                found: !!activeWnd,
+                className: activeWnd?.className
+            });
+            
+            if (activeWnd) {
+                const readonlyBtn = activeWnd.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+                if (readonlyBtn) {
+                    const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                    console.log('[CustomToolbarManager] ✅ 方法2成功 - 通过活跃窗口找到锁按钮:', {
+                        iconHref,
+                        ariaLabel: readonlyBtn.getAttribute('aria-label'),
+                        dataSubtype: readonlyBtn.getAttribute('data-subtype')
+                    });
+                    return readonlyBtn;
+                }
+            }
+            
+            // 方法3: 列出所有锁按钮，看看到底有多少个
+            const allReadonlyBtns = document.querySelectorAll('.protyle-breadcrumb button[data-type="readonly"]');
+            console.log('[CustomToolbarManager] 🔍 发现的所有锁按钮数量:', allReadonlyBtns.length);
+            
+            allReadonlyBtns.forEach((btn, index) => {
+                const iconHref = btn.querySelector('use')?.getAttribute('xlink:href') || '';
+                const protyle = btn.closest('.protyle');
+                console.log(`[CustomToolbarManager] 🔍 锁按钮 ${index + 1}:`, {
+                    iconHref,
+                    ariaLabel: btn.getAttribute('aria-label'),
+                    dataSubtype: btn.getAttribute('data-subtype'),
+                    protyleVisible: protyle ? !protyle.classList.contains('fn__none') : false,
+                    protyleDataNodeId: protyle?.getAttribute('data-node-id')
+                });
+            });
+            
+            // 方法3: 兜底方案 - 全局查找第一个
+            const readonlyBtn = document.querySelector('.protyle-breadcrumb button[data-type="readonly"]') as HTMLElement;
+            if (readonlyBtn) {
+                const iconHref = readonlyBtn.querySelector('use')?.getAttribute('xlink:href') || '';
+                console.warn('[CustomToolbarManager] ⚠️ 方法3兜底 - 使用第一个找到的锁按钮（可能不准确）:', {
+                    iconHref,
+                    ariaLabel: readonlyBtn.getAttribute('aria-label'),
+                    dataSubtype: readonlyBtn.getAttribute('data-subtype')
+                });
+                return readonlyBtn;
+            }
+            
+            console.error('[CustomToolbarManager] ❌ 完全找不到任何锁按钮');
+            return null;
+            
+        } catch (error) {
+            console.error('[CustomToolbarManager] ❌ 获取当前活跃文档锁按钮失败:', error);
+            return null;
         }
     }
 }
