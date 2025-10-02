@@ -30,10 +30,43 @@ A powerful enhancement tool for SiYuan Note, featuring text highlighting, smart 
 
 ## 🚀 How to Use
 
+### 🎨 Highlighting & Annotations
+
 1. **Select Text**: Select any text in SiYuan (mobile or desktop)
 2. **Choose Color**: Click color buttons in the popup toolbar to highlight
 3. **Add Annotation**: Click the annotation button to add personal thoughts to highlighted text
 4. **Manage Highlights**: Click on already highlighted text to modify color or delete
+
+### 🏷️ Quick Tag Marking (v1.1.4+)
+
+**How to Trigger:**
+- **Mobile**: Long-press (500ms) on blank area within a block (avoid selecting text)
+- **Desktop**: Right-click on blank area within a block
+
+**Requirements:**
+- ⚠️ **Only available when document is locked (read-only mode)**
+- Make sure the document is in read-only mode, click the lock button in the top toolbar to toggle
+
+**Steps:**
+1. Lock the document (click the lock button in the top toolbar)
+2. Long-press (mobile) or right-click (desktop) on blank area of any block
+3. Select an appropriate tag from the popup panel
+4. The tag will be automatically added to the end of the block
+
+**Preset Tags:**
+- ⭐ Important - Mark important content
+- 🔥 Difficult - Mark difficult knowledge points
+- ⚡ Mistake - Mark error-prone areas
+- 💭 Memory - Content that needs memorization
+- 🔍 Explore - Needs in-depth research
+- ✅ Check - Content that needs review
+- ✍️ Practice - Exercises to practice
+- ❓ Question - Areas with questions
+
+**Tag Search:**
+- Click any tag to search all blocks containing that tag
+- Support three search scopes: current document, subdocuments, notebook
+- Search results displayed in document tree structure for easy navigation
 
 ## 📋 System Requirements
 
@@ -73,8 +106,17 @@ pnpm run make-install
 
 ## 📝 Changelog
 
+### v3.0.3 (2025-10-02)
+- 🐛 **Bug Fix**: Mobile quick tag adding issue
+  - Fixed issue where tags became plain text on mobile
+  - Changed from Markdown format to DOM format, no longer dependent on "Markdown inline tag syntax" setting
+  - Both mobile and desktop versions now correctly add clickable tags
+- 📖 **Documentation**: Improved tag feature usage instructions
+  - Detailed explanation of mobile long-press and desktop right-click triggers
+  - Added usage requirements (document must be locked)
+
 ### v2.0.0 (2025-10-02)
-- 🎉 **Major Update**: Quick Tag Marking System
+- 🎉 **Major Update**: Quick Tag Marking System (developed in v1.1.4)
   - Right-click or long-press to quickly add tags
   - 8 preset tags for various learning scenarios
   - Click tags to quickly search
