@@ -1,13 +1,19 @@
 /**
- * 思源笔记数据库编辑防护脚本 v2.1
+ * 思源笔记数据库编辑防护脚本 v2.3
  * 
  * 功能：在编辑数据库单元格时，禁止自动排序和过滤，防止内容意外被移动或隐藏
  * 
  * 使用方法：
  * 1. 将此 JS 代码添加到 思源笔记 - 设置 - 外观 - 代码片段 - JS 片段中
  * 2. 重启思源笔记或刷新页面即可生效
+ * 3. 在屏幕右下角可看到浮动的锁按钮（点击切换，可拖动）
  * 
  * 更新日志：
+ * v2.3 - 全平台浮动按钮支持
+ *      - 移动端和桌面端都使用浮动按钮
+ *      - 支持触摸和鼠标拖动
+ *      - 按钮位置可自定义并记忆
+ *      - 只在有数据库时显示按钮
  * v2.1 - 优化性能和用户体验
  *      - 添加调试模式开关
  *      - 添加拦截统计
@@ -63,7 +69,7 @@
         }
     };
     
-    log.info('v2.2 脚本开始加载...');
+    log.info('v2.3 脚本开始加载...');
     
     /**
      * 设置编辑状态
@@ -371,51 +377,95 @@
     }
     
     /**
-     * 创建UI开关按钮
+     * 创建UI开关按钮（统一使用浮动按钮）
      */
     function createToggleButton() {
-        // 查找数据库工具栏
-        const observer = new MutationObserver((mutations) => {
-            // 查找所有数据库视图头部
-            document.querySelectorAll('.av__header').forEach((header) => {
-                // 检查是否已经添加过按钮
-                if (header.querySelector('.db-protection-toggle')) {
+        // 所有平台都使用相同的浮动按钮
+        createFloatingButton();
+        
+        log.info('✓ UI开关按钮已创建');
+    }
+    
+    /**
+     * 创建浮动按钮（支持移动端和桌面端）
+     */
+    function createFloatingButton() {
+        log.info('🎯 开始创建浮动按钮...');
+        
+        // 避免重复创建
+        if (document.getElementById('db-protection-floating-btn')) {
+            log.warn('浮动按钮已存在，跳过创建');
                     return;
                 }
                 
-                // 找到工具栏按钮区域（在搜索按钮旁边）
-                const searchBtn = header.querySelector('[data-type="av-search-icon"]');
-                if (!searchBtn) return;
-                
-                // 创建开关按钮
-                const toggleBtn = document.createElement('button');
-                toggleBtn.className = 'block__icon ariaLabel db-protection-toggle';
-                toggleBtn.setAttribute('data-position', '8south');
-                
-                // 移动端使用简化的提示（因为长按才能看到）
-                const mobileMode = isMobile();
-                toggleBtn.setAttribute('aria-label', globalEnabled 
-                    ? (mobileMode ? '🔒 锁定排序（已启用）' : '🔒 编辑时锁定排序/过滤（已启用）\n点击关闭：允许编辑时自动排序')
-                    : (mobileMode ? '🔓 正常排序' : '🔓 编辑时自动排序/过滤（正常模式）\n点击启用：编辑时锁定排序'));
-                toggleBtn.style.marginRight = '4px';
-                
-                // 设置图标和颜色
-                const updateButtonStyle = () => {
-                    toggleBtn.innerHTML = globalEnabled 
-                        ? '<svg><use xlink:href="#iconLock"></use></svg>'  // 锁定图标
-                        : '<svg><use xlink:href="#iconUnlock"></use></svg>'; // 解锁图标
-                    toggleBtn.style.color = globalEnabled ? '#4CAF50' : '#999'; // 绿色=启用，灰色=禁用
-                    toggleBtn.setAttribute('aria-label', globalEnabled 
-                        ? (mobileMode ? '🔒 锁定排序（已启用）' : '🔒 编辑时锁定排序/过滤（已启用）\n点击关闭：允许编辑时自动排序')
-                        : (mobileMode ? '🔓 正常排序' : '🔓 编辑时自动排序/过滤（正常模式）\n点击启用：编辑时锁定排序'));
-                };
-                
-                updateButtonStyle();
-                
-                // 点击事件
-                toggleBtn.addEventListener('click', (e) => {
+        // 创建浮动按钮容器
+        const floatingBtn = document.createElement('div');
+        floatingBtn.id = 'db-protection-floating-btn';
+        floatingBtn.className = 'db-protection-floating';
+        
+        log.info('浮动按钮元素已创建，设置样式...');
+        
+        // 从 localStorage 读取保存的位置，默认位置
+        const savedPos = localStorage.getItem('dbProtection_btnPos');
+        let btnPos = savedPos ? JSON.parse(savedPos) : { bottom: 160, right: 16 };
+        
+        // 验证位置是否合理（防止按钮在屏幕外）
+        const maxBottom = window.innerHeight - 50; // 按钮至少要有 50px 在屏幕内
+        const maxRight = window.innerWidth - 50;
+        
+        if (btnPos.bottom > maxBottom || btnPos.right > maxRight || btnPos.bottom < 0 || btnPos.right < 0) {
+            log.warn(`⚠️  检测到按钮位置异常: bottom=${btnPos.bottom}, right=${btnPos.right}`);
+            log.info('🔧 自动重置到默认位置');
+            btnPos = { bottom: 160, right: 16 };
+            // 清除错误的保存位置
+            localStorage.removeItem('dbProtection_btnPos');
+        }
+        
+        // 设置样式（初始可见，后续根据数据库可见性调整）
+        floatingBtn.style.cssText = `
+            position: fixed;
+            bottom: ${btnPos.bottom}px;
+            right: ${btnPos.right}px;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: ${globalEnabled ? '#4CAF50' : '#999'};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: move;
+            transition: opacity 0.3s ease, background 0.3s ease, transform 0.15s ease;
+            color: white;
+            font-size: 18px;
+            opacity: 1;
+            pointer-events: auto;
+            touch-action: none;
+        `;
+        
+        // 设置图标
+        const updateFloatingButton = () => {
+            floatingBtn.innerHTML = globalEnabled 
+                ? '<svg style="width: 20px; height: 20px;"><use xlink:href="#iconLock"></use></svg>'
+                : '<svg style="width: 20px; height: 20px;"><use xlink:href="#iconUnlock"></use></svg>';
+            floatingBtn.style.background = globalEnabled ? '#4CAF50' : '#999';
+        };
+        
+        updateFloatingButton();
+        
+        // 拖动功能（支持触摸和鼠标）
+        let isDragging = false;
+        let isMouseDown = false; // 标记鼠标是否在按钮上按下
+        let startX, startY;
+        let startTime = 0;
+        const CLICK_THRESHOLD = 200; // 200ms内认为是点击
+        const MOVE_THRESHOLD = 10; // 移动超过10px认为是拖动
+        
+        // 处理点击切换状态
+        const handleClick = (e) => {
+            e.preventDefault();
                     e.stopPropagation();
-                    e.preventDefault();
                     
                     // 切换状态
                     globalEnabled = !globalEnabled;
@@ -423,42 +473,214 @@
                     // 保存到 localStorage
                     localStorage.setItem('dbProtection_enabled', String(globalEnabled));
                     
-                    // 更新按钮样式
-                    updateButtonStyle();
-                    
-                    // 更新所有按钮（因为可能有多个数据库视图）
-                    document.querySelectorAll('.db-protection-toggle').forEach(btn => {
-                        if (btn !== toggleBtn) {
-                            btn.innerHTML = toggleBtn.innerHTML;
-                            btn.style.color = toggleBtn.style.color;
-                            btn.setAttribute('aria-label', toggleBtn.getAttribute('aria-label'));
-                        }
-                    });
-                    
-                    // 显示提示（更详细的说明）
+            // 更新浮动按钮
+            updateFloatingButton();
+            
+            // 更新所有按钮
+            updateAllButtons();
+            
+            // 添加点击动画
+            floatingBtn.style.transition = 'transform 0.15s ease';
+            floatingBtn.style.transform = 'scale(0.85)';
+            setTimeout(() => {
+                floatingBtn.style.transform = 'scale(1)';
+            }, 150);
+            
+            // 显示提示
                     if (window.siyuan && window.siyuan.showMessage) {
                         const message = globalEnabled 
-                            ? '🔒 已启用：编辑单元格时不会自动排序/过滤（内容不会被移走）' 
-                            : '🔓 已关闭：编辑单元格时会自动排序/过滤（恢复正常行为）';
-                        window.siyuan.showMessage(message, 3000, globalEnabled ? 'info' : 'error');
+                    ? '🔒 编辑时锁定排序/过滤' 
+                    : '🔓 编辑时正常排序/过滤';
+                window.siyuan.showMessage(message, 2000, globalEnabled ? 'info' : 'error');
                     }
                     
                     log.info(globalEnabled ? '✅ 保护已启用' : '❌ 保护已禁用');
-                });
-                
-                // 插入到搜索按钮之前
-                searchBtn.parentElement.insertBefore(toggleBtn, searchBtn);
-                searchBtn.parentElement.insertBefore(document.createElement('div').cloneNode(), searchBtn).className = 'fn__space';
-            });
+        };
+        
+        // 处理拖动移动
+        const handleMove = (clientX, clientY) => {
+            const rect = floatingBtn.getBoundingClientRect();
+            const newRight = window.innerWidth - clientX - rect.width / 2;
+            const newBottom = window.innerHeight - clientY - rect.height / 2;
+            
+            // 限制边界
+            const clampedRight = Math.max(0, Math.min(newRight, window.innerWidth - rect.width));
+            const clampedBottom = Math.max(0, Math.min(newBottom, window.innerHeight - rect.height));
+            
+            floatingBtn.style.right = `${clampedRight}px`;
+            floatingBtn.style.bottom = `${clampedBottom}px`;
+        };
+        
+        // 保存位置
+        const savePosition = () => {
+            const right = parseInt(floatingBtn.style.right);
+            const bottom = parseInt(floatingBtn.style.bottom);
+            localStorage.setItem('dbProtection_btnPos', JSON.stringify({ bottom, right }));
+            log.debug(`浮动按钮位置已保存: bottom=${bottom}, right=${right}`);
+        };
+        
+        // ===== 触摸事件（移动端） =====
+        floatingBtn.addEventListener('touchstart', (e) => {
+            startTime = Date.now();
+            isDragging = false;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            floatingBtn.style.transition = 'none';
+        }, { passive: true });
+        
+        floatingBtn.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const moveX = Math.abs(touch.clientX - startX);
+            const moveY = Math.abs(touch.clientY - startY);
+            
+            if (moveX > MOVE_THRESHOLD || moveY > MOVE_THRESHOLD) {
+                isDragging = true;
+                e.preventDefault();
+                handleMove(touch.clientX, touch.clientY);
+            }
+        }, { passive: false });
+        
+        floatingBtn.addEventListener('touchend', (e) => {
+            const duration = Date.now() - startTime;
+            
+            if (!isDragging && duration < CLICK_THRESHOLD) {
+                handleClick(e);
+            } else if (isDragging) {
+                savePosition();
+            }
+            
+            floatingBtn.style.transition = 'background 0.3s ease, transform 0.15s ease';
+            isDragging = false;
+        }, { passive: false });
+        
+        // ===== 鼠标事件（桌面端） =====
+        floatingBtn.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            startTime = Date.now();
+            isDragging = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            floatingBtn.style.transition = 'none';
+            e.preventDefault();
+            e.stopPropagation();
         });
         
-        // 开始观察DOM变化
-        observer.observe(document.body, {
+        document.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return; // 只有在按钮上按下才响应
+            
+            const moveX = Math.abs(e.clientX - startX);
+            const moveY = Math.abs(e.clientY - startY);
+            
+            if (moveX > MOVE_THRESHOLD || moveY > MOVE_THRESHOLD) {
+                isDragging = true;
+                handleMove(e.clientX, e.clientY);
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (!isMouseDown) return; // 只有在按钮上按下才响应
+            
+            const duration = Date.now() - startTime;
+            
+            if (!isDragging && duration < CLICK_THRESHOLD) {
+                handleClick(e);
+            } else if (isDragging) {
+                savePosition();
+            }
+            
+            floatingBtn.style.transition = 'background 0.3s ease, transform 0.15s ease';
+            isDragging = false;
+            isMouseDown = false;
+            startTime = 0;
+        });
+        
+        // 检查数据库可见性
+        let hideTimeout;
+        const checkDatabaseVisibility = () => {
+            const hasDatabase = document.querySelector('.av__header') !== null;
+            
+            log.debug(`检查数据库可见性: hasDatabase=${hasDatabase}`);
+            
+            if (hasDatabase) {
+                // 检查是否有可见的数据库
+                const hasVisibleDatabase = Array.from(document.querySelectorAll('.av__header')).some(header => {
+                    const rect = header.getBoundingClientRect();
+                    return rect.top < window.innerHeight && rect.bottom > 0;
+                });
+                
+                log.debug(`可见数据库: ${hasVisibleDatabase}`);
+                
+                if (hasVisibleDatabase) {
+                    floatingBtn.style.opacity = '1';
+                    floatingBtn.style.pointerEvents = 'auto';
+                    clearTimeout(hideTimeout);
+                } else {
+                    // 延迟隐藏，避免快速滚动时闪烁
+                    hideTimeout = setTimeout(() => {
+                        floatingBtn.style.opacity = '0';
+                        floatingBtn.style.pointerEvents = 'none';
+                    }, 1000);
+                }
+            } else {
+                // 没有数据库，隐藏按钮
+                log.debug('页面没有数据库，隐藏按钮');
+                floatingBtn.style.opacity = '0';
+                floatingBtn.style.pointerEvents = 'none';
+            }
+        };
+        
+        // 添加到页面（延迟添加，确保body已加载）
+        const addToBody = () => {
+            if (document.body) {
+                document.body.appendChild(floatingBtn);
+                log.info('✓ 浮动按钮已创建并添加到页面');
+                log.info(`📍 按钮位置: bottom=${btnPos.bottom}px, right=${btnPos.right}px`);
+                
+                // 延迟检查，确保DOM已渲染
+                setTimeout(() => {
+                    checkDatabaseVisibility();
+                    log.debug('初始可见性检查完成');
+                }, 500);
+            } else {
+                setTimeout(addToBody, 100);
+            }
+        };
+        
+        // 监听滚动和窗口大小变化
+        let scrollTimer;
+        document.addEventListener('scroll', () => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(checkDatabaseVisibility, 100);
+        }, true);
+        
+        window.addEventListener('resize', checkDatabaseVisibility);
+        
+        // 监听DOM变化（数据库出现/消失）
+        const dbObserver = new MutationObserver(() => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(checkDatabaseVisibility, 200);
+        });
+        
+        dbObserver.observe(document.body, {
             childList: true,
             subtree: true
         });
         
-        log.info('✓ UI开关按钮已创建');
+        addToBody();
+    }
+    
+    /**
+     * 更新浮动按钮状态（统一逻辑）
+     */
+    function updateAllButtons() {
+        const floatingBtn = document.getElementById('db-protection-floating-btn');
+        if (floatingBtn) {
+            floatingBtn.innerHTML = globalEnabled 
+                ? '<svg style="width: 20px; height: 20px;"><use xlink:href="#iconLock"></use></svg>'
+                : '<svg style="width: 20px; height: 20px;"><use xlink:href="#iconUnlock"></use></svg>';
+            floatingBtn.style.background = globalEnabled ? '#4CAF50' : '#999';
+        }
     }
     
     /**
@@ -483,11 +705,13 @@
         log.info('✅ 启动成功！');
         log.info(`📱 运行环境：${isMobile() ? '移动端' : '桌面端'}`);
         log.info(`📌 当前状态：${globalEnabled ? '🔒 已启用 - 编辑时锁定排序/过滤' : '🔓 已禁用 - 编辑时正常排序/过滤'}`);
-        log.info(`💡 提示：可在数据库工具栏点击锁图标切换${isMobile() ? '（长按查看提示）' : ''}`);
+        log.info(`💡 提示：在屏幕右下角查看浮动的锁按钮（圆形，${globalEnabled ? '绿色' : '灰色'}）`);
+        log.info(`🖱️  操作：点击切换状态，按住拖动调整位置`);
+        log.info(`🔍 如果看不到按钮，请在控制台输入: dbp.showButton()`);
         
         // 暴露全局接口
         window.siyuanDbProtection = {
-            version: '2.2',
+            version: '2.3',
             get enabled() { return globalEnabled; },
             get isMobile() { return isMobile(); },
             config: CONFIG,
@@ -513,16 +737,8 @@
                 globalEnabled = !globalEnabled;
                 localStorage.setItem('dbProtection_enabled', String(globalEnabled));
                 
-                // 更新所有UI按钮
-                document.querySelectorAll('.db-protection-toggle').forEach(btn => {
-                    btn.innerHTML = globalEnabled 
-                        ? '<svg><use xlink:href="#iconLock"></use></svg>' 
-                        : '<svg><use xlink:href="#iconUnlock"></use></svg>';
-                    btn.style.color = globalEnabled ? '#4CAF50' : '#999';
-                    btn.setAttribute('aria-label', globalEnabled 
-                        ? '🔒 编辑时锁定排序/过滤（已启用）\n点击关闭：允许编辑时自动排序' 
-                        : '🔓 编辑时自动排序/过滤（正常模式）\n点击启用：编辑时锁定排序');
-                });
+                // 更新所有UI按钮（包括浮动按钮）
+                updateAllButtons();
                 
                 log.info(globalEnabled 
                     ? '✅ 已启用：编辑单元格时锁定排序/过滤' 
@@ -560,12 +776,75 @@
                 log.info('✓ 统计数据已重置');
             },
             
+            // 显示/调试浮动按钮
+            showButton: () => {
+                const btn = document.getElementById('db-protection-floating-btn');
+                if (btn) {
+                    const style = window.getComputedStyle(btn);
+                    log.info('✅ 浮动按钮已存在');
+                    log.info(`📍 位置: bottom=${btn.style.bottom}, right=${btn.style.right}`);
+                    log.info(`👁️  可见性: opacity=${style.opacity}, pointerEvents=${style.pointerEvents}`);
+                    log.info(`📏 大小: ${style.width} x ${style.height}`);
+                    log.info(`🎨 背景色: ${style.background}`);
+                    log.info(`🔢 Z-index: ${style.zIndex}`);
+                    
+                    // 检查位置是否异常
+                    const bottom = parseInt(btn.style.bottom);
+                    const right = parseInt(btn.style.right);
+                    if (bottom > 800 || right > 500) {
+                        log.warn('⚠️  按钮位置异常（可能在屏幕外），建议重置位置');
+                        log.info('💡 输入 dbp.resetButtonPosition() 重置到默认位置');
+                    }
+                    
+                    // 强制显示按钮
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    log.info('🔧 已强制显示按钮');
+                    
+                    return {
+                        exists: true,
+                        element: btn,
+                        position: { bottom: btn.style.bottom, right: btn.style.right },
+                        visible: style.opacity === '1',
+                        zIndex: style.zIndex
+                    };
+                } else {
+                    log.error('❌ 浮动按钮不存在！');
+                    log.info('尝试重新创建按钮...');
+                    createFloatingButton();
+                    return { exists: false };
+                }
+            },
+            
+            // 重置按钮位置
+            resetButtonPosition: () => {
+                const btn = document.getElementById('db-protection-floating-btn');
+                if (btn) {
+                    // 清除保存的位置
+                    localStorage.removeItem('dbProtection_btnPos');
+                    
+                    // 重置到默认位置
+                    btn.style.bottom = '160px';
+                    btn.style.right = '16px';
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    
+                    log.info('✅ 按钮位置已重置到默认位置: bottom=160px, right=16px');
+                    log.info('💡 现在应该能在屏幕右下角看到按钮了');
+                    
+                    return { bottom: '160px', right: '16px' };
+                } else {
+                    log.error('❌ 浮动按钮不存在');
+                    return null;
+                }
+            },
+            
             // 帮助信息
             help: () => {
                 const mobile = isMobile();
                 console.log(`
 ╔══════════════════════════════════════════════════════════╗
-║     思源笔记数据库编辑防护 v2.2 - 使用帮助               ║
+║     思源笔记数据库编辑防护 v2.3 - 使用帮助               ║
 ╠══════════════════════════════════════════════════════════╣
 ║ 🎯 功能说明：                                             ║
 ║  🔒 启用时：编辑单元格时锁定排序/过滤                   ║
@@ -585,8 +864,8 @@
 ║                                                           ║
 ║ 🎛️  全局开关：                                            ║
 ║  .toggle()        - 切换启用/禁用                         ║
-║  💡 推荐：在数据库工具栏点击锁图标切换                   ║
-${mobile ? '║     移动端：长按图标可查看提示                         ║' : ''}
+║  💡 推荐：点击屏幕右下角的浮动锁按钮                     ║
+║     （绿色=启用，灰色=禁用，可拖动调整位置）             ║
 ║                                                           ║
 ║ 🔧 调试命令：                                             ║
 ║  .enableDebug()   - 启用详细日志                          ║
@@ -626,5 +905,5 @@ ${mobile ? '║     移动端：长按图标可查看提示                     
 })();
 
 // 立即执行标记
-console.log('[数据库编辑防护] ✓ v2.1 脚本文件已加载');
+console.log('[数据库编辑防护] ✓ v2.3 脚本文件已加载');
 
