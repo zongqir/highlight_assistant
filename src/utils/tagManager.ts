@@ -5,8 +5,8 @@
 
 import { operationWrapper } from './operationWrapper';
 import { updateBlock } from '../api';
-import { isCurrentDocumentReadonly, isCurrentDocumentEditable } from './readonlyButtonUtils';
-import { showTagSelectionDialog } from './tagSelectionDialog';
+import { isCurrentDocumentReadonly } from './readonlyButtonUtils';
+import { showTagSelectionDialog, type PresetTag } from './tagSelectionDialog';
 
 // 内置标签配置
 const PRESET_TAGS = [
@@ -21,7 +21,6 @@ const PRESET_TAGS = [
 ] as const;
 
 export class TagManager {
-    private isInitialized: boolean = false;
     private debugMode: boolean = false;
     
     constructor() {
@@ -64,7 +63,6 @@ export class TagManager {
         
         // 延迟设置初始化完成标记
         setTimeout(() => {
-            this.isInitialized = true;
             Logger.log('✅ 标签管理器初始化完成');
         }, 2000);
     }
@@ -464,170 +462,6 @@ export class TagManager {
     }
     
     /**
-     * 🛡️ 兜底防御：检查当前活跃文档是否处于可编辑状态
-     * 基于思源笔记源码的正确实现，每次都获取当前活跃tab
-     */
-    private isDocumentEditableCheck(): boolean {
-        // 使用统一的工具函数
-        return isCurrentDocumentEditable();
-    }
-    
-    /**
-     * 显示文档已锁定的警告对话框
-     */
-    private showLockedWarningDialog(): void {
-        // 创建遮罩层
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            box-sizing: border-box;
-            animation: fadeIn 0.25s ease-out;
-        `;
-        
-        // 创建警告对话框
-        const dialog = document.createElement('div');
-        dialog.style.cssText = `
-            background: var(--b3-theme-background);
-            padding: 32px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            border: 1px solid var(--b3-theme-error);
-            max-width: 90vw;
-            width: 480px;
-            text-align: center;
-            transform: scale(0.9);
-            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        `;
-        
-        // 警告图标和标题
-        const header = document.createElement('div');
-        header.innerHTML = `
-            <div style="font-size: 64px; margin-bottom: 16px;">🔓</div>
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: var(--b3-theme-primary);">
-                文档已锁定
-            </h2>
-        `;
-        
-        // 警告内容
-        const content = document.createElement('div');
-        content.style.cssText = `
-            color: var(--b3-theme-on-surface);
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 28px;
-        `;
-        content.innerHTML = `
-            <p style="margin: 0 0 16px 0;">检测到文档处于<strong>锁定状态</strong></p>
-            <div style="background: var(--b3-theme-surface-light); padding: 16px; border-radius: 8px; border-left: 4px solid var(--b3-theme-primary); margin-bottom: 16px;">
-                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600;">📌 如何解决：</p>
-                <ol style="margin: 8px 0 0 20px; padding: 0; line-height: 1.8;">
-                    <li>点击顶部工具栏的<strong>锁按钮</strong> 🔓 解锁文档</li>
-                    <li>然后就可以进行标签操作了</li>
-                </ol>
-            </div>
-            <p style="margin: 0; font-size: 14px; color: var(--b3-theme-on-surface-light);">
-                💡 提示：标签操作需要文档处于可编辑状态
-            </p>
-        `;
-        
-        // 确定按钮
-        const okButton = document.createElement('button');
-        okButton.textContent = '我知道了';
-        okButton.style.cssText = `
-            background: var(--b3-theme-primary);
-            color: white;
-            border: none;
-            padding: 14px 32px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s;
-            box-shadow: 0 2px 8px var(--b3-theme-primary)40;
-        `;
-        
-        okButton.addEventListener('mouseenter', () => {
-            okButton.style.transform = 'translateY(-2px) scale(1.02)';
-            okButton.style.boxShadow = `0 6px 16px var(--b3-theme-primary)60`;
-        });
-        
-        okButton.addEventListener('mouseleave', () => {
-            okButton.style.transform = 'translateY(0) scale(1)';
-            okButton.style.boxShadow = `0 4px 12px var(--b3-theme-primary)40`;
-        });
-        
-        okButton.addEventListener('click', () => {
-            cleanup();
-        });
-        
-        // 组装界面
-        dialog.appendChild(header);
-        dialog.appendChild(content);
-        dialog.appendChild(okButton);
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-        
-        // 添加CSS动画
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            @keyframes popIn {
-                from { 
-                    opacity: 0;
-                    transform: scale(0.8) translateY(20px);
-                }
-                to { 
-                    opacity: 1;
-                    transform: scale(1) translateY(0);
-                }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // 清理函数
-        const cleanup = () => {
-            if (overlay.parentNode) {
-                overlay.parentNode.removeChild(overlay);
-            }
-            if (style.parentNode) {
-                style.parentNode.removeChild(style);
-            }
-        };
-        
-        // ESC关闭
-        const handleKeydown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                cleanup();
-                document.removeEventListener('keydown', handleKeydown);
-            }
-        };
-        document.addEventListener('keydown', handleKeydown);
-        
-        // 点击遮罩关闭
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                cleanup();
-            }
-        });
-        
-        // 3秒后自动关闭
-        setTimeout(cleanup, 3000);
-    }
-    
-    /**
      * 执行添加标签和/或评论的核心逻辑
      * 
      * 修复说明：
@@ -638,7 +472,7 @@ export class TagManager {
      *   - 解决：直接从 DOM 元素获取当前的 HTML 内容
      * - v1.3: ✨ 新增 - 支持块级评论功能，可以只添加评论或同时添加标签+评论
      */
-    private async performAddTag(blockElement: HTMLElement, tag?: typeof PRESET_TAGS[number], comment?: string): Promise<void> {
+    private async performAddTag(blockElement: HTMLElement, tag?: PresetTag, comment?: string): Promise<void> {
         try {
             this.debugLog('🏷️ 开始添加标签...');
             
@@ -766,43 +600,40 @@ export class TagManager {
                         Logger.warn('💡 建议：将此块转换为普通段落后再添加评论，或只在标题上添加标签');
                     }
                     
-                    // 标题块：需要特殊处理，确保保留标题格式
+                    // 🔧 修复：标题块使用 markdown + HTML 混合格式
+                    // 这样既能保留 h1-h6 格式，标签又能在手机版正常显示（不会变成 #标签# 文本）
                     const headingPrefix = this.getHeadingPrefix(blockSubtype);
                     
-                    // 从HTML提取内容
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = newContent;
-                    
-                    // 获取纯文本内容（排除标签和memo）
-                    const clonedDiv = tempDiv.cloneNode(true) as HTMLElement;
-                    clonedDiv.querySelectorAll('span[data-type="tag"]').forEach(t => t.remove());
-                    clonedDiv.querySelectorAll('span[data-type="inline-memo"]').forEach(m => {
-                        // 如果有memo，提取其文本内容
-                        const textNode = document.createTextNode(m.textContent || '');
-                        m.replaceWith(textNode);
-                    });
-                    const mainText = (clonedDiv.textContent || '').replace(/\s+/g, ' ').trim();
-                    
-                    // 提取所有标签
-                    const allTags: string[] = [];
-                    tempDiv.querySelectorAll('span[data-type="tag"]').forEach(t => {
-                        const tagText = (t.textContent || '').trim();
-                        if (tagText) {
-                            allTags.push(`#${tagText}#`);
-                        }
-                    });
-                    
-                    // 构建markdown：# 标题文本 #标签#
-                    // 标题前缀后有一个空格，文本和标签之间有一个空格
-                    let markdownContent = headingPrefix + ' ' + mainText;
-                    if (allTags.length > 0) {
-                        markdownContent += ' ' + allTags.join(' ');
+                    // 🔧 如果有 inline-memo（评论），先移除它，因为标题块不支持
+                    if (comment) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newContent;
+                        
+                        // 移除 inline-memo 但保留其文本内容
+                        tempDiv.querySelectorAll('span[data-type="inline-memo"]').forEach(m => {
+                            const textNode = document.createTextNode(m.textContent || '');
+                            m.replaceWith(textNode);
+                        });
+                        
+                        newContent = tempDiv.innerHTML;
+                        Logger.log('📝 标题块：移除inline-memo，保留文本');
                     }
-                    // 清理多余空格：将多个连续空格替换为单个空格
-                    markdownContent = markdownContent.replace(/\s+/g, ' ').trim();
                     
-                    this.debugLog('标题块使用markdown格式:', markdownContent);
-                    result = await updateBlock('markdown', markdownContent, blockId);
+                    // 🔧 清理多余空格，避免空格累积
+                    // 注意：要保留标签的 HTML 结构，不要转换为 #标签# 文本
+                    const cleanedContent = newContent
+                        .trim()
+                        .replace(/&nbsp;/g, ' ')           // 将 &nbsp; 转换为普通空格
+                        .replace(/\s+/g, ' ')              // 将多个连续空格合并为一个
+                        .replace(/\s+<span/g, ' <span');  // 确保 <span 前只有一个空格
+                    
+                    // 🔑 关键：markdown 支持嵌入 HTML，所以直接拼接
+                    // 格式：# 标题文本 <span data-type="tag">⭐重点</span>
+                    // 这样标签会被正确渲染，不会显示为 #标签# 文本
+                    const markdownWithHTML = `${headingPrefix} ${cleanedContent}`;
+                    
+                    Logger.log('📝 标题块使用markdown+HTML混合格式（保留h1-h6 + 标签不变文本）:', markdownWithHTML);
+                    result = await updateBlock('markdown', markdownWithHTML, blockId);
                 } else {
                     // 普通块：使用DOM格式
                     this.debugLog('普通块使用DOM格式');
@@ -819,8 +650,8 @@ export class TagManager {
                     emoji: tag?.emoji || '无',
                     hasComment: !!comment,
                     commentOnly: !tag && !!comment,
-                    method: (blockType === 'heading' || blockSubtype?.startsWith('h')) ? 'Markdown (标题块)' : 'DOM (普通块)',
-                    note: (blockType === 'heading' || blockSubtype?.startsWith('h')) && comment ? '标题块不支持inline-memo，评论内容已作为文本保留' : ''
+                    method: (blockType === 'heading' || blockSubtype?.startsWith('h')) ? 'Markdown+HTML混合（标题块）' : 'DOM格式（普通块）',
+                    note: (blockType === 'heading' || blockSubtype?.startsWith('h')) ? '保留h1-h6格式，标签使用HTML不会变文字' : ''
                 });
             });
             
