@@ -669,10 +669,11 @@ export class TagManager {
                 // 获取当前的 HTML 内容（保留已有的标签结构）
                 let currentHTML = contentDiv.innerHTML.trim();
                 
-                this.debugLog('当前块HTML:', currentHTML);
+                Logger.log('🔍 [调试] 当前块原始HTML:', currentHTML);
+                Logger.log('🔍 [调试] HTML长度:', currentHTML.length);
                 
-                // 🔧 移除末尾的零宽空格（思源常用的占位符）
-                currentHTML = currentHTML.replace(/​+$/, '');
+                // 🔧 移除末尾的零宽空格（思源常用的占位符 U+200B）
+                currentHTML = currentHTML.replace(/(\u200B|​)+$/g, '');
                 
                 // 🔑 关键修复：提取已有的标签，避免被包裹在 memo 中
                 const existingTags: string[] = [];
@@ -690,10 +691,27 @@ export class TagManager {
                 });
                 
                 // 获取去掉标签后的内容
-                contentWithoutTags = tempDiv.innerHTML.trim();
+                contentWithoutTags = tempDiv.innerHTML;
+                
+                Logger.log('🔍 [调试] 去掉标签后的原始内容:', JSON.stringify(contentWithoutTags));
+                Logger.log('🔍 [调试] 内容长度:', contentWithoutTags.length);
+                Logger.log('🔍 [调试] 是否以空格结尾:', contentWithoutTags.endsWith(' '));
+                Logger.log('🔍 [调试] 是否以&nbsp;结尾:', contentWithoutTags.endsWith('&nbsp;'));
+                Logger.log('🔍 [调试] 末尾10个字符:', JSON.stringify(contentWithoutTags.slice(-10)));
+                
+                // 🔧 关键修复：移除末尾的所有空白字符，避免空格累积
+                // 包括：普通空格、&nbsp;、零宽空格（​ U+200B，思源常用的占位符）
+                // 标签前的空格会在后面统一添加
+                contentWithoutTags = contentWithoutTags
+                    .replace(/(&nbsp;|\s|\u200B|​)+$/g, '')  // 移除末尾的所有空白字符
+                    .trim();
+                
+                Logger.log('🔍 [调试] 清理后的内容:', JSON.stringify(contentWithoutTags));
+                Logger.log('🔍 [调试] 清理后长度:', contentWithoutTags.length);
+                Logger.log('🔍 [调试] 清理后是否还有尾随空格:', contentWithoutTags.endsWith(' ') || contentWithoutTags.endsWith('&nbsp;'));
                 
                 this.debugLog('提取到已有标签:', existingTags.length, '个');
-                this.debugLog('去掉标签后的内容:', contentWithoutTags);
+                this.debugLog('已有标签内容:', existingTags);
                 
                 let newContent = contentWithoutTags;
                 
@@ -708,9 +726,12 @@ export class TagManager {
                 
                 // 恢复已有的标签（在 memo 后面）
                 if (existingTags.length > 0) {
-                    // 确保标签前有空格
+                    // 🔧 确保标签前有且仅有一个空格
                     if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
                         newContent += ' ';
+                        this.debugLog('添加空格（恢复标签前）');
+                    } else {
+                        this.debugLog('已有空格，无需添加（恢复标签前）');
                     }
                     newContent += existingTags.join(' ');
                     this.debugLog('恢复已有标签:', existingTags.length, '个');
@@ -718,16 +739,19 @@ export class TagManager {
                 
                 // 如果有新标签，在末尾添加
                 if (tag) {
-                // 构建新标签的 DOM
-                const tagContent = `${tag.emoji}${tag.name}`;
-                const tagDOM = `<span data-type="tag">${tagContent}</span>`;
-                
-                // 确保标签前有空格
-                if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
-                    newContent += ' ';
-                }
-                
-                newContent += tagDOM;
+                    // 构建新标签的 DOM
+                    const tagContent = `${tag.emoji}${tag.name}`;
+                    const tagDOM = `<span data-type="tag">${tagContent}</span>`;
+                    
+                    // 🔧 确保标签前有且仅有一个空格
+                    if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
+                        newContent += ' ';
+                        this.debugLog('添加空格（新标签前）');
+                    } else {
+                        this.debugLog('已有空格，无需添加（新标签前）');
+                    }
+                    
+                    newContent += tagDOM;
                     this.debugLog('添加新标签:', tag.name);
                 }
                 
