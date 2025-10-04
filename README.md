@@ -43,15 +43,16 @@ A powerful enhancement tool for SiYuan Note, featuring text highlighting, smart 
 - **Mobile**: Long-press (500ms) on blank area within a block (avoid selecting text)
 - **Desktop**: Right-click on blank area within a block
 
-**Requirements:**
-- ⚠️ **Only available when document is locked (read-only mode)**
-- Make sure the document is in read-only mode, click the lock button in the top toolbar to toggle
+**How It Works:**
+- The plugin automatically handles document lock state
+- Works in both locked and unlocked states
+- Temporarily unlocks if needed, then restores original state
 
 **Steps:**
-1. Lock the document (click the lock button in the top toolbar)
-2. Long-press (mobile) or right-click (desktop) on blank area of any block
-3. Select an appropriate tag from the popup panel
-4. The tag will be automatically added to the end of the block
+1. Long-press (mobile) or right-click (desktop) on blank area of any block
+2. Select an appropriate tag from the popup panel
+3. The tag will be automatically added to the end of the block
+4. Document lock state is automatically restored
 
 **Preset Tags:**
 - ⭐ Important - Mark important content

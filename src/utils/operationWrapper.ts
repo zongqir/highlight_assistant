@@ -35,6 +35,12 @@ export class OperationWrapper {
     /**
      * 🔑 统一的解锁-操作-加锁抽象方法（所有写入操作的核心包装）
      * 
+     * 逻辑：
+     * 1. 记录文档原始状态（锁定/解锁）
+     * 2. 如果锁定，则解锁
+     * 3. 执行操作
+     * 4. 如果原来是锁定的，恢复锁定
+     * 
      * @param operationName 操作名称（用于日志标识）
      * @param operation 要执行的操作函数
      * @returns 操作结果
@@ -45,14 +51,8 @@ export class OperationWrapper {
     ): Promise<T | null> {
         Logger.log(`🚀 开始执行写入操作: ${operationName}`);
         
-        // 🛡️ 兜底防御：检查文档是否处于可编辑状态，如果是则拒绝操作
-        if (isCurrentDocumentEditable()) {
-            Logger.error(`🛡️ 兜底防御触发：文档处于可编辑状态，拒绝执行 ${operationName} 操作`);
-            throw new Error(`文档未锁定，禁止执行 ${operationName} 操作`);
-        }
-        
-        // 步骤1: 🔓 无脑解锁
-        const unlocked = await this.forceUnlock(operationName);
+        // 步骤1: 记录原始状态并解锁（如果需要）
+        const wasLocked = await this.unlockIfNeeded(operationName);
         
         let result: T | null = null;
         try {
@@ -66,9 +66,11 @@ export class OperationWrapper {
             throw error;
             
         } finally {
-            // 步骤3: 🔒 无脑加锁（无论成功失败都要加锁）
-            if (unlocked) {
+            // 步骤3: 🔒 如果原来是锁定的，恢复锁定（无论操作成功失败）
+            if (wasLocked) {
                 await this.forceLock(operationName);
+            } else {
+                Logger.log(`📝 [${operationName}] 原来是解锁状态，保持解锁`);
             }
         }
         
@@ -76,29 +78,41 @@ export class OperationWrapper {
     }
     
     /**
-     * 🔓 强制解锁（无条件解锁）
+     * 🔓 检查并解锁（如果需要）
+     * @returns true 表示原来是锁定的（需要恢复），false 表示原来就是解锁的
      */
-    private async forceUnlock(operationName: string): Promise<boolean> {
-        Logger.log(`🔓 [${operationName}] 开始强制解锁...`);
+    private async unlockIfNeeded(operationName: string): Promise<boolean> {
+        // 检查当前是否可编辑
+        const isEditable = isCurrentDocumentEditable();
+        Logger.log(`🔍 [${operationName}] 当前文档状态: ${isEditable ? '✏️ 可编辑（已解锁）' : '🔒 锁定'}`);
+        
+        if (isEditable) {
+            // 已经是解锁状态，不需要操作
+            Logger.log(`✅ [${operationName}] 文档已解锁，无需操作`);
+            return false; // 原来是解锁的，不需要恢复锁定
+        }
+        
+        // 需要解锁
+        Logger.log(`🔓 [${operationName}] 文档已锁定，开始解锁...`);
         
         // 🎯 使用统一工具获取当前活跃tab的锁按钮
         const readonlyBtn = getCurrentActiveReadonlyButton();
         
         if (readonlyBtn) {
             const beforeLabel = readonlyBtn.getAttribute('aria-label');
-            Logger.log(`🔓 [${operationName}] 解锁前状态: ${beforeLabel}`);
+            Logger.log(`🔓 [${operationName}] 解锁前按钮状态: ${beforeLabel}`);
             
-            // 无脑点击解锁
+            // 点击解锁
             readonlyBtn.click();
             await new Promise(resolve => setTimeout(resolve, 150)); // 等待解锁完成
             
             const afterLabel = readonlyBtn.getAttribute('aria-label');
-            Logger.log(`🔓 [${operationName}] 解锁后状态: ${afterLabel}`);
-            Logger.log(`✅ [${operationName}] 强制解锁完成`);
+            Logger.log(`🔓 [${operationName}] 解锁后按钮状态: ${afterLabel}`);
+            Logger.log(`✅ [${operationName}] 解锁完成`);
             
-            return true;
+            return true; // 原来是锁定的，需要恢复锁定
         } else {
-            Logger.log(`❌ [${operationName}] 未找到锁按钮`);
+            Logger.warn(`⚠️ [${operationName}] 未找到锁按钮，无法解锁`);
             return false;
         }
     }

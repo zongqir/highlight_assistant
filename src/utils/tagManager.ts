@@ -262,14 +262,7 @@ export class TagManager {
                 Logger.log('📝 用户添加评论:', result.comment);
             }
             
-            // 🛡️ 兜底防御：再次检查文档锁定状态
-            if (this.isDocumentEditableCheck()) {
-                Logger.error('🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加内容');
-                this.showEditableWarningDialog();
-                return;
-            }
-            
-            // 应用标签和/或评论（performAddTag内部已有executeWithUnlockLock包装，不需要再包装）
+            // 应用标签和/或评论（performAddTag内部已有executeWithUnlockLock包装，会自动处理锁定状态）
             await this.performAddTag(blockElement, result.tag, result.comment);
         }
     }
@@ -480,9 +473,9 @@ export class TagManager {
     }
     
     /**
-     * 显示文档可编辑状态警告对话框
+     * 显示文档已锁定的警告对话框
      */
-    private showEditableWarningDialog(): void {
+    private showLockedWarningDialog(): void {
         // 创建遮罩层
         const overlay = document.createElement('div');
         overlay.style.cssText = `
@@ -519,9 +512,9 @@ export class TagManager {
         // 警告图标和标题
         const header = document.createElement('div');
         header.innerHTML = `
-            <div style="font-size: 64px; margin-bottom: 16px;">🛡️</div>
-            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: var(--b3-theme-error);">
-                兜底防御触发
+            <div style="font-size: 64px; margin-bottom: 16px;">🔓</div>
+            <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: var(--b3-theme-primary);">
+                文档已锁定
             </h2>
         `;
         
@@ -534,12 +527,16 @@ export class TagManager {
             margin-bottom: 28px;
         `;
         content.innerHTML = `
-            <p style="margin: 0 0 12px 0;">检测到文档处于<strong>可编辑状态</strong></p>
-            <p style="margin: 0; color: var(--b3-theme-error);">
-                <strong>为保护数据安全，已阻止标签操作</strong>
-            </p>
-            <p style="margin: 12px 0 0 0; font-size: 14px; color: var(--b3-theme-on-surface-light);">
-                请先锁定文档后再进行标签操作
+            <p style="margin: 0 0 16px 0;">检测到文档处于<strong>锁定状态</strong></p>
+            <div style="background: var(--b3-theme-surface-light); padding: 16px; border-radius: 8px; border-left: 4px solid var(--b3-theme-primary); margin-bottom: 16px;">
+                <p style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600;">📌 如何解决：</p>
+                <ol style="margin: 8px 0 0 20px; padding: 0; line-height: 1.8;">
+                    <li>点击顶部工具栏的<strong>锁按钮</strong> 🔓 解锁文档</li>
+                    <li>然后就可以进行标签操作了</li>
+                </ol>
+            </div>
+            <p style="margin: 0; font-size: 14px; color: var(--b3-theme-on-surface-light);">
+                💡 提示：标签操作需要文档处于可编辑状态
             </p>
         `;
         
@@ -547,7 +544,7 @@ export class TagManager {
         const okButton = document.createElement('button');
         okButton.textContent = '我知道了';
         okButton.style.cssText = `
-            background: var(--b3-theme-error);
+            background: var(--b3-theme-primary);
             color: white;
             border: none;
             padding: 14px 32px;
@@ -556,17 +553,17 @@ export class TagManager {
             font-weight: 600;
             cursor: pointer;
             transition: all 0.25s;
-            box-shadow: 0 2px 8px var(--b3-theme-error)40;
+            box-shadow: 0 2px 8px var(--b3-theme-primary)40;
         `;
         
         okButton.addEventListener('mouseenter', () => {
             okButton.style.transform = 'translateY(-2px) scale(1.02)';
-            okButton.style.boxShadow = `0 6px 16px var(--b3-theme-error)60`;
+            okButton.style.boxShadow = `0 6px 16px var(--b3-theme-primary)60`;
         });
         
         okButton.addEventListener('mouseleave', () => {
             okButton.style.transform = 'translateY(0) scale(1)';
-            okButton.style.boxShadow = `0 4px 12px var(--b3-theme-error)40`;
+            okButton.style.boxShadow = `0 4px 12px var(--b3-theme-primary)40`;
         });
         
         okButton.addEventListener('click', () => {
