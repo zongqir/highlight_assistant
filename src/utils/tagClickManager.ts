@@ -137,22 +137,29 @@ export class TagClickManager {
             const className = String(current.className || '');
             const id = String(current.id || '');
             
-            // 检查是否在编辑区域容器内
-            if (className.includes('protyle-wysiwyg') ||           // 编辑区域
-                className.includes('protyle-content') ||          // 内容区域  
-                className.includes('protyle') && className.includes('fn__flex-1')) { // 编辑器主容器
-                return true;
-            }
-            
-            // 排除系统UI区域
+            // 🔧 修复：优先排除系统UI区域（在检查编辑区域之前）
             if (className.includes('toolbar') ||                  // 工具栏
                 className.includes('dock') ||                     // dock面板
                 className.includes('fn__flex-shrink') ||          // 侧边栏
                 className.includes('layout__wnd') ||              // 窗口边框
                 className.includes('block__icon') ||              // 块图标
+                className.includes('protyle-title') ||            // 🆕 文档标题区域
+                className.includes('protyle-breadcrumb') ||       // 🆕 面包屑导航
+                className.includes('protyle-attr') ||             // 🆕 属性面板
+                className.includes('protyle-gutters') ||          // 🆕 侧边栏装订线
+                className.includes('protyle-action') ||           // 🆕 块操作按钮
+                className.includes('b3-dialog') ||                // 🆕 对话框
+                className.includes('b3-menu') ||                  // 🆕 菜单
                 id.includes('toolbar') ||                        // ID中包含toolbar
                 id.includes('dock')) {                           // ID中包含dock
                 return false;
+            }
+            
+            // 检查是否在编辑区域容器内
+            if (className.includes('protyle-wysiwyg') ||           // 编辑区域
+                className.includes('protyle-content') ||          // 内容区域  
+                className.includes('protyle') && className.includes('fn__flex-1')) { // 编辑器主容器
+                return true;
             }
             
             current = current.parentElement;
@@ -200,24 +207,40 @@ export class TagClickManager {
      * 判断是否是文档中的真实标签（而不是系统UI中的标签）
      */
     private isDocumentTag(element: HTMLElement, dataType: string | null, className: string, textContent: string): boolean {
-        // 1. 最可靠：SiYuan的标签data-type
-        if (dataType === 'tag') {
-            return true;
-        }
-        
-        // 2. 排除明显的系统UI元素
+        // 🔧 修复：首先排除所有系统UI元素（优先级最高）
         if (className.includes('toolbar') ||
             className.includes('dock') ||
             className.includes('menu') ||
             className.includes('dialog') ||
             className.includes('breadcrumb') ||
-            className.includes('layout-tab-container') ||  // 更精确：只排除标签页容器
+            className.includes('layout-tab-container') ||  // 标签页容器
             className.includes('file-tree') ||             // 文件树
-            className.includes('sy__backlink')) {          // 反向链接面板
+            className.includes('sy__backlink') ||          // 反向链接面板
+            className.includes('protyle-title') ||         // 🆕 文档标题区域
+            className.includes('protyle-breadcrumb') ||    // 🆕 面包屑导航
+            className.includes('protyle-attr') ||          // 🆕 属性面板
+            className.includes('protyle-gutters') ||       // 🆕 侧边栏装订线
+            className.includes('protyle-action') ||        // 🆕 块操作按钮
+            className.includes('block__icon') ||           // 🆕 块图标菜单
+            className.includes('b3-button') ||             // 🆕 按钮元素
+            className.includes('b3-dialog') ||             // 🆕 对话框
+            className.includes('b3-menu')) {               // 🆕 菜单
             return false;
         }
         
-        // 3. 检查#标签#格式（必须是SPAN且格式正确）
+        // 🔧 修复：检查是否在排除区域的父容器中
+        if (element.closest('.protyle-title, .protyle-breadcrumb, .protyle-attr, .protyle-gutters, .protyle-action, .block__icon, .b3-button, .b3-dialog, .b3-menu, .toolbar, .dock')) {
+            return false;
+        }
+        
+        // 1. 最可靠：SiYuan的标签data-type（但必须在文档内容区域）
+        if (dataType === 'tag') {
+            // 必须确保在文档内容区域
+            const isInContent = element.closest('.protyle-wysiwyg, .protyle-content');
+            return !!isInContent;
+        }
+        
+        // 2. 检查#标签#格式（必须是SPAN且格式正确）
         if (element.tagName === 'SPAN' && textContent.match(/^#[^#\s<>]+#$/)) {
             // 进一步验证：检查父容器是否在文档内容中
             const parentContainer = element.closest('.protyle-wysiwyg, .protyle-content');
@@ -226,7 +249,7 @@ export class TagClickManager {
             }
         }
         
-        // 4. 其他className包含'tag'的情况需要更严格验证
+        // 3. 其他className包含'tag'的情况需要更严格验证
         if (className.includes('tag')) {
             // 确保不是系统UI中的标签样式
             if (element.closest('.protyle-wysiwyg, .protyle-content')) {
