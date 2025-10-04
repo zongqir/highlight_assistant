@@ -6,6 +6,7 @@
 import { operationWrapper } from './operationWrapper';
 import { updateBlock } from '../api';
 import { isCurrentDocumentReadonly, isCurrentDocumentEditable } from './readonlyButtonUtils';
+import { showTagSelectionDialog } from './tagSelectionDialog';
 
 // 内置标签配置
 const PRESET_TAGS = [
@@ -241,20 +242,25 @@ export class TagManager {
         }
         
         // 显示标签选择对话框
-        const selectedTag = await this.showTagSelectionDialog(blockText);
+        const result = await showTagSelectionDialog(blockText, PRESET_TAGS);
         
-        if (selectedTag) {
-            Logger.log('📤 用户选择标签:', selectedTag.name);
+        if (result) {
+            if (result.tag) {
+                Logger.log('📤 用户选择标签:', result.tag.name);
+            }
+            if (result.comment) {
+                Logger.log('📝 用户添加评论:', result.comment);
+            }
             
             // 🛡️ 兜底防御：再次检查文档锁定状态
             if (this.isDocumentEditableCheck()) {
-                Logger.error('🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加标签');
+                Logger.error('🛡️ 兜底防御触发：文档处于可编辑状态，拒绝添加内容');
                 this.showEditableWarningDialog();
                 return;
             }
             
-            // 应用标签（performAddTag内部已有executeWithUnlockLock包装，不需要再包装）
-            await this.performAddTag(blockElement, selectedTag);
+            // 应用标签和/或评论（performAddTag内部已有executeWithUnlockLock包装，不需要再包装）
+            await this.performAddTag(blockElement, result.tag, result.comment);
         }
     }
     
@@ -614,250 +620,8 @@ export class TagManager {
         setTimeout(cleanup, 3000);
     }
     
-    
     /**
-     * 显示标签选择对话框
-     */
-    private showTagSelectionDialog(blockText: string): Promise<typeof PRESET_TAGS[number] | null> {
-        return new Promise((resolve) => {
-            // 添加动画样式
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes tagOverlayFadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes tagDialogSlideUp {
-                    from { 
-                        opacity: 0;
-                        transform: translateY(30px) scale(0.9);
-                    }
-                    to { 
-                        opacity: 1;
-                        transform: translateY(0) scale(1);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // 创建遮罩层
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background: rgba(0, 0, 0, 0.65);
-                backdrop-filter: blur(6px);
-                z-index: 99999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-                box-sizing: border-box;
-                animation: tagOverlayFadeIn 0.25s ease-out;
-            `;
-            
-            // 创建对话框
-            const dialog = document.createElement('div');
-            dialog.style.cssText = `
-                background: var(--b3-theme-background);
-                padding: 32px;
-                border-radius: 20px;
-                box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-                max-width: 90vw;
-                width: 560px;
-                box-sizing: border-box;
-                animation: tagDialogSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-            `;
-            
-            // 标题
-            const title = document.createElement('div');
-            title.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 28px; line-height: 1;">🏷️</span>
-                    <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.5px;">快速打标签</span>
-                </div>
-            `;
-            title.style.cssText = `
-                color: var(--b3-theme-on-background);
-                margin-bottom: 10px;
-            `;
-            
-            // 块文本预览
-            const preview = document.createElement('div');
-            const displayText = blockText.length > 60 ? blockText.substring(0, 60) + '...' : blockText;
-            preview.textContent = displayText;
-            preview.style.cssText = `
-                font-size: 14px;
-                line-height: 1.6;
-                color: var(--b3-theme-on-surface-light);
-                margin-bottom: 28px;
-                padding: 16px 18px;
-                background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
-                border-radius: 12px;
-                border-left: 4px solid var(--b3-theme-primary);
-                max-height: 80px;
-                overflow-y: auto;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            `;
-            
-            // 标签网格容器
-            const tagsGrid = document.createElement('div');
-            tagsGrid.style.cssText = `
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 16px;
-                margin-bottom: 28px;
-            `;
-            
-            // 创建标签按钮
-            PRESET_TAGS.forEach((tag, index) => {
-                const tagButton = document.createElement('button');
-                
-                // 创建按钮内容
-                const content = document.createElement('div');
-                content.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    position: relative;
-                    z-index: 1;
-                `;
-                content.innerHTML = `
-                    <span style="font-size: 24px; line-height: 1;">${tag.emoji}</span>
-                    <span style="font-weight: 600; font-size: 16px;">${tag.name}</span>
-                `;
-                
-                tagButton.appendChild(content);
-                tagButton.style.cssText = `
-                    padding: 20px 16px;
-                    border: 2px solid transparent;
-                    background: linear-gradient(135deg, ${tag.color}18, ${tag.color}28);
-                    color: var(--b3-theme-on-background);
-                    border-radius: 14px;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                    animation: tagDialogSlideUp ${0.35 + index * 0.06}s cubic-bezier(0.34, 1.56, 0.64, 1);
-                `;
-                
-                // 创建光效层
-                const shine = document.createElement('div');
-                shine.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: linear-gradient(135deg, ${tag.color}40, ${tag.color}60);
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                    border-radius: 12px;
-                `;
-                tagButton.appendChild(shine);
-                
-                tagButton.addEventListener('mouseenter', () => {
-                    tagButton.style.borderColor = tag.color;
-                    tagButton.style.transform = 'translateY(-4px) scale(1.03)';
-                    tagButton.style.boxShadow = `0 12px 28px ${tag.color}50, 0 0 0 1px ${tag.color}30`;
-                    shine.style.opacity = '1';
-                });
-                
-                tagButton.addEventListener('mouseleave', () => {
-                    tagButton.style.borderColor = 'transparent';
-                    tagButton.style.transform = 'translateY(0) scale(1)';
-                    tagButton.style.boxShadow = 'none';
-                    shine.style.opacity = '0';
-                });
-                
-                tagButton.addEventListener('click', () => {
-                    tagButton.style.transform = 'scale(0.96)';
-                    setTimeout(() => {
-                        resolve(tag);
-                        cleanup();
-                    }, 120);
-                });
-                
-                tagsGrid.appendChild(tagButton);
-            });
-            
-            // 取消按钮
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = '取消';
-            cancelButton.style.cssText = `
-                width: 100%;
-                padding: 15px;
-                border: 2px solid var(--b3-theme-surface-lighter);
-                background: var(--b3-theme-surface);
-                color: var(--b3-theme-on-surface);
-                border-radius: 12px;
-                cursor: pointer;
-                font-size: 15px;
-                font-weight: 600;
-                transition: all 0.25s;
-            `;
-            
-            cancelButton.addEventListener('mouseenter', () => {
-                cancelButton.style.background = 'var(--b3-theme-surface-light)';
-                cancelButton.style.borderColor = 'var(--b3-theme-on-surface-light)';
-                cancelButton.style.transform = 'translateY(-1px)';
-            });
-            
-            cancelButton.addEventListener('mouseleave', () => {
-                cancelButton.style.background = 'var(--b3-theme-surface)';
-                cancelButton.style.borderColor = 'var(--b3-theme-surface-lighter)';
-                cancelButton.style.transform = 'translateY(0)';
-            });
-            
-            cancelButton.addEventListener('click', () => {
-                resolve(null);
-                cleanup();
-            });
-            
-            // 组装界面
-            dialog.appendChild(title);
-            dialog.appendChild(preview);
-            dialog.appendChild(tagsGrid);
-            dialog.appendChild(cancelButton);
-            overlay.appendChild(dialog);
-            document.body.appendChild(overlay);
-            
-            // 清理函数
-            const cleanup = () => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-                if (style.parentNode) {
-                    style.parentNode.removeChild(style);
-                }
-            };
-            
-            // ESC 关闭
-            const handleKeydown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    resolve(null);
-                    cleanup();
-                    document.removeEventListener('keydown', handleKeydown);
-                }
-            };
-            document.addEventListener('keydown', handleKeydown);
-            
-            // 点击遮罩关闭
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    resolve(null);
-                    cleanup();
-                }
-            });
-        });
-    }
-    
-    /**
-     * 执行添加标签的核心逻辑
+     * 执行添加标签和/或评论的核心逻辑
      * 
      * 修复说明：
      * - v1.0: 使用 markdown 格式 #emoji+name# 添加标签（依赖设置）
@@ -865,8 +629,9 @@ export class TagManager {
      * - v1.2: 🔧 修复BUG - 从 DOM 直接获取 HTML 内容，避免标签变成字符串
      *   - 问题：getBlockByID 返回的 content 是纯文本，会丢失已有标签的 DOM 结构
      *   - 解决：直接从 DOM 元素获取当前的 HTML 内容
+     * - v1.3: ✨ 新增 - 支持块级评论功能，可以只添加评论或同时添加标签+评论
      */
-    private async performAddTag(blockElement: HTMLElement, tag: typeof PRESET_TAGS[number]): Promise<void> {
+    private async performAddTag(blockElement: HTMLElement, tag?: typeof PRESET_TAGS[number], comment?: string): Promise<void> {
         try {
             this.debugLog('🏷️ 开始添加标签...');
             
@@ -896,19 +661,31 @@ export class TagManager {
                 // 🔧 移除末尾的零宽空格（思源常用的占位符）
                 currentHTML = currentHTML.replace(/​+$/, '');
                 
-                // 构建新标签的 DOM
-                const tagContent = `${tag.emoji}${tag.name}`;
-                const tagDOM = `<span data-type="tag">${tagContent}</span>`;
-                
-                // 在 HTML 内容末尾添加标签（使用空格分隔）
                 let newContent = currentHTML;
                 
-                // 确保标签前有空格
-                if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
-                    newContent += ' ';
+                // 如果有评论，把整个块的文字包裹成带备注的
+                if (comment) {
+                    // 把当前内容包裹在 inline-memo 中（就像对整段文字添加备注）
+                    const commentDOM = `<span data-type="inline-memo" data-inline-memo-content="${this.escapeHtml(comment)}">${newContent}</span>`;
+                    newContent = commentDOM;
+                    
+                    this.debugLog('把整个块内容包裹为备注:', comment);
                 }
                 
-                newContent += tagDOM;
+                // 如果有标签，在末尾添加标签
+                if (tag) {
+                    // 构建新标签的 DOM
+                    const tagContent = `${tag.emoji}${tag.name}`;
+                    const tagDOM = `<span data-type="tag">${tagContent}</span>`;
+                    
+                    // 确保标签前有空格
+                    if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
+                        newContent += ' ';
+                    }
+                    
+                    newContent += tagDOM;
+                    this.debugLog('添加标签:', tag.name);
+                }
                 
                 this.debugLog('新DOM内容:', newContent);
                 
@@ -917,11 +694,13 @@ export class TagManager {
                 
                 this.debugLog('更新结果:', result);
                 
-                Logger.log('✅ 标签添加成功:', {
+                Logger.log('✅ 内容添加成功:', {
                     blockId,
-                    tagName: tag.name,
-                    emoji: tag.emoji,
-                    method: 'DOM (从元素获取 - v1.2修复)'
+                    tagName: tag?.name || '无',
+                    emoji: tag?.emoji || '无',
+                    hasComment: !!comment,
+                    commentOnly: !tag && !!comment,
+                    method: 'DOM (从元素获取 - v1.3评论支持)'
                 });
             });
             
@@ -929,6 +708,15 @@ export class TagManager {
             Logger.error('❌ 标签添加失败:', error);
             throw error;
         }
+    }
+    
+    /**
+     * 转义HTML特殊字符
+     */
+    private escapeHtml(text: string): string {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
