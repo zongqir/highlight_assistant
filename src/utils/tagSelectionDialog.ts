@@ -67,13 +67,18 @@ export function showTagSelectionDialog(
         
         // 创建对话框
         const dialog = document.createElement('div');
+        // 检测是否为移动设备
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
         dialog.style.cssText = `
             background: var(--b3-theme-background);
-            padding: 32px;
-            border-radius: 20px;
+            padding: ${isMobile ? '20px' : '32px'};
+            border-radius: ${isMobile ? '16px' : '20px'};
             box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-            max-width: 90vw;
-            width: 560px;
+            max-width: ${isMobile ? '95vw' : '90vw'};
+            width: ${isMobile ? '100%' : '560px'};
+            max-height: ${isMobile ? '85vh' : 'none'};
+            overflow-y: ${isMobile ? 'auto' : 'visible'};
             box-sizing: border-box;
             animation: tagDialogSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         `;
@@ -81,47 +86,47 @@ export function showTagSelectionDialog(
         // 标题
         const title = document.createElement('div');
         title.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 28px; line-height: 1;">🏷️</span>
-                <span style="font-size: 22px; font-weight: 600; letter-spacing: -0.5px;">快速打标签</span>
+            <div style="display: flex; align-items: center; gap: ${isMobile ? '8px' : '12px'};">
+                <span style="font-size: ${isMobile ? '24px' : '28px'}; line-height: 1;">🏷️</span>
+                <span style="font-size: ${isMobile ? '18px' : '22px'}; font-weight: 600; letter-spacing: -0.5px;">快速打标签</span>
             </div>
         `;
         title.style.cssText = `
             color: var(--b3-theme-on-background);
-            margin-bottom: 10px;
+            margin-bottom: ${isMobile ? '8px' : '10px'};
         `;
         
         // 块文本预览
         const preview = document.createElement('div');
-        const displayText = blockText.length > 60 ? blockText.substring(0, 60) + '...' : blockText;
+        const displayText = blockText.length > (isMobile ? 40 : 60) ? blockText.substring(0, isMobile ? 40 : 60) + '...' : blockText;
         preview.textContent = displayText;
         preview.style.cssText = `
-            font-size: 14px;
+            font-size: ${isMobile ? '13px' : '14px'};
             line-height: 1.6;
             color: var(--b3-theme-on-surface-light);
-            margin-bottom: 28px;
-            padding: 16px 18px;
+            margin-bottom: ${isMobile ? '16px' : '28px'};
+            padding: ${isMobile ? '12px 14px' : '16px 18px'};
             background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
-            border-radius: 12px;
-            border-left: 4px solid var(--b3-theme-primary);
-            max-height: 80px;
+            border-radius: ${isMobile ? '8px' : '12px'};
+            border-left: ${isMobile ? '3px' : '4px'} solid var(--b3-theme-primary);
+            max-height: ${isMobile ? '60px' : '80px'};
             overflow-y: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         `;
         
         // 评论输入区域（提前创建，以便在标签按钮中使用）
         const commentTextarea = document.createElement('textarea');
-        commentTextarea.placeholder = isHeading ? '标题块不支持inline-memo格式，无法添加评论' : '在此输入对本块的评论备注...';
+        commentTextarea.placeholder = isHeading ? '标题块不支持评论' : '输入评论';
         commentTextarea.disabled = isHeading;
         commentTextarea.style.cssText = `
             width: 100%;
-            min-height: 80px;
-            padding: 12px;
+            min-height: ${isMobile ? '60px' : '80px'};
+            padding: ${isMobile ? '10px' : '12px'};
             border: 1px solid var(--b3-theme-surface-lighter);
-            border-radius: 8px;
+            border-radius: ${isMobile ? '6px' : '8px'};
             background: var(--b3-theme-background);
             color: var(--b3-theme-on-background);
-            font-size: 14px;
+            font-size: ${isMobile ? '14px' : '14px'};
             line-height: 1.5;
             resize: vertical;
             box-sizing: border-box;
@@ -145,8 +150,8 @@ export function showTagSelectionDialog(
         tagsGrid.style.cssText = `
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 28px;
+            gap: ${isMobile ? '10px' : '16px'};
+            margin-bottom: ${isMobile ? '16px' : '28px'};
         `;
         
         // 创建标签按钮
@@ -164,17 +169,17 @@ export function showTagSelectionDialog(
                 z-index: 1;
             `;
             content.innerHTML = `
-                <span style="font-size: 24px; line-height: 1;">${tag.emoji}</span>
-                <span style="font-weight: 600; font-size: 16px;">${tag.name}</span>
+                <span style="font-size: ${isMobile ? '20px' : '24px'}; line-height: 1;">${tag.emoji}</span>
+                <span style="font-weight: 600; font-size: ${isMobile ? '14px' : '16px'};">${tag.name}</span>
             `;
             
             tagButton.appendChild(content);
             tagButton.style.cssText = `
-                padding: 20px 16px;
+                padding: ${isMobile ? '14px 12px' : '20px 16px'};
                 border: 2px solid transparent;
                 background: linear-gradient(135deg, ${tag.color}18, ${tag.color}28);
                 color: var(--b3-theme-on-background);
-                border-radius: 14px;
+                border-radius: ${isMobile ? '10px' : '14px'};
                 cursor: pointer;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 position: relative;
@@ -230,11 +235,11 @@ export function showTagSelectionDialog(
         // 评论区域
         const commentSection = document.createElement('div');
         commentSection.style.cssText = `
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding: 16px;
+            margin-top: ${isMobile ? '12px' : '20px'};
+            margin-bottom: ${isMobile ? '12px' : '20px'};
+            padding: ${isMobile ? '12px' : '16px'};
             background: linear-gradient(135deg, var(--b3-theme-surface) 0%, var(--b3-theme-surface-light) 100%);
-            border-radius: 12px;
+            border-radius: ${isMobile ? '8px' : '12px'};
             border: 1px solid var(--b3-theme-surface-lighter);
         `;
         
@@ -251,34 +256,35 @@ export function showTagSelectionDialog(
         commentTitle.style.cssText = `
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: ${isMobile ? '6px' : '8px'};
             color: var(--b3-theme-on-background);
-            font-size: 14px;
+            font-size: ${isMobile ? '13px' : '14px'};
             font-weight: 500;
         `;
         commentTitle.innerHTML = isHeading ? `
-            <span style="font-size: 18px;">💭</span>
-            <span>添加块级评论（标题块不支持）</span>
+            <span style="font-size: ${isMobile ? '16px' : '18px'};">💭</span>
+            <span>添加评论（标题块不支持）</span>
         ` : `
-            <span style="font-size: 18px;">💭</span>
-            <span>添加块级评论（可选）</span>
+            <span style="font-size: ${isMobile ? '16px' : '18px'};">💭</span>
+            <span>添加评论</span>
         `;
         
         // 仅保存评论按钮
         const saveCommentBtn = document.createElement('button');
-        saveCommentBtn.textContent = '✓ 仅保存评论';
+        saveCommentBtn.textContent = '保存';
         saveCommentBtn.disabled = isHeading;
         saveCommentBtn.style.cssText = `
-            padding: 6px 14px;
+            padding: ${isMobile ? '8px 12px' : '6px 14px'};
             background: ${isHeading ? 'var(--b3-theme-surface)' : 'var(--b3-theme-primary)'};
             color: ${isHeading ? 'var(--b3-theme-on-surface-light)' : 'white'};
             border: none;
-            border-radius: 8px;
+            border-radius: ${isMobile ? '6px' : '8px'};
             cursor: ${isHeading ? 'not-allowed' : 'pointer'};
-            font-size: 13px;
+            font-size: ${isMobile ? '13px' : '13px'};
             font-weight: 600;
             transition: all 0.25s;
             opacity: ${isHeading ? '0.5' : '1'};
+            white-space: nowrap;
         `;
         
         if (!isHeading) {
@@ -300,10 +306,10 @@ export function showTagSelectionDialog(
             const commentText = commentTextarea.value.trim();
             if (!commentText) {
                 commentTextarea.style.borderColor = 'var(--b3-theme-error)';
-                commentTextarea.placeholder = '请先输入评论内容！';
+                commentTextarea.placeholder = '请先输入评论！';
                 setTimeout(() => {
                     commentTextarea.style.borderColor = 'var(--b3-theme-surface-lighter)';
-                    commentTextarea.placeholder = '在此输入对本块的评论备注...';
+                    commentTextarea.placeholder = '输入评论';
                 }, 2000);
                 return;
             }
@@ -321,14 +327,14 @@ export function showTagSelectionDialog(
         // 分隔线
         const divider = document.createElement('div');
         divider.style.cssText = `
-            margin: 20px 0;
+            margin: ${isMobile ? '12px 0' : '20px 0'};
             text-align: center;
             color: var(--b3-theme-on-surface-light);
-            font-size: 13px;
+            font-size: ${isMobile ? '12px' : '13px'};
         `;
         divider.innerHTML = `
-            <span style="background: var(--b3-theme-background); padding: 0 10px; position: relative; z-index: 1;">
-                或选择标签（可同时添加标签+评论）
+            <span style="background: var(--b3-theme-background); padding: 0 ${isMobile ? '8px' : '10px'}; position: relative; z-index: 1;">
+                ${isMobile ? '或选择标签' : '或选择标签（可同时添加标签+评论）'}
             </span>
             <div style="border-top: 1px solid var(--b3-theme-surface-lighter); margin-top: -10px;"></div>
         `;
@@ -338,13 +344,13 @@ export function showTagSelectionDialog(
         cancelButton.textContent = '取消';
         cancelButton.style.cssText = `
             width: 100%;
-            padding: 15px;
+            padding: ${isMobile ? '12px' : '15px'};
             border: 2px solid var(--b3-theme-surface-lighter);
             background: var(--b3-theme-surface);
             color: var(--b3-theme-on-surface);
-            border-radius: 12px;
+            border-radius: ${isMobile ? '8px' : '12px'};
             cursor: pointer;
-            font-size: 15px;
+            font-size: ${isMobile ? '14px' : '15px'};
             font-weight: 600;
             transition: all 0.25s;
         `;
