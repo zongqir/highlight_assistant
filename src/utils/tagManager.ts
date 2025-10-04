@@ -92,15 +92,20 @@ export class TagManager {
             const blockElement = this.findBlockElementFromNode(target);
             
             if (blockElement) {
-                // 检查是否处于只读状态
+                // 检查是否处于只读状态 或 Ctrl+右键（编辑模式快捷方式）
                 const isDocReadonly = isCurrentDocumentReadonly();
+                const isCtrlRightClick = e.ctrlKey || e.metaKey; // Ctrl (Windows/Linux) 或 Cmd (Mac)
                 
-                if (isDocReadonly) {
+                if (isDocReadonly || isCtrlRightClick) {
                     // 阻止默认右键菜单
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    Logger.log('🎯 ✅ 右键/长按无文本选中，显示标签面板');
+                    if (isCtrlRightClick && !isDocReadonly) {
+                        Logger.log('🎯 ✅ Ctrl+右键（编辑模式快捷方式），显示标签面板');
+                    } else {
+                        Logger.log('🎯 ✅ 右键/长按无文本选中，显示标签面板');
+                    }
                     this.showTagPanel(blockElement);
                 }
             }
@@ -241,8 +246,13 @@ export class TagManager {
             return;
         }
         
+        // 检查是否是标题块
+        const blockType = blockElement.getAttribute('data-type');
+        const blockSubtype = blockElement.getAttribute('data-subtype');
+        const isHeading = blockType === 'heading' || blockSubtype?.startsWith('h') || false;
+        
         // 显示标签选择对话框
-        const result = await showTagSelectionDialog(blockText, PRESET_TAGS);
+        const result = await showTagSelectionDialog(blockText, PRESET_TAGS, isHeading);
         
         if (result) {
             if (result.tag) {
@@ -729,6 +739,12 @@ export class TagManager {
                 // 🔑 根据块类型选择更新方式
                 let result;
                 if (blockType === 'heading' || blockSubtype?.startsWith('h')) {
+                    // ⚠️ 标题块：思源的标题不支持inline-memo，所以评论功能在标题块上无效
+                    if (comment) {
+                        Logger.warn('⚠️ 标题块不支持inline-memo格式，评论功能无法在标题块上使用');
+                        Logger.warn('💡 建议：将此块转换为普通段落后再添加评论，或只在标题上添加标签');
+                    }
+                    
                     // 标题块：需要特殊处理，确保保留标题格式
                     const headingPrefix = this.getHeadingPrefix(blockSubtype);
                     
@@ -736,18 +752,15 @@ export class TagManager {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = newContent;
                     
-                    // 提取所有组件
-                    let mainText = '';
-                    const memoEl = tempDiv.querySelector('span[data-type="inline-memo"]');
-                    if (memoEl) {
-                        // 如果有memo，获取memo的内容
-                        mainText = (memoEl.textContent || '').trim();
-                    } else {
-                        // 没有memo，直接获取文本（排除标签）
-                        const clonedDiv = tempDiv.cloneNode(true) as HTMLElement;
-                        clonedDiv.querySelectorAll('span[data-type="tag"]').forEach(t => t.remove());
-                        mainText = (clonedDiv.textContent || '').trim();
-                    }
+                    // 获取纯文本内容（排除标签和memo）
+                    const clonedDiv = tempDiv.cloneNode(true) as HTMLElement;
+                    clonedDiv.querySelectorAll('span[data-type="tag"]').forEach(t => t.remove());
+                    clonedDiv.querySelectorAll('span[data-type="inline-memo"]').forEach(m => {
+                        // 如果有memo，提取其文本内容
+                        const textNode = document.createTextNode(m.textContent || '');
+                        m.replaceWith(textNode);
+                    });
+                    const mainText = (clonedDiv.textContent || '').replace(/\s+/g, ' ').trim();
                     
                     // 提取所有标签
                     const allTags: string[] = [];
@@ -759,12 +772,13 @@ export class TagManager {
                     });
                     
                     // 构建markdown：# 标题文本 #标签#
-                    // 确保各部分之间只有一个空格
-                    let markdownContent = `${headingPrefix} ${mainText}`;
+                    // 标题前缀后有一个空格，文本和标签之间有一个空格
+                    let markdownContent = headingPrefix + ' ' + mainText;
                     if (allTags.length > 0) {
-                        markdownContent += ` ${allTags.join(' ')}`;
+                        markdownContent += ' ' + allTags.join(' ');
                     }
-                    markdownContent = markdownContent.trim();
+                    // 清理多余空格：将多个连续空格替换为单个空格
+                    markdownContent = markdownContent.replace(/\s+/g, ' ').trim();
                     
                     this.debugLog('标题块使用markdown格式:', markdownContent);
                     result = await updateBlock('markdown', markdownContent, blockId);

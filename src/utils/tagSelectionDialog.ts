@@ -22,7 +22,8 @@ export interface TagDialogResult {
  */
 export function showTagSelectionDialog(
     blockText: string,
-    presetTags: readonly PresetTag[]
+    presetTags: readonly PresetTag[],
+    isHeading: boolean = false
 ): Promise<TagDialogResult | null> {
     return new Promise((resolve) => {
         // 添加动画样式
@@ -110,7 +111,8 @@ export function showTagSelectionDialog(
         
         // 评论输入区域（提前创建，以便在标签按钮中使用）
         const commentTextarea = document.createElement('textarea');
-        commentTextarea.placeholder = '在此输入对本块的评论备注...';
+        commentTextarea.placeholder = isHeading ? '标题块不支持inline-memo格式，无法添加评论' : '在此输入对本块的评论备注...';
+        commentTextarea.disabled = isHeading;
         commentTextarea.style.cssText = `
             width: 100%;
             min-height: 80px;
@@ -254,7 +256,10 @@ export function showTagSelectionDialog(
             font-size: 14px;
             font-weight: 500;
         `;
-        commentTitle.innerHTML = `
+        commentTitle.innerHTML = isHeading ? `
+            <span style="font-size: 18px;">💭</span>
+            <span>添加块级评论（标题块不支持）</span>
+        ` : `
             <span style="font-size: 18px;">💭</span>
             <span>添加块级评论（可选）</span>
         `;
@@ -262,29 +267,36 @@ export function showTagSelectionDialog(
         // 仅保存评论按钮
         const saveCommentBtn = document.createElement('button');
         saveCommentBtn.textContent = '✓ 仅保存评论';
+        saveCommentBtn.disabled = isHeading;
         saveCommentBtn.style.cssText = `
             padding: 6px 14px;
-            background: var(--b3-theme-primary);
-            color: white;
+            background: ${isHeading ? 'var(--b3-theme-surface)' : 'var(--b3-theme-primary)'};
+            color: ${isHeading ? 'var(--b3-theme-on-surface-light)' : 'white'};
             border: none;
             border-radius: 8px;
-            cursor: pointer;
+            cursor: ${isHeading ? 'not-allowed' : 'pointer'};
             font-size: 13px;
             font-weight: 600;
             transition: all 0.25s;
+            opacity: ${isHeading ? '0.5' : '1'};
         `;
         
-        saveCommentBtn.addEventListener('mouseenter', () => {
-            saveCommentBtn.style.transform = 'translateY(-1px)';
-            saveCommentBtn.style.boxShadow = '0 4px 12px var(--b3-theme-primary)40';
-        });
-        
-        saveCommentBtn.addEventListener('mouseleave', () => {
-            saveCommentBtn.style.transform = 'translateY(0)';
-            saveCommentBtn.style.boxShadow = 'none';
-        });
+        if (!isHeading) {
+            saveCommentBtn.addEventListener('mouseenter', () => {
+                saveCommentBtn.style.transform = 'translateY(-1px)';
+                saveCommentBtn.style.boxShadow = '0 4px 12px var(--b3-theme-primary)40';
+            });
+            
+            saveCommentBtn.addEventListener('mouseleave', () => {
+                saveCommentBtn.style.transform = 'translateY(0)';
+                saveCommentBtn.style.boxShadow = 'none';
+            });
+        }
         
         saveCommentBtn.addEventListener('click', () => {
+            if (isHeading) {
+                return; // 标题块不支持评论
+            }
             const commentText = commentTextarea.value.trim();
             if (!commentText) {
                 commentTextarea.style.borderColor = 'var(--b3-theme-error)';
