@@ -653,6 +653,12 @@ export class TagManager {
                     throw new Error('未找到可编辑的内容区域');
                 }
                 
+                // 🔑 关键：获取块的类型信息（h1、h2等）
+                const blockType = blockElement.getAttribute('data-type');
+                const blockSubtype = blockElement.getAttribute('data-subtype');
+                
+                this.debugLog('块类型:', { blockType, blockSubtype });
+                
                 // 获取当前的 HTML 内容（保留已有的标签结构）
                 let currentHTML = contentDiv.innerHTML.trim();
                 
@@ -661,46 +667,125 @@ export class TagManager {
                 // 🔧 移除末尾的零宽空格（思源常用的占位符）
                 currentHTML = currentHTML.replace(/​+$/, '');
                 
-                let newContent = currentHTML;
+                // 🔑 关键修复：提取已有的标签，避免被包裹在 memo 中
+                const existingTags: string[] = [];
+                let contentWithoutTags = currentHTML;
                 
-                // 如果有评论，把整个块的文字包裹成带备注的
+                // 使用临时容器来解析HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = currentHTML;
+                
+                // 提取所有标签
+                const tagElements = tempDiv.querySelectorAll('span[data-type="tag"]');
+                tagElements.forEach(tagEl => {
+                    existingTags.push(tagEl.outerHTML);
+                    tagEl.remove(); // 从临时容器中移除
+                });
+                
+                // 获取去掉标签后的内容
+                contentWithoutTags = tempDiv.innerHTML.trim();
+                
+                this.debugLog('提取到已有标签:', existingTags.length, '个');
+                this.debugLog('去掉标签后的内容:', contentWithoutTags);
+                
+                let newContent = contentWithoutTags;
+                
+                // 如果有评论，把文字内容（不包括标签）包裹成带备注的
                 if (comment) {
                     // 把当前内容包裹在 inline-memo 中（就像对整段文字添加备注）
                     const commentDOM = `<span data-type="inline-memo" data-inline-memo-content="${this.escapeHtml(comment)}">${newContent}</span>`;
                     newContent = commentDOM;
                     
-                    this.debugLog('把整个块内容包裹为备注:', comment);
+                    this.debugLog('把文字内容包裹为备注:', comment);
                 }
                 
-                // 如果有标签，在末尾添加标签
-                if (tag) {
-                    // 构建新标签的 DOM
-                    const tagContent = `${tag.emoji}${tag.name}`;
-                    const tagDOM = `<span data-type="tag">${tagContent}</span>`;
-                    
+                // 恢复已有的标签（在 memo 后面）
+                if (existingTags.length > 0) {
                     // 确保标签前有空格
                     if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
                         newContent += ' ';
                     }
-                    
-                    newContent += tagDOM;
-                    this.debugLog('添加标签:', tag.name);
+                    newContent += existingTags.join(' ');
+                    this.debugLog('恢复已有标签:', existingTags.length, '个');
+                }
+                
+                // 如果有新标签，在末尾添加
+                if (tag) {
+                // 构建新标签的 DOM
+                const tagContent = `${tag.emoji}${tag.name}`;
+                const tagDOM = `<span data-type="tag">${tagContent}</span>`;
+                
+                // 确保标签前有空格
+                if (newContent && !newContent.endsWith(' ') && !newContent.endsWith('&nbsp;')) {
+                    newContent += ' ';
+                }
+                
+                newContent += tagDOM;
+                    this.debugLog('添加新标签:', tag.name);
                 }
                 
                 this.debugLog('新DOM内容:', newContent);
                 
-                // 使用 DOM 格式更新块
-                const result = await updateBlock('dom', newContent, blockId);
+                // 🔑 根据块类型选择更新方式
+                let result;
+                if (blockType === 'heading' || blockSubtype?.startsWith('h')) {
+                    // 标题块：需要特殊处理，确保保留标题格式
+                    const headingPrefix = this.getHeadingPrefix(blockSubtype);
+                    
+                    // 从HTML提取内容
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newContent;
+                    
+                    // 提取所有组件
+                    let mainText = '';
+                    const memoEl = tempDiv.querySelector('span[data-type="inline-memo"]');
+                    if (memoEl) {
+                        // 如果有memo，获取memo的内容
+                        mainText = (memoEl.textContent || '').trim();
+                    } else {
+                        // 没有memo，直接获取文本（排除标签）
+                        const clonedDiv = tempDiv.cloneNode(true) as HTMLElement;
+                        clonedDiv.querySelectorAll('span[data-type="tag"]').forEach(t => t.remove());
+                        mainText = (clonedDiv.textContent || '').trim();
+                    }
+                    
+                    // 提取所有标签
+                    const allTags: string[] = [];
+                    tempDiv.querySelectorAll('span[data-type="tag"]').forEach(t => {
+                        const tagText = (t.textContent || '').trim();
+                        if (tagText) {
+                            allTags.push(`#${tagText}#`);
+                        }
+                    });
+                    
+                    // 构建markdown：# 标题文本 #标签#
+                    // 确保各部分之间只有一个空格
+                    let markdownContent = `${headingPrefix} ${mainText}`;
+                    if (allTags.length > 0) {
+                        markdownContent += ` ${allTags.join(' ')}`;
+                    }
+                    markdownContent = markdownContent.trim();
+                    
+                    this.debugLog('标题块使用markdown格式:', markdownContent);
+                    result = await updateBlock('markdown', markdownContent, blockId);
+                } else {
+                    // 普通块：使用DOM格式
+                    this.debugLog('普通块使用DOM格式');
+                    result = await updateBlock('dom', newContent, blockId);
+                }
                 
                 this.debugLog('更新结果:', result);
                 
                 Logger.log('✅ 内容添加成功:', {
                     blockId,
+                    blockType,
+                    blockSubtype,
                     tagName: tag?.name || '无',
                     emoji: tag?.emoji || '无',
                     hasComment: !!comment,
                     commentOnly: !tag && !!comment,
-                    method: 'DOM (从元素获取 - v1.3评论支持)'
+                    method: (blockType === 'heading' || blockSubtype?.startsWith('h')) ? 'Markdown (标题块)' : 'DOM (普通块)',
+                    note: (blockType === 'heading' || blockSubtype?.startsWith('h')) && comment ? '标题块不支持inline-memo，评论内容已作为文本保留' : ''
                 });
             });
             
@@ -717,6 +802,23 @@ export class TagManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    /**
+     * 根据块子类型获取标题的markdown前缀
+     */
+    private getHeadingPrefix(subtype: string | null): string {
+        if (!subtype) return '#';
+        
+        switch (subtype) {
+            case 'h1': return '#';
+            case 'h2': return '##';
+            case 'h3': return '###';
+            case 'h4': return '####';
+            case 'h5': return '#####';
+            case 'h6': return '######';
+            default: return '#';
+        }
     }
 }
 
