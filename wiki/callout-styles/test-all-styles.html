@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引述样式对比测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #64b4ff;
+            font-size: 2.5em;
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #aaa;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: rgba(30, 30, 30, 0.5);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+            color: #64b4ff;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(100, 180, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .section .badge {
+            display: inline-block;
+            background: rgba(100, 180, 255, 0.2);
+            color: #64b4ff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        /* 模拟思源的引述块结构 */
+        .protyle-wysiwyg {
+            margin-top: 15px;
+        }
+
+        /* 默认样式重置 */
+        .bq {
+            margin: 12px 0;
+            padding: 16px;
+        }
+
+        /* ==================== 风格 1: Notion ==================== */
+        .style-1 .bq {
+            background: rgba(45, 45, 45, 0.6) !important;
+            border-left: 3px solid rgba(100, 180, 255, 0.8);
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 12px 0;
+            position: relative;
+            backdrop-filter: blur(8px);
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.12),
+                0 1px 2px rgba(0, 0, 0, 0.24);
+            transition: all 0.3s ease;
+        }
+
+        .style-1 .bq:hover {
+            box-shadow: 
+                0 3px 6px rgba(0, 0, 0, 0.15),
+                0 2px 4px rgba(0, 0, 0, 0.12);
+            transform: translateX(2px);
+        }
+
+        /* ==================== 风格 2: 赛博朋克 ==================== */
+        .style-2 .bq {
+            background: linear-gradient(
+                135deg,
+                rgba(20, 20, 30, 0.9) 0%,
+                rgba(30, 30, 45, 0.85) 100%
+            ) !important;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-left: 4px solid rgba(0, 255, 255, 0.8);
+            border-radius: 8px;
+            padding: 16px 20px 16px 28px;
+            margin: 16px 0;
+            position: relative;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.1),
+                inset 0 0 30px rgba(0, 255, 255, 0.05);
+        }
+
+        .style-2 .bq:before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 6px;
+            height: calc(100% - 20px);
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 255, 255, 1),
+                rgba(0, 255, 255, 0.3)
+            );
+            border-radius: 3px;
+            box-shadow: 
+                0 0 10px rgba(0, 255, 255, 0.8),
+                0 0 20px rgba(0, 255, 255, 0.4);
+            animation: neon-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes neon-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* ==================== 风格 3: 毛玻璃 ==================== */
+        .style-3 .bq {
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.08) 0%,
+                rgba(255, 255, 255, 0.04) 100%
+            ) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 18px 24px 18px 28px;
+            margin: 16px 0;
+            position: relative;
+            backdrop-filter: blur(12px) saturate(180%);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s ease;
+        }
+
+        .style-3 .bq:before {
+            content: "";
+            position: absolute;
+            top: 12px;
+            bottom: 12px;
+            left: 12px;
+            width: 4px;
+            background: linear-gradient(
+                180deg,
+                rgba(100, 180, 255, 0.9),
+                rgba(100, 180, 255, 0.4)
+            );
+            border-radius: 4px;
+            box-shadow: 0 0 16px rgba(100, 180, 255, 0.5);
+        }
+
+        /* ==================== 风格 4: 极简 ==================== */
+        .style-4 .bq {
+            background: transparent !important;
+            border: none;
+            border-left: 3px solid rgba(100, 180, 255, 0.7);
+            padding: 8px 16px 8px 20px;
+            margin: 12px 0;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .style-4 .bq:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(
+                to bottom,
+                rgba(100, 180, 255, 0.9),
+                rgba(100, 180, 255, 0.2)
+            );
+            transition: all 0.3s ease;
+        }
+
+        .style-4 .bq:hover {
+            padding-left: 24px;
+            background: rgba(100, 180, 255, 0.03) !important;
+        }
+
+        .style-4 .bq:hover:before {
+            width: 4px;
+            box-shadow: 0 0 12px rgba(100, 180, 255, 0.4);
+        }
+
+        /* ==================== 风格 5: macOS ==================== */
+        .style-5 .bq {
+            background: linear-gradient(
+                145deg,
+                rgba(50, 50, 60, 0.7) 0%,
+                rgba(40, 40, 50, 0.8) 100%
+            ) !important;
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px 16px 28px;
+            margin: 14px 0;
+            position: relative;
+            backdrop-filter: blur(20px) saturate(150%);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.15),
+                0 8px 24px rgba(0, 0, 0, 0.1),
+                inset 0 0.5px 0 0 rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .style-5 .bq:before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            left: 10px;
+            width: 4px;
+            background: linear-gradient(
+                180deg,
+                rgba(120, 200, 255, 1) 0%,
+                rgba(80, 160, 255, 0.8) 40%,
+                rgba(100, 180, 255, 0.4) 100%
+            );
+            border-radius: 3px;
+            box-shadow: 
+                0 0 12px rgba(100, 180, 255, 0.5),
+                0 0 6px rgba(100, 180, 255, 0.3) inset;
+        }
+
+        .style-5 .bq:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 28px;
+            right: 28px;
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            border-radius: 1px;
+        }
+
+        .style-5 .bq:hover {
+            transform: translateY(-2px) scale(1.005);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.2),
+                0 12px 32px rgba(0, 0, 0, 0.15),
+                inset 0 0.5px 0 0 rgba(255, 255, 255, 0.12);
+        }
+
+        /* 说明文字 */
+        .description {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+        }
+
+        .highlight {
+            color: #64b4ff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 引述样式对比测试</h1>
+        <p class="intro">
+            下面展示了 5 种不同风格的引述块样式<br>
+            <strong style="color: #ff6b6b;">注意观察背景色、边框、竖线、阴影的区别</strong>
+        </p>
+
+        <div class="grid">
+            <!-- 风格 1: Notion -->
+            <div class="section">
+                <h2>
+                    风格 1: Notion
+                    <span class="badge">简洁专业</span>
+                </h2>
+                <div class="protyle-wysiwyg style-1">
+                    <div class="bq">
+                        <p>这是 Notion 风格的引述块。</p>
+                        <p>特点：简单的灰色背景 + 左侧蓝色竖线。</p>
+                        <p><strong>悬停试试！会向右滑动</strong></p>
+                    </div>
+                </div>
+                <div class="description">
+                    <strong class="highlight">识别特征：</strong>
+                    深灰半透明背景，左侧简单竖线，悬停向右滑动
+                </div>
+            </div>
+
+            <!-- 风格 2: 赛博朋克 -->
+            <div class="section">
+                <h2>
+                    风格 2: 赛博朋克
+                    <span class="badge" style="background: rgba(0, 255, 255, 0.2); color: #0ff;">霓虹发光</span>
+                </h2>
+                <div class="protyle-wysiwyg style-2">
+                    <div class="bq">
+                        <p>这是赛博朋克风格的引述块。</p>
+                        <p>特点：青色霓虹边框 + 发光竖线 + 呼吸动画！</p>
+                        <p><strong>看！竖线在发光呼吸！</strong></p>
+                    </div>
+                </div>
+                <div class="description">
+                    <strong class="highlight">识别特征：</strong>
+                    <span style="color: #0ff;">青色霓虹边框</span>，左侧发光竖线带呼吸动画，科技感爆棚
+                </div>
+            </div>
+
+            <!-- 风格 3: 毛玻璃 -->
+            <div class="section">
+                <h2>
+                    风格 3: 毛玻璃
+                    <span class="badge" style="background: rgba(255, 255, 255, 0.2);">现代优雅</span>
+                </h2>
+                <div class="protyle-wysiwyg style-3">
+                    <div class="bq">
+                        <p>这是毛玻璃拟态风格的引述块。</p>
+                        <p>特点：半透明白色边框 + 模糊背景效果。</p>
+                        <p><strong>像 iOS 的毛玻璃！</strong></p>
+                    </div>
+                </div>
+                <div class="description">
+                    <strong class="highlight">识别特征：</strong>
+                    <span style="color: #fff;">白色半透明边框</span>，磨砂玻璃效果，圆角很大(16px)
+                </div>
+            </div>
+
+            <!-- 风格 4: 极简 -->
+            <div class="section">
+                <h2>
+                    风格 4: 极简线条
+                    <span class="badge" style="background: rgba(150, 150, 150, 0.2);">超轻量</span>
+                </h2>
+                <div class="protyle-wysiwyg style-4">
+                    <div class="bq">
+                        <p>这是极简主义风格的引述块。</p>
+                        <p>特点：<strong>无背景！</strong>只有一条渐变竖线。</p>
+                        <p><strong>悬停会出现淡淡的背景</strong></p>
+                    </div>
+                </div>
+                <div class="description">
+                    <strong class="highlight">识别特征：</strong>
+                    <span style="color: #888;">完全无背景</span>，仅左侧渐变竖线，最简洁
+                </div>
+            </div>
+
+            <!-- 风格 5: macOS -->
+            <div class="section">
+                <h2>
+                    风格 5: macOS Big Sur
+                    <span class="badge" style="background: rgba(100, 180, 255, 0.3); color: #64b4ff;">⭐推荐</span>
+                </h2>
+                <div class="protyle-wysiwyg style-5">
+                    <div class="bq">
+                        <p>这是 macOS Big Sur 风格的引述块。</p>
+                        <p>特点：精致渐变背景 + 发光竖线 + 顶部高光线！</p>
+                        <p><strong>最精致的设计！</strong></p>
+                    </div>
+                </div>
+                <div class="description">
+                    <strong class="highlight">识别特征：</strong>
+                    深灰渐变背景，顶部有<span style="color: rgba(255, 255, 255, 0.5);">白色高光线</span>，悬停有缩放效果
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: rgba(100, 180, 255, 0.05); border-radius: 8px;">
+            <h3 style="color: #64b4ff; margin-bottom: 10px;">📌 快速识别指南</h3>
+            <p style="color: #aaa; line-height: 2;">
+                <strong style="color: #fff;">Notion</strong> = 深灰背景 + 简单竖线<br>
+                <strong style="color: #0ff;">赛博朋克</strong> = 青色霓虹 + 会呼吸的发光竖线<br>
+                <strong style="color: #fff;">毛玻璃</strong> = 白色半透明边框 + 大圆角<br>
+                <strong style="color: #888;">极简</strong> = 无背景只有线<br>
+                <strong style="color: #64b4ff;">macOS</strong> = 渐变背景 + 顶部高光线
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,210 @@
+/* ============================================
+   风格 4: 简约线条 - 极简主义
+   
+   特点：
+   - 无背景设计
+   - 仅渐变竖线
+   - 超轻量级
+   - 悬停时轻微背景
+   
+   适合：极简主义者、喜欢干净界面的用户
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: transparent !important;
+    border: none;
+    border-left: 3px solid rgba(100, 180, 255, 0.7);
+    padding: 8px 16px 8px 20px;
+    margin: 12px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* 渐变竖线 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(
+        to bottom,
+        rgba(100, 180, 255, 0.9),
+        rgba(100, 180, 255, 0.2)
+    );
+    transition: all 0.3s ease;
+}
+
+/* 悬停效果 - 轻微向右滑动 + 淡背景 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    padding-left: 24px;
+    background: rgba(100, 180, 255, 0.03) !important;
+    transition: all 0.3s ease;
+}
+
+/* 悬停时竖线变粗并发光 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    width: 4px;
+    box-shadow: 0 0 12px rgba(100, 180, 255, 0.4);
+    background: linear-gradient(
+        to bottom,
+        rgba(100, 180, 255, 1),
+        rgba(100, 180, 255, 0.3)
+    );
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    border-left-color: rgba(120, 120, 120, 0.5);
+    margin-top: 8px;
+    padding: 6px 12px 6px 18px;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(120, 120, 120, 0.7),
+        rgba(120, 120, 120, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq .bq:hover {
+    background: rgba(120, 120, 120, 0.03) !important;
+}
+
+/* 列表中的引用 */
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式（可选）
+   ============================================ */
+
+/* Info - 蓝色 */
+.protyle-wysiwyg .bq[data-type="info"] {
+    border-left-color: rgba(64, 150, 255, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(64, 150, 255, 0.9),
+        rgba(64, 150, 255, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="info"]:hover {
+    background: rgba(64, 150, 255, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="info"]:hover:before {
+    box-shadow: 0 0 12px rgba(64, 150, 255, 0.4);
+}
+
+/* Success - 绿色 */
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-left-color: rgba(45, 200, 120, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(45, 200, 120, 0.9),
+        rgba(45, 200, 120, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:hover {
+    background: rgba(45, 200, 120, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:hover:before {
+    box-shadow: 0 0 12px rgba(45, 200, 120, 0.4);
+}
+
+/* Warning - 橙色 */
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-left-color: rgba(255, 180, 50, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 180, 50, 0.9),
+        rgba(255, 180, 50, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:hover {
+    background: rgba(255, 180, 50, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:hover:before {
+    box-shadow: 0 0 12px rgba(255, 180, 50, 0.4);
+}
+
+/* Error - 红色 */
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-left-color: rgba(255, 80, 80, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 80, 80, 0.9),
+        rgba(255, 80, 80, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:hover {
+    background: rgba(255, 80, 80, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:hover:before {
+    box-shadow: 0 0 12px rgba(255, 80, 80, 0.4);
+}
+
+/* Note - 紫色 */
+.protyle-wysiwyg .bq[data-type="note"] {
+    border-left-color: rgba(180, 100, 255, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(180, 100, 255, 0.9),
+        rgba(180, 100, 255, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:hover {
+    background: rgba(180, 100, 255, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:hover:before {
+    box-shadow: 0 0 12px rgba(180, 100, 255, 0.4);
+}
+
+/* Tip - 青色 */
+.protyle-wysiwyg .bq[data-type="tip"] {
+    border-left-color: rgba(0, 220, 220, 0.7);
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 220, 220, 0.9),
+        rgba(0, 220, 220, 0.2)
+    );
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:hover {
+    background: rgba(0, 220, 220, 0.03) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:hover:before {
+    box-shadow: 0 0 12px rgba(0, 220, 220, 0.4);
+}
+

@@ -1,0 +1,213 @@
+/* ============================================
+   风格 5: macOS Big Sur - 精致渐变
+   
+   特点：
+   - 精致渐变背景
+   - 发光竖线
+   - 顶部高光线
+   - 丝滑动画效果
+   - 多层阴影层次
+   
+   适合：追求精致、细节的用户
+   效果：最接近原生系统级设计，视觉效果最佳
+   推荐使用！⭐⭐⭐⭐⭐
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        145deg,
+        rgba(50, 50, 60, 0.7) 0%,
+        rgba(40, 40, 50, 0.8) 100%
+    ) !important;
+    border: 1px solid rgba(100, 100, 120, 0.3);
+    border-radius: 12px;
+    padding: 16px 20px 16px 28px;
+    margin: 14px 0;
+    position: relative;
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.1),
+        inset 0 0.5px 0 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 精致的左侧渐变竖线 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: 4px;
+    background: linear-gradient(
+        180deg,
+        rgba(120, 200, 255, 1) 0%,
+        rgba(80, 160, 255, 0.8) 40%,
+        rgba(100, 180, 255, 0.4) 100%
+    );
+    border-radius: 3px;
+    box-shadow: 
+        0 0 12px rgba(100, 180, 255, 0.5),
+        0 0 6px rgba(100, 180, 255, 0.3) inset;
+}
+
+/* 顶部高光线 */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 28px;
+    right: 28px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    border-radius: 1px;
+}
+
+/* 悬停效果 - 平滑动画 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        145deg,
+        rgba(55, 55, 70, 0.8) 0%,
+        rgba(45, 45, 60, 0.85) 100%
+    ) !important;
+    border-color: rgba(120, 120, 150, 0.4);
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 12px 32px rgba(0, 0, 0, 0.15),
+        inset 0 0.5px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+/* 悬停时竖线更亮 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 
+        0 0 16px rgba(100, 180, 255, 0.7),
+        0 0 8px rgba(100, 180, 255, 0.4) inset;
+}
+
+/* 嵌套引用样式 */
+.protyle-wysiwyg .bq .bq {
+    background: rgba(35, 35, 45, 0.5) !important;
+    border-color: rgba(80, 80, 100, 0.25);
+    padding: 12px 16px 12px 24px;
+    margin: 10px 0;
+    box-shadow: 
+        0 1px 4px rgba(0, 0, 0, 0.1),
+        inset 0 0.5px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    left: 8px;
+    width: 3px;
+    background: linear-gradient(
+        180deg,
+        rgba(140, 140, 160, 0.7),
+        rgba(120, 120, 140, 0.3)
+    );
+    box-shadow: 0 0 6px rgba(140, 140, 160, 0.3);
+}
+
+.protyle-wysiwyg .bq .bq:after {
+    display: none;
+}
+
+/* 列表中的引用 */
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式（可选）
+   ============================================ */
+
+/* Info - 蓝色 */
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(64, 150, 255, 1),
+        rgba(64, 150, 255, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(64, 150, 255, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="info"] {
+    border-color: rgba(64, 150, 255, 0.3);
+}
+
+/* Success - 绿色 */
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(45, 200, 120, 1),
+        rgba(45, 200, 120, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(45, 200, 120, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-color: rgba(45, 200, 120, 0.3);
+}
+
+/* Warning - 橙黄色 */
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 180, 50, 1),
+        rgba(255, 180, 50, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(255, 180, 50, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-color: rgba(255, 180, 50, 0.3);
+}
+
+/* Error - 红色 */
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 80, 80, 1),
+        rgba(255, 80, 80, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(255, 80, 80, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-color: rgba(255, 80, 80, 0.3);
+}
+
+/* Note - 紫色 */
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(180, 100, 255, 1),
+        rgba(180, 100, 255, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(180, 100, 255, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="note"] {
+    border-color: rgba(180, 100, 255, 0.3);
+}
+
+/* Tip - 青色 */
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 220, 220, 1),
+        rgba(0, 220, 220, 0.4)
+    ) !important;
+    box-shadow: 0 0 12px rgba(0, 220, 220, 0.6) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"] {
+    border-color: rgba(0, 220, 220, 0.3);
+}
+

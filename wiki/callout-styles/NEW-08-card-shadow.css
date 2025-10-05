@@ -1,0 +1,170 @@
+/* ============================================
+   全新风格 8: 卡片浮层 - Card Shadow（彩色增强版）
+   
+   特点：
+   - 强烈的3D浮层效果
+   - 左侧彩色标识
+   - 纯靠阴影营造深度
+   - 悬浮卡片感
+   - 支持类型化颜色
+   
+   灵感：Material Design、卡片设计
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(65, 65, 75, 0.95) 0%,
+        rgba(55, 55, 65, 1) 100%
+    ) !important;
+    border: none;
+    border-radius: 12px;
+    padding: 22px 26px 22px 38px;
+    margin: 20px 0;
+    position: relative;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 8px 16px rgba(0, 0, 0, 0.2),
+        0 16px 32px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 左侧彩色条 - 默认蓝色 */
+.protyle-wysiwyg .bq:before {
+    content: "" !important;
+    position: absolute !important;
+    left: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 4px !important;
+    height: 60% !important;
+    background: linear-gradient(
+        180deg,
+        rgba(96, 165, 250, 0.9) 0%,
+        rgba(59, 130, 246, 0.7) 100%
+    ) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* 底部加强阴影（不可见的元素，只为增强3D效果） */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 10%;
+    right: 10%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    filter: blur(8px);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.15),
+        0 16px 32px rgba(0, 0, 0, 0.2),
+        0 24px 48px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(100, 180, 255, 0.1);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    height: 70% !important;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:after {
+    bottom: -12px;
+    filter: blur(12px);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(60, 60, 70, 0.9),
+        rgba(50, 50, 60, 0.95)
+    ) !important;
+    padding: 18px 22px 18px 32px;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    height: 50% !important;
+    background: linear-gradient(
+        180deg,
+        rgba(140, 140, 160, 0.7) 0%,
+        rgba(140, 140, 160, 0.4) 100%
+    ) !important;
+    box-shadow: 0 0 8px rgba(140, 140, 160, 0.3) !important;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式 - 彩色左侧条
+   ============================================ */
+
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.5) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(180deg, rgba(251, 146, 60, 0.9), rgba(251, 146, 60, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(251, 146, 60, 0.5) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.9), rgba(239, 68, 68, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.9), rgba(168, 85, 247, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.5) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.9), rgba(20, 184, 166, 0.7)) !important;
+    box-shadow: 0 0 12px rgba(20, 184, 166, 0.5) !important;
+}
+
+/* Hover 状态增强发光效果 */
+.protyle-wysiwyg .bq[data-type="info"]:hover:before {
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:hover:before {
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:hover:before {
+    box-shadow: 0 0 16px rgba(251, 146, 60, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:hover:before {
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:hover:before {
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.7) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:hover:before {
+    box-shadow: 0 0 16px rgba(20, 184, 166, 0.7) !important;
+}
+

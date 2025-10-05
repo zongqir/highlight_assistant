@@ -1,0 +1,89 @@
+/* ============================================
+   全新风格 3: 顶部标签 - Top Tag
+   
+   特点：
+   - 顶部彩色标签条
+   - 无竖线！
+   - 像文件夹标签
+   - 分层设计
+   
+   灵感：文件夹、标签页
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(60, 60, 70, 0.85) !important;
+    border: 1px solid rgba(80, 80, 90, 0.4);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 18px 22px;
+    margin: 24px 0 16px 0;  /* 顶部留空间给标签 */
+    position: relative;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* 顶部标签条 */
+.protyle-wysiwyg .bq:before {
+    content: "Quote";
+    position: absolute;
+    top: -20px;
+    left: 0;
+    padding: 4px 20px;
+    background: linear-gradient(
+        135deg,
+        rgba(100, 180, 255, 0.9),
+        rgba(80, 160, 255, 0.95)
+    );
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 
+        0 -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 标签左侧装饰 */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: -20px;
+    left: 10px;
+    width: 4px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px 2px 0 0;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    background: linear-gradient(
+        135deg,
+        rgba(120, 200, 255, 1),
+        rgba(100, 180, 255, 1)
+    );
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(55, 55, 65, 0.7) !important;
+    margin-top: 32px;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "→";
+    background: linear-gradient(
+        135deg,
+        rgba(120, 120, 140, 0.8),
+        rgba(110, 110, 130, 0.85)
+    );
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

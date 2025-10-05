@@ -1,0 +1,137 @@
+/* ============================================
+   自适应 Obsidian 风格 - 支持亮色/暗色主题
+   
+   特点：
+   - 顶部彩色标题栏
+   - 自动适配主题
+   - 专业文档风格
+   ============================================ */
+
+/* ========== 亮色主题 ========== */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq {
+    background: rgba(248, 250, 252, 0.8) !important;
+    border: 1px solid rgba(100, 180, 255, 0.2);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px 18px 16px 18px;
+    margin: 32px 0 16px 0;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:before {
+    content: "💡 Note";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    right: -1px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, rgba(100, 180, 255, 0.85), rgba(80, 160, 255, 0.9));
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid rgba(100, 180, 255, 0.2);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    width: 4px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px 0 0 0;
+}
+
+/* ========== 暗色主题 ========== */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq {
+    background: rgba(60, 60, 70, 0.4) !important;
+    border: 1px solid rgba(100, 180, 255, 0.3);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px 18px 16px 18px;
+    margin: 32px 0 16px 0;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:before {
+    content: "💡 Note";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    right: -1px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, rgba(100, 180, 255, 0.9), rgba(80, 160, 255, 0.95));
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid rgba(100, 180, 255, 0.3);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    width: 4px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 8px 0 0 0;
+}
+
+/* ========== 通用样式 ========== */
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.protyle-wysiwyg .bq .bq {
+    margin-top: 40px;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "→ Info";
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式 - 通用
+   ============================================ */
+
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    content: "ℹ️ Info";
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.95)) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    content: "✅ Success";
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.95)) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    content: "⚠️ Warning";
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.9), rgba(249, 115, 22, 0.95)) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    content: "❌ Error";
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.95)) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    content: "💡 Tip";
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.9), rgba(13, 148, 136, 0.95)) !important;
+}
+

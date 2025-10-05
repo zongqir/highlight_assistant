@@ -1,0 +1,139 @@
+/* ============================================
+   灵感来源：Notion Callout
+   
+   特点：
+   - 左侧emoji图标
+   - 柔和的彩色背景
+   - 圆角卡片
+   - 专业优雅
+   
+   Notion的设计是最受欢迎的引述样式之一
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.15) 0%,
+        rgba(100, 180, 255, 0.08) 100%
+    ) !important;
+    border: 1px solid rgba(100, 180, 255, 0.25);
+    border-left: 3px solid rgba(100, 180, 255, 0.8);
+    border-radius: 6px;
+    padding: 14px 16px 14px 50px;
+    margin: 12px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* 左侧图标区域 */
+.protyle-wysiwyg .bq:before {
+    content: "💡";  /* 默认灯泡图标 */
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    font-size: 22px;
+    line-height: 1;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.2) 0%,
+        rgba(100, 180, 255, 0.12) 100%
+    ) !important;
+    border-left-color: rgba(100, 180, 255, 1);
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    background: rgba(100, 180, 255, 0.06) !important;
+    border-left-color: rgba(100, 180, 255, 0.5);
+    padding-left: 45px;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "→";
+    font-size: 18px;
+    left: 16px;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   不同类型的 Callout（可选）
+   在引述块属性中添加 data-type="info/success/warning/error"
+   ============================================ */
+
+/* Info - 蓝色 */
+.protyle-wysiwyg .bq[data-type="info"] {
+    background: linear-gradient(90deg, rgba(66, 153, 225, 0.15) 0%, rgba(66, 153, 225, 0.08) 100%) !important;
+    border-color: rgba(66, 153, 225, 0.25);
+    border-left-color: rgba(66, 153, 225, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    content: "ℹ️";
+}
+
+/* Success - 绿色 */
+.protyle-wysiwyg .bq[data-type="success"] {
+    background: linear-gradient(90deg, rgba(72, 187, 120, 0.15) 0%, rgba(72, 187, 120, 0.08) 100%) !important;
+    border-color: rgba(72, 187, 120, 0.25);
+    border-left-color: rgba(72, 187, 120, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    content: "✅";
+}
+
+/* Warning - 橙色 */
+.protyle-wysiwyg .bq[data-type="warning"] {
+    background: linear-gradient(90deg, rgba(237, 137, 54, 0.15) 0%, rgba(237, 137, 54, 0.08) 100%) !important;
+    border-color: rgba(237, 137, 54, 0.25);
+    border-left-color: rgba(237, 137, 54, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    content: "⚠️";
+}
+
+/* Error - 红色 */
+.protyle-wysiwyg .bq[data-type="error"] {
+    background: linear-gradient(90deg, rgba(245, 101, 101, 0.15) 0%, rgba(245, 101, 101, 0.08) 100%) !important;
+    border-color: rgba(245, 101, 101, 0.25);
+    border-left-color: rgba(245, 101, 101, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    content: "❌";
+}
+
+/* Note - 紫色 */
+.protyle-wysiwyg .bq[data-type="note"] {
+    background: linear-gradient(90deg, rgba(159, 122, 234, 0.15) 0%, rgba(159, 122, 234, 0.08) 100%) !important;
+    border-color: rgba(159, 122, 234, 0.25);
+    border-left-color: rgba(159, 122, 234, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    content: "📝";
+}
+
+/* Tip - 青色 */
+.protyle-wysiwyg .bq[data-type="tip"] {
+    background: linear-gradient(90deg, rgba(56, 178, 172, 0.15) 0%, rgba(56, 178, 172, 0.08) 100%) !important;
+    border-color: rgba(56, 178, 172, 0.25);
+    border-left-color: rgba(56, 178, 172, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    content: "💡";
+}
+
+/* Quote - 灰色 */
+.protyle-wysiwyg .bq[data-type="quote"] {
+    background: linear-gradient(90deg, rgba(160, 174, 192, 0.15) 0%, rgba(160, 174, 192, 0.08) 100%) !important;
+    border-color: rgba(160, 174, 192, 0.25);
+    border-left-color: rgba(160, 174, 192, 0.8);
+}
+.protyle-wysiwyg .bq[data-type="quote"]:before {
+    content: "💬";
+}
+

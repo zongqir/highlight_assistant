@@ -1,0 +1,83 @@
+/* ============================================
+   全新风格 6: 引号装饰 - Quote Marks
+   
+   特点：
+   - 大大的引号装饰
+   - 无竖线！是引号！
+   - 优雅经典
+   - 半透明引号背景
+   
+   灵感：传统引用设计
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(58, 58, 68, 0.85) !important;
+    border: 1px solid rgba(85, 85, 95, 0.4);
+    border-radius: 10px;
+    padding: 30px 24px 20px 24px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* 左上引号 */
+.protyle-wysiwyg .bq:before {
+    content: """;
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 48px;
+    font-family: Georgia, serif;
+    color: rgba(100, 180, 255, 0.25);
+    line-height: 1;
+    font-weight: bold;
+}
+
+/* 右下引号 */
+.protyle-wysiwyg .bq:after {
+    content: """;
+    position: absolute;
+    bottom: -8px;
+    right: 12px;
+    font-size: 48px;
+    font-family: Georgia, serif;
+    color: rgba(100, 180, 255, 0.25);
+    line-height: 1;
+    font-weight: bold;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: rgba(63, 63, 73, 0.9) !important;
+    border-color: rgba(100, 180, 255, 0.3);
+    transform: scale(1.01);
+    box-shadow: 
+        0 5px 12px rgba(0, 0, 0, 0.25);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before,
+.protyle-wysiwyg .bq:not(.bq .bq):hover:after {
+    color: rgba(120, 200, 255, 0.4);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(53, 53, 63, 0.75) !important;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "‹";
+    font-size: 36px;
+    top: 6px;
+}
+
+.protyle-wysiwyg .bq .bq:after {
+    content: "›";
+    font-size: 36px;
+    bottom: -6px;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

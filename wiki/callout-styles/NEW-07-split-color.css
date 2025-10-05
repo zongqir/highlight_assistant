@@ -1,0 +1,76 @@
+/* ============================================
+   全新风格 7: 分割配色 - Split Color
+   
+   特点：
+   - 左右分割配色
+   - 无竖线！是分割色块！
+   - 撞色设计
+   - 现代感
+   
+   灵感：杂志排版、海报设计
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.12) 0%,
+        rgba(100, 180, 255, 0.12) 8px,
+        rgba(60, 60, 70, 0.9) 8px,
+        rgba(60, 60, 70, 0.9) 100%
+    ) !important;
+    border: 1px solid rgba(85, 85, 95, 0.4);
+    border-left: 8px solid rgba(100, 180, 255, 0.8);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* 不需要 :before */
+
+/* 左侧色块上的光点装饰 */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    border-left-color: rgba(120, 200, 255, 1);
+    background: linear-gradient(
+        90deg,
+        rgba(120, 200, 255, 0.18) 0%,
+        rgba(120, 200, 255, 0.18) 8px,
+        rgba(65, 65, 75, 0.95) 8px,
+        rgba(65, 65, 75, 0.95) 100%
+    ) !important;
+    transform: translateX(2px);
+    box-shadow: 
+        0 5px 12px rgba(0, 0, 0, 0.25);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: linear-gradient(
+        90deg,
+        rgba(120, 120, 140, 0.12) 0%,
+        rgba(120, 120, 140, 0.12) 6px,
+        rgba(55, 55, 65, 0.8) 6px,
+        rgba(55, 55, 65, 0.8) 100%
+    ) !important;
+    border-left-width: 6px;
+    border-left-color: rgba(120, 120, 140, 0.7);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

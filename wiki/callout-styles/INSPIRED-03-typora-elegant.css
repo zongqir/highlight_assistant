@@ -1,0 +1,98 @@
+/* ============================================
+   灵感来源：Typora 优雅主题
+   
+   特点：
+   - 极简边框
+   - 柔和阴影
+   - 优雅字体
+   - 内容为王
+   
+   Typora 以简洁优雅著称
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(248, 250, 252, 0.03) !important;
+    border: none;
+    border-left: 4px solid rgba(100, 180, 255, 0.6);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.08),
+        0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 顶部淡淡的高光 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(100, 180, 255, 0.2) 20%,
+        rgba(100, 180, 255, 0.2) 80%,
+        transparent
+    );
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: rgba(248, 250, 252, 0.05) !important;
+    border-left-color: rgba(100, 180, 255, 0.9);
+    box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.06);
+    transform: translateX(2px);
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    background: transparent !important;
+    border-left-color: rgba(140, 140, 160, 0.4);
+    margin: 12px 0;
+    padding: 12px 16px;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   不同语义的样式（可选）
+   ============================================ */
+
+.protyle-wysiwyg .bq[data-type="info"] {
+    border-left-color: rgba(59, 130, 246, 0.6);
+}
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2) 20%, rgba(59, 130, 246, 0.2) 80%, transparent);
+}
+
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-left-color: rgba(34, 197, 94, 0.6);
+}
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.2) 20%, rgba(34, 197, 94, 0.2) 80%, transparent);
+}
+
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-left-color: rgba(251, 146, 60, 0.6);
+}
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(90deg, transparent, rgba(251, 146, 60, 0.2) 20%, rgba(251, 146, 60, 0.2) 80%, transparent);
+}
+
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-left-color: rgba(239, 68, 68, 0.6);
+}
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.2) 20%, rgba(239, 68, 68, 0.2) 80%, transparent);
+}
+

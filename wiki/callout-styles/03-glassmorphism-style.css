@@ -1,0 +1,179 @@
+/* ============================================
+   风格 3: 毛玻璃拟态 - 现代优雅
+   
+   特点：
+   - 磨砂玻璃效果（backdrop-filter）
+   - 高级渐变背景
+   - 精致阴影层次
+   - 半透明设计
+   
+   适合：追求高级质感的用户
+   效果：类似 iOS/Windows 11 的设计语言
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+    ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 18px 24px 18px 28px;
+    margin: 16px 0;
+    position: relative;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 渐变发光竖线 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: 4px;
+    background: linear-gradient(
+        180deg,
+        rgba(100, 180, 255, 0.9),
+        rgba(100, 180, 255, 0.4)
+    );
+    border-radius: 4px;
+    box-shadow: 0 0 16px rgba(100, 180, 255, 0.5);
+}
+
+/* 悬停效果 - 更强的毛玻璃 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.04) 100%
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 12px 40px 0 rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 0 0 20px rgba(100, 180, 255, 0.7);
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: rgba(255, 255, 255, 0.08);
+    padding: 14px 20px 14px 24px;
+    margin: 12px 0;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    background: linear-gradient(
+        180deg,
+        rgba(150, 150, 150, 0.6),
+        rgba(150, 150, 150, 0.3)
+    );
+    box-shadow: 0 0 10px rgba(150, 150, 150, 0.4);
+}
+
+/* 列表中的引用 */
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式（可选）
+   ============================================ */
+
+/* Info - 蓝色 */
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(64, 150, 255, 0.9),
+        rgba(64, 150, 255, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(64, 150, 255, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="info"] {
+    border-color: rgba(64, 150, 255, 0.15);
+}
+
+/* Success - 绿色 */
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(45, 200, 120, 0.9),
+        rgba(45, 200, 120, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(45, 200, 120, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-color: rgba(45, 200, 120, 0.15);
+}
+
+/* Warning - 橙色 */
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 180, 50, 0.9),
+        rgba(255, 180, 50, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(255, 180, 50, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-color: rgba(255, 180, 50, 0.15);
+}
+
+/* Error - 红色 */
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 80, 80, 0.9),
+        rgba(255, 80, 80, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(255, 80, 80, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-color: rgba(255, 80, 80, 0.15);
+}
+
+/* Note - 紫色 */
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(180, 100, 255, 0.9),
+        rgba(180, 100, 255, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(180, 100, 255, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="note"] {
+    border-color: rgba(180, 100, 255, 0.15);
+}
+
+/* Tip - 青色 */
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 220, 220, 0.9),
+        rgba(0, 220, 220, 0.4)
+    );
+    box-shadow: 0 0 16px rgba(0, 220, 220, 0.6);
+}
+
+.protyle-wysiwyg .bq[data-type="tip"] {
+    border-color: rgba(0, 220, 220, 0.15);
+}
+
