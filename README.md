@@ -1,6 +1,6 @@
-# Highlight Assistant
+# Annotation Assistant (标注助手)
 
-A powerful enhancement tool for SiYuan Note, featuring text highlighting, smart annotations, quick tag marking, and flashcard quick switching.
+A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag insertion, memo block creation, reading annotation, and highlighting. Delivers a WeChat Reading-style experience optimized for mobile devices.
 
 ## ✨ Features
 
@@ -106,6 +106,16 @@ pnpm run make-install
 ```
 
 ## 📝 Changelog
+
+### v2.1.0 (2025-10-05)
+- 🎯 **Brand Repositioning**: Renamed plugin to "Annotation Assistant" (标注助手)
+- 📋 **Feature Clarity**: Emphasized four core features
+  - Quick Tag Insertion - Fast tagging for content classification
+  - Memo Block Creation - Smart annotations for highlighted text  
+  - Reading Annotation - Personal notes and thoughts
+  - Highlighting - Multi-color text highlighting
+- 📱 **Experience Positioning**: Emphasized WeChat Reading-style experience and mobile optimization
+- 📖 **Description Update**: Clearer plugin positioning and feature communication
 
 ### v3.0.3 (2025-10-02)
 - 🐛 **Bug Fix**: Mobile quick tag adding issue
