@@ -2,6 +2,14 @@
  * 思源笔记 - 代码块默认折叠功能
  * 功能：使所有代码块默认折叠，点击展开/收起
  * 使用方法：将此JS代码添加到 设置 -> 外观 -> 代码片段 -> JS 中
+ * 
+ * @version 1.0.1
+ * @date 2025-10-05
+ * @changelog
+ *   v1.0.1: 修复UI元素被持久化到文档的重大BUG
+ *           - 添加 contenteditable="false" 属性防止UI元素被保存
+ *           - 添加自动清理机制，清除已被持久化的残留元素
+ *   v1.0.0: 首次发布
  */
 
 (function() {
@@ -37,6 +45,12 @@
             return;
         }
         
+        // 清理可能残留的旧UI元素（防止被持久化后重复添加）
+        const oldButtons = codeBlock.querySelectorAll('.code-collapse-toggle');
+        const oldOverlays = codeBlock.querySelectorAll('.code-collapse-fade');
+        oldButtons.forEach(btn => btn.remove());
+        oldOverlays.forEach(overlay => overlay.remove());
+        
         // 标记为已处理
         processedBlocks.add(codeBlock);
         
@@ -57,6 +71,8 @@
         toggleButton.className = 'code-collapse-toggle';
         toggleButton.innerHTML = CONFIG.defaultCollapsed ? CONFIG.toggleButtonText : CONFIG.collapseButtonText;
         toggleButton.setAttribute('aria-label', CONFIG.defaultCollapsed ? '展开代码块' : '收起代码块');
+        toggleButton.setAttribute('contenteditable', 'false'); // 防止被保存到文档中
+        toggleButton.setAttribute('data-type', 'ui-element'); // 标记为UI元素，非文档内容
         
         // 设置按钮样式
         Object.assign(toggleButton.style, {
@@ -106,6 +122,8 @@
         // 创建遮罩层（折叠时显示渐变效果）
         const fadeOverlay = document.createElement('div');
         fadeOverlay.className = 'code-collapse-fade';
+        fadeOverlay.setAttribute('contenteditable', 'false'); // 防止被保存到文档中
+        fadeOverlay.setAttribute('data-type', 'ui-element'); // 标记为UI元素，非文档内容
         Object.assign(fadeOverlay.style, {
             position: 'absolute',
             bottom: '0',
@@ -202,12 +220,39 @@
     }
     
     /**
+     * 清理所有被持久化的UI元素
+     */
+    function cleanupPersistedUIElements() {
+        // 清理所有可能被保存到文档中的按钮和遮罩层
+        const persistedButtons = document.querySelectorAll('.code-collapse-toggle');
+        const persistedOverlays = document.querySelectorAll('.code-collapse-fade');
+        
+        persistedButtons.forEach(btn => {
+            console.log('🧹 清理残留的折叠按钮');
+            btn.remove();
+        });
+        
+        persistedOverlays.forEach(overlay => {
+            console.log('🧹 清理残留的遮罩层');
+            overlay.remove();
+        });
+        
+        if (persistedButtons.length > 0 || persistedOverlays.length > 0) {
+            console.log(`✅ 已清理 ${persistedButtons.length} 个按钮和 ${persistedOverlays.length} 个遮罩层`);
+        }
+    }
+    
+    /**
      * 初始化函数
      */
     function init() {
+        // 先清理可能被持久化的UI元素
+        cleanupPersistedUIElements();
+        
         // 等待DOM加载完成
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
+                cleanupPersistedUIElements(); // 再次清理，确保清理完毕
                 processAllCodeBlocks();
                 observeCodeBlocks();
             });
