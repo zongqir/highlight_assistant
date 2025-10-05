@@ -1,0 +1,63 @@
+/* ============================================
+   风格 3: 毛玻璃 - 对比度加强版
+   
+   改进：更明显的白色边框 + 更亮的背景
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.12) 0%,  /* 提高白色亮度 */
+        rgba(255, 255, 255, 0.08) 100%
+    ) !important;
+    border: 2px solid rgba(255, 255, 255, 0.25) !important;  /* 加粗加亮白色边框 */
+    border-radius: 18px;  /* 超大圆角 */
+    padding: 20px 26px 20px 32px;
+    margin: 16px 0;
+    position: relative;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    box-shadow: 
+        0 10px 40px 0 rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.2);  /* 增强内边高光 */
+    transition: all 0.4s ease;
+}
+
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: 5px;
+    background: linear-gradient(
+        180deg,
+        rgba(100, 180, 255, 1),  /* 完全不透明 */
+        rgba(100, 180, 255, 0.6)
+    );
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(100, 180, 255, 0.7);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.16) 0%,
+        rgba(255, 255, 255, 0.12) 100%
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 15px 50px 0 rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

@@ -1,0 +1,185 @@
+/* ============================================
+   风格 2: 赛博朋克 - 霓虹发光
+   
+   特点：
+   - 霓虹边框效果
+   - 发光竖线动画
+   - 呼吸灯效果
+   - 科技感十足
+   
+   适合：喜欢科技感、未来感的用户
+   颜色：青色霓虹光
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(20, 20, 30, 0.9) 0%,
+        rgba(30, 30, 45, 0.85) 100%
+    ) !important;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-left: 4px solid rgba(0, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 16px 20px 16px 28px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 0 20px rgba(0, 255, 255, 0.1),
+        inset 0 0 30px rgba(0, 255, 255, 0.05);
+}
+
+/* 发光竖线 - 带呼吸动画 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 6px;
+    height: calc(100% - 20px);
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 255, 255, 1),
+        rgba(0, 255, 255, 0.3)
+    );
+    border-radius: 3px;
+    box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.8),
+        0 0 20px rgba(0, 255, 255, 0.4);
+    animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* 霓虹呼吸动画 */
+@keyframes neon-pulse {
+    0%, 100% { 
+        opacity: 1;
+        box-shadow: 
+            0 0 10px rgba(0, 255, 255, 0.8),
+            0 0 20px rgba(0, 255, 255, 0.4);
+    }
+    50% { 
+        opacity: 0.6;
+        box-shadow: 
+            0 0 15px rgba(0, 255, 255, 1),
+            0 0 30px rgba(0, 255, 255, 0.6);
+    }
+}
+
+/* 悬停效果 - 强化霓虹 */
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.2),
+        inset 0 0 40px rgba(0, 255, 255, 0.08);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    background: rgba(25, 25, 35, 0.7) !important;
+    border-left-color: rgba(0, 180, 180, 0.6);
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 180, 180, 0.8),
+        rgba(0, 180, 180, 0.3)
+    );
+    box-shadow: 0 0 8px rgba(0, 180, 180, 0.5);
+}
+
+/* 列表中的引用 */
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式（可选）- 不同颜色霓虹
+   ============================================ */
+
+/* Info - 蓝色霓虹 */
+.protyle-wysiwyg .bq[data-type="info"] {
+    border-left-color: rgba(64, 150, 255, 0.8);
+    border-color: rgba(64, 150, 255, 0.3);
+}
+
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(64, 150, 255, 1),
+        rgba(64, 150, 255, 0.3)
+    );
+    box-shadow: 
+        0 0 10px rgba(64, 150, 255, 0.8),
+        0 0 20px rgba(64, 150, 255, 0.4);
+}
+
+/* Success - 绿色霓虹 */
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-left-color: rgba(45, 255, 120, 0.8);
+    border-color: rgba(45, 255, 120, 0.3);
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(45, 255, 120, 1),
+        rgba(45, 255, 120, 0.3)
+    );
+    box-shadow: 
+        0 0 10px rgba(45, 255, 120, 0.8),
+        0 0 20px rgba(45, 255, 120, 0.4);
+}
+
+/* Warning - 橙色霓虹 */
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-left-color: rgba(255, 180, 50, 0.8);
+    border-color: rgba(255, 180, 50, 0.3);
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 180, 50, 1),
+        rgba(255, 180, 50, 0.3)
+    );
+    box-shadow: 
+        0 0 10px rgba(255, 180, 50, 0.8),
+        0 0 20px rgba(255, 180, 50, 0.4);
+}
+
+/* Error - 红色霓虹 */
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-left-color: rgba(255, 80, 80, 0.8);
+    border-color: rgba(255, 80, 80, 0.3);
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 80, 80, 1),
+        rgba(255, 80, 80, 0.3)
+    );
+    box-shadow: 
+        0 0 10px rgba(255, 80, 80, 0.8),
+        0 0 20px rgba(255, 80, 80, 0.4);
+}
+
+/* Note - 紫色霓虹 */
+.protyle-wysiwyg .bq[data-type="note"] {
+    border-left-color: rgba(180, 100, 255, 0.8);
+    border-color: rgba(180, 100, 255, 0.3);
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(
+        to bottom,
+        rgba(180, 100, 255, 1),
+        rgba(180, 100, 255, 0.3)
+    );
+    box-shadow: 
+        0 0 10px rgba(180, 100, 255, 0.8),
+        0 0 20px rgba(180, 100, 255, 0.4);
+}
+

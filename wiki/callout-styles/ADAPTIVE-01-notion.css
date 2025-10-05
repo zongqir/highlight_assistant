@@ -1,0 +1,225 @@
+/* ============================================
+   自适应 Notion 风格 - 支持亮色/暗色主题
+   
+   特点：
+   - 自动适配亮色和暗色主题
+   - 左侧emoji图标
+   - 柔和配色
+   
+   最受欢迎的设计！
+   ============================================ */
+
+/* ========== 亮色主题 ========== */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.1) 0%,
+        rgba(100, 180, 255, 0.05) 100%
+    ) !important;
+    border: 1px solid rgba(100, 180, 255, 0.2);
+    border-left: 3px solid rgba(100, 180, 255, 0.7);
+    border-radius: 6px;
+    padding: 14px 16px 14px 50px;
+    margin: 12px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:before {
+    content: "💡";
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    font-size: 22px;
+    line-height: 1;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.15) 0%,
+        rgba(100, 180, 255, 0.08) 100%
+    ) !important;
+    border-left-color: rgba(100, 180, 255, 1);
+}
+
+/* ========== 暗色主题 ========== */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.15) 0%,
+        rgba(100, 180, 255, 0.08) 100%
+    ) !important;
+    border: 1px solid rgba(100, 180, 255, 0.25);
+    border-left: 3px solid rgba(100, 180, 255, 0.8);
+    border-radius: 6px;
+    padding: 14px 16px 14px 50px;
+    margin: 12px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:before {
+    content: "💡";
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    font-size: 22px;
+    line-height: 1;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0.2) 0%,
+        rgba(100, 180, 255, 0.12) 100%
+    ) !important;
+    border-left-color: rgba(100, 180, 255, 1);
+}
+
+/* ========== 嵌套引用（通用）========== */
+.protyle-wysiwyg .bq .bq {
+    padding-left: 45px;
+    margin: 10px 0;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "→";
+    font-size: 18px;
+    left: 16px;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式 - 亮色主题
+   ============================================ */
+
+/* Info - 蓝色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="info"] {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%) !important;
+    border-color: rgba(59, 130, 246, 0.2);
+    border-left-color: rgba(59, 130, 246, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="info"]:before {
+    content: "ℹ️";
+}
+
+/* Success - 绿色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="success"] {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.04) 100%) !important;
+    border-color: rgba(34, 197, 94, 0.2);
+    border-left-color: rgba(34, 197, 94, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="success"]:before {
+    content: "✅";
+}
+
+/* Warning - 橙色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="warning"] {
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.08) 0%, rgba(251, 146, 60, 0.04) 100%) !important;
+    border-color: rgba(251, 146, 60, 0.2);
+    border-left-color: rgba(251, 146, 60, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="warning"]:before {
+    content: "⚠️";
+}
+
+/* Error - 红色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="error"] {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.04) 100%) !important;
+    border-color: rgba(239, 68, 68, 0.2);
+    border-left-color: rgba(239, 68, 68, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="error"]:before {
+    content: "❌";
+}
+
+/* Note - 紫色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="note"] {
+    background: linear-gradient(90deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.04) 100%) !important;
+    border-color: rgba(168, 85, 247, 0.2);
+    border-left-color: rgba(168, 85, 247, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="note"]:before {
+    content: "📝";
+}
+
+/* Tip - 青色 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="tip"] {
+    background: linear-gradient(90deg, rgba(20, 184, 166, 0.08) 0%, rgba(20, 184, 166, 0.04) 100%) !important;
+    border-color: rgba(20, 184, 166, 0.2);
+    border-left-color: rgba(20, 184, 166, 0.7);
+}
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="tip"]:before {
+    content: "💡";
+}
+
+/* ============================================
+   类型化样式 - 暗色主题
+   ============================================ */
+
+/* Info */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="info"] {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%) !important;
+    border-color: rgba(59, 130, 246, 0.25);
+    border-left-color: rgba(59, 130, 246, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="info"]:before {
+    content: "ℹ️";
+}
+
+/* Success */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="success"] {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%) !important;
+    border-color: rgba(34, 197, 94, 0.25);
+    border-left-color: rgba(34, 197, 94, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="success"]:before {
+    content: "✅";
+}
+
+/* Warning */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="warning"] {
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.15) 0%, rgba(251, 146, 60, 0.08) 100%) !important;
+    border-color: rgba(251, 146, 60, 0.25);
+    border-left-color: rgba(251, 146, 60, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="warning"]:before {
+    content: "⚠️";
+}
+
+/* Error */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="error"] {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.08) 100%) !important;
+    border-color: rgba(239, 68, 68, 0.25);
+    border-left-color: rgba(239, 68, 68, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="error"]:before {
+    content: "❌";
+}
+
+/* Note */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="note"] {
+    background: linear-gradient(90deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.08) 100%) !important;
+    border-color: rgba(168, 85, 247, 0.25);
+    border-left-color: rgba(168, 85, 247, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="note"]:before {
+    content: "📝";
+}
+
+/* Tip */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="tip"] {
+    background: linear-gradient(90deg, rgba(20, 184, 166, 0.15) 0%, rgba(20, 184, 166, 0.08) 100%) !important;
+    border-color: rgba(20, 184, 166, 0.25);
+    border-left-color: rgba(20, 184, 166, 0.8);
+}
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq[data-type="tip"]:before {
+    content: "💡";
+}
+

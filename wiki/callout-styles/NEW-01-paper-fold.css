@@ -1,0 +1,77 @@
+/* ============================================
+   全新风格 1: 纸张折角 - Paper Fold
+   
+   特点：
+   - 右上角折角效果
+   - 纸质卡片质感
+   - 立体阴影
+   - 无竖线！
+   
+   灵感：实体便签纸
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(70, 70, 80, 0.9) 0%,
+        rgba(60, 60, 70, 0.95) 100%
+    ) !important;
+    border: none;
+    border-radius: 8px 0 8px 8px;  /* 右上角不圆 */
+    padding: 20px 24px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+/* 右上角折角效果 */
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 30px 30px 0;
+    border-color: transparent rgba(100, 180, 255, 0.8) transparent transparent;
+    border-radius: 0 0 0 4px;
+}
+
+/* 折角阴影 */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(
+        225deg,
+        rgba(0, 0, 0, 0.3) 0%,
+        transparent 50%
+    );
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    transform: translateY(-4px) rotate(-1deg);
+    box-shadow: 
+        0 8px 16px rgba(0, 0, 0, 0.25),
+        0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(55, 55, 65, 0.8) !important;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    border-width: 0 20px 20px 0;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

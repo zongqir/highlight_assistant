@@ -1,0 +1,145 @@
+/* ============================================
+   灵感来源：Obsidian Admonition
+   
+   特点：
+   - 顶部彩色标题栏
+   - 折叠式设计
+   - 图标 + 文字标题
+   - 专业文档风格
+   
+   Obsidian 的 Admonition 插件非常受欢迎
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(60, 60, 70, 0.4) !important;
+    border: 1px solid rgba(100, 180, 255, 0.3);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px 18px 16px 18px;
+    margin: 32px 0 16px 0;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+/* 顶部标题栏 */
+.protyle-wysiwyg .bq:before {
+    content: "💡 Note";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    right: -1px;
+    padding: 6px 16px;
+    background: linear-gradient(
+        135deg,
+        rgba(100, 180, 255, 0.9),
+        rgba(80, 160, 255, 0.95)
+    );
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid rgba(100, 180, 255, 0.3);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 标题栏左侧装饰条 */
+.protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: -28px;
+    left: -1px;
+    width: 4px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 8px 0 0 0;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    border-color: rgba(120, 200, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    background: linear-gradient(
+        135deg,
+        rgba(120, 200, 255, 0.95),
+        rgba(100, 180, 255, 1)
+    );
+}
+
+/* 嵌套引用 */
+.protyle-wysiwyg .bq .bq {
+    background: rgba(55, 55, 65, 0.5) !important;
+    margin-top: 40px;
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    content: "→ Info";
+    background: linear-gradient(
+        135deg,
+        rgba(120, 120, 140, 0.85),
+        rgba(110, 110, 130, 0.9)
+    );
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   不同类型的 Admonition
+   ============================================ */
+
+/* Info */
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    content: "ℹ️ Info";
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.95));
+}
+
+/* Success */
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    content: "✅ Success";
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.95));
+}
+.protyle-wysiwyg .bq[data-type="success"] {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Warning */
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    content: "⚠️ Warning";
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.9), rgba(249, 115, 22, 0.95));
+}
+.protyle-wysiwyg .bq[data-type="warning"] {
+    border-color: rgba(251, 146, 60, 0.3);
+}
+
+/* Error */
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    content: "❌ Error";
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.95));
+}
+.protyle-wysiwyg .bq[data-type="error"] {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Question */
+.protyle-wysiwyg .bq[data-type="question"]:before {
+    content: "❓ Question";
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(147, 51, 234, 0.95));
+}
+.protyle-wysiwyg .bq[data-type="question"] {
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Tip */
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    content: "💡 Tip";
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.9), rgba(13, 148, 136, 0.95));
+}
+.protyle-wysiwyg .bq[data-type="tip"] {
+    border-color: rgba(20, 184, 166, 0.3);
+}
+

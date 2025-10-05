@@ -1,0 +1,41 @@
+/* ============================================
+   风格 1: Notion - 对比度加强版
+   
+   改进：深灰背景 + 粗蓝色边框
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(60, 60, 70, 0.8) !important;  /* 加深背景 */
+    border-left: 5px solid rgba(100, 180, 255, 1);  /* 加粗边框，完全不透明 */
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    position: relative;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.protyle-wysiwyg .bq:before {
+    content: none;
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: rgba(70, 70, 80, 0.9) !important;  /* 悬停更亮 */
+    border-left-color: rgba(120, 200, 255, 1);
+    transform: translateX(4px);
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(50, 50, 60, 0.6) !important;
+    border-left-color: rgba(120, 120, 120, 0.8);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

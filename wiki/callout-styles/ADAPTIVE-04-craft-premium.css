@@ -1,0 +1,281 @@
+/* ============================================
+   Craft Premium 风格 - 完全还原版
+   
+   特点：
+   - 超精致卡片设计
+   - 微妙的渐变和质感
+   - 完美的圆角和间距
+   - 细腻的阴影层次
+   - 高级毛玻璃效果
+   
+   这次真正还原 Craft 的精髓！
+   ============================================ */
+
+/* ========== 亮色主题 ========== */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        145deg,
+        #ffffff 0%,
+        #fafbfc 100%
+    ) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 24px 28px 24px 40px;
+    margin: 20px 0;
+    position: relative;
+    box-shadow: 
+        0 0.5px 1px rgba(0, 0, 0, 0.02),
+        0 1px 2px rgba(0, 0, 0, 0.03),
+        0 2px 4px rgba(0, 0, 0, 0.03),
+        0 4px 8px rgba(0, 0, 0, 0.02),
+        0 8px 16px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 左侧宽色条 - 亮色主题 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:before {
+    content: "" !important;
+    position: absolute !important;
+    left: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 4px !important;
+    height: 60% !important;
+    background: linear-gradient(
+        180deg,
+        rgba(96, 165, 250, 0.9) 0%,
+        rgba(59, 130, 246, 0.7) 100%
+    ) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 顶部细高光线 - 亮色主题 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 28px !important;
+    right: 28px !important;
+    height: 0.5px !important;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.8) 20%,
+        rgba(255, 255, 255, 0.8) 80%,
+        transparent 100%
+    ) !important;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        145deg,
+        #ffffff 0%,
+        #f8f9fa 100%
+    ) !important;
+    border-color: rgba(59, 130, 246, 0.08);
+    transform: translateY(-3px);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.03),
+        0 2px 4px rgba(0, 0, 0, 0.04),
+        0 4px 8px rgba(0, 0, 0, 0.04),
+        0 8px 16px rgba(0, 0, 0, 0.03),
+        0 16px 32px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+    height: 70% !important;
+}
+
+/* ========== 暗色主题 ========== */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        145deg,
+        rgba(45, 45, 50, 0.5) 0%,
+        rgba(35, 35, 40, 0.6) 100%
+    ) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 24px 28px 24px 40px;
+    margin: 20px 0;
+    position: relative;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 
+        0 0.5px 1px rgba(0, 0, 0, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.12),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.05),
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 左侧发光色条 - 暗色主题 */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:before {
+    content: "" !important;
+    position: absolute !important;
+    left: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 4px !important;
+    height: 60% !important;
+    background: linear-gradient(
+        180deg,
+        rgba(96, 165, 250, 0.8) 0%,
+        rgba(59, 130, 246, 0.6) 100%
+    ) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 顶部微光 - 暗色主题 */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 28px !important;
+    right: 28px !important;
+    height: 0.5px !important;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.12) 20%,
+        rgba(255, 255, 255, 0.12) 80%,
+        transparent 100%
+    ) !important;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        145deg,
+        rgba(50, 50, 55, 0.6) 0%,
+        rgba(40, 40, 45, 0.7) 100%
+    ) !important;
+    border-color: rgba(59, 130, 246, 0.15);
+    transform: translateY(-3px);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.18),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 4px 8px rgba(0, 0, 0, 0.12),
+        0 8px 16px rgba(0, 0, 0, 0.1),
+        0 16px 32px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(59, 130, 246, 0.1),
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+    height: 70% !important;
+}
+
+/* ========== 嵌套引用 ========== */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq .bq {
+    background: linear-gradient(145deg, #fafbfc 0%, #f5f6f7 100%) !important;
+    border-color: rgba(0, 0, 0, 0.03);
+    padding: 18px 22px 18px 32px;
+    margin: 16px 0;
+    box-shadow: 
+        0 0.5px 1px rgba(0, 0, 0, 0.02),
+        0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq .bq {
+    background: linear-gradient(145deg, rgba(40, 40, 45, 0.4) 0%, rgba(30, 30, 35, 0.5) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.04);
+    padding: 18px 22px 18px 32px;
+    margin: 16px 0;
+    box-shadow: 
+        0 0.5px 1px rgba(0, 0, 0, 0.1),
+        0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.protyle-wysiwyg .bq .bq:before {
+    height: 50% !important;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq .bq:before {
+    background: linear-gradient(
+        180deg,
+        rgba(140, 140, 160, 0.7) 0%,
+        rgba(140, 140, 160, 0.4) 100%
+    ) !important;
+    box-shadow: 0 0 6px rgba(140, 140, 160, 0.2) !important;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq .bq:before {
+    background: linear-gradient(
+        180deg,
+        rgba(140, 140, 160, 0.6) 0%,
+        rgba(140, 140, 160, 0.3) 100%
+    ) !important;
+    box-shadow: none !important;
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
+/* ============================================
+   类型化样式 - 通用
+   ============================================ */
+
+.protyle-wysiwyg .bq[data-type="info"]:before {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.85), rgba(59, 130, 246, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="success"]:before {
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.85), rgba(34, 197, 94, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.3) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="warning"]:before {
+    background: linear-gradient(180deg, rgba(251, 146, 60, 0.85), rgba(251, 146, 60, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.3) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="error"]:before {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.85), rgba(239, 68, 68, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="note"]:before {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.85), rgba(168, 85, 247, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.3) !important;
+}
+
+.protyle-wysiwyg .bq[data-type="tip"]:before {
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.85), rgba(20, 184, 166, 0.45)) !important;
+    box-shadow: 0 0 8px rgba(20, 184, 166, 0.3) !important;
+}
+
+/* ============================================
+   亮色主题的边框微调
+   ============================================ */
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="info"] {
+    border-color: rgba(59, 130, 246, 0.12);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="success"] {
+    border-color: rgba(34, 197, 94, 0.12);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="warning"] {
+    border-color: rgba(251, 146, 60, 0.12);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="error"] {
+    border-color: rgba(239, 68, 68, 0.12);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="note"] {
+    border-color: rgba(168, 85, 247, 0.12);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq[data-type="tip"] {
+    border-color: rgba(20, 184, 166, 0.12);
+}
+

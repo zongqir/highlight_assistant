@@ -2,7 +2,7 @@
   "name": "highlight-assistant",
   "author": "zongqir",
   "url": "https://github.com/zongqir/highlight_assistant",
-  "version": "1.1.0",
+  "version": "2.1.0",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,
   "backends": ["all"],
@@ -14,12 +14,12 @@
     "desktop-window"
   ],
   "displayName": {
-    "default": "Highlight Assistant",
-    "zh_CN": "高亮助手"
+    "default": "Annotation Assistant",
+    "zh_CN": "标注助手"
   },
   "description": {
-    "default": "WeChat Reading-style highlight tool for SiYuan. Select text to highlight with floating toolbar, optimized for mobile.",
-    "zh_CN": "类似微信读书的高亮工具。选中文本即可高亮，浮动工具栏操作，移动端优化。"
+    "default": "Quick tag insertion, memo block creation, reading annotation, and highlight features. WeChat Reading-style experience, optimized for mobile.",
+    "zh_CN": "提供标签快打、备注块打、阅读批注、高亮功能。类似微信读书的体验，移动端优化。"
   },
   "readme": {
     "default": "README.md",

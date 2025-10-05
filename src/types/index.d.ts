@@ -104,3 +104,8 @@ interface Window {
     };
     Lute: any;
 }
+
+// 扩展 siyuan 模块声明（v3.3.0+ API）
+declare module 'siyuan' {
+    export function getActiveEditor(wndActive?: boolean): any;
+}

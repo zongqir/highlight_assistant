@@ -1,0 +1,183 @@
+/* ============================================
+   风格 5: macOS - 对比度加强版（支持亮色/暗色主题）
+   
+   改进：更明显的渐变 + 超亮顶部高光线
+   ============================================ */
+
+/* ========== 亮色主题 ========== */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        145deg,
+        rgba(250, 250, 252, 0.95) 0%,
+        rgba(242, 244, 248, 0.98) 100%
+    ) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 18px 22px 18px 32px;
+    margin: 14px 0;
+    position: relative;
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.06),
+        0 10px 30px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: 5px;
+    background: linear-gradient(
+        180deg,
+        rgba(80, 160, 255, 0.9) 0%,
+        rgba(100, 180, 255, 0.8) 40%,
+        rgba(120, 190, 255, 0.5) 100%
+    );
+    border-radius: 3px;
+    box-shadow: 
+        0 0 12px rgba(100, 180, 255, 0.4),
+        0 0 6px rgba(100, 180, 255, 0.2) inset;
+}
+
+/* 顶部高光线 - 亮色主题 */
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 32px;
+    right: 32px;
+    height: 1.5px;
+    background: linear-gradient(
+        90deg,
+        rgba(100, 180, 255, 0) 0%,
+        rgba(100, 180, 255, 0.2) 50%,
+        rgba(100, 180, 255, 0) 100%
+    );
+    border-radius: 1px;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(248, 250, 252, 1) 100%
+    ) !important;
+    border-color: rgba(100, 180, 255, 0.2);
+    transform: translateY(-2px) scale(1.008);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.08),
+        0 15px 40px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 
+        0 0 16px rgba(100, 180, 255, 0.6),
+        0 0 8px rgba(100, 180, 255, 0.3) inset;
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq .bq {
+    background: rgba(240, 242, 245, 0.8) !important;
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme-mode="light"] .protyle-wysiwyg .bq .bq:after {
+    display: none;
+}
+
+/* ========== 暗色主题 ========== */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq {
+    background: linear-gradient(
+        145deg,
+        rgba(55, 55, 70, 0.85) 0%,
+        rgba(45, 45, 60, 0.9) 100%
+    ) !important;
+    border: 1px solid rgba(120, 120, 150, 0.4);
+    border-radius: 14px;
+    padding: 18px 22px 18px 32px;
+    margin: 14px 0;
+    position: relative;
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.2),
+        0 10px 30px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: 5px;
+    background: linear-gradient(
+        180deg,
+        rgba(130, 210, 255, 1) 0%,
+        rgba(90, 170, 255, 0.9) 40%,
+        rgba(100, 180, 255, 0.5) 100%
+    );
+    border-radius: 3px;
+    box-shadow: 
+        0 0 16px rgba(120, 200, 255, 0.7),
+        0 0 8px rgba(100, 180, 255, 0.4) inset;
+}
+
+/* 顶部超亮高光线 - 暗色主题 */
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 32px;
+    right: 32px;
+    height: 1.5px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    border-radius: 1px;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:not(.bq .bq):hover {
+    background: linear-gradient(
+        145deg,
+        rgba(65, 65, 80, 0.9) 0%,
+        rgba(55, 55, 70, 0.95) 100%
+    ) !important;
+    border-color: rgba(140, 140, 170, 0.5);
+    transform: translateY(-2px) scale(1.008);
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.25),
+        0 15px 40px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq:not(.bq .bq):hover:before {
+    box-shadow: 
+        0 0 20px rgba(130, 210, 255, 0.9),
+        0 0 10px rgba(100, 180, 255, 0.5) inset;
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq .bq {
+    background: rgba(40, 40, 50, 0.6) !important;
+    border-color: rgba(90, 90, 110, 0.3);
+}
+
+:root[data-theme-mode="dark"] .protyle-wysiwyg .bq .bq:after {
+    display: none;
+}
+
+/* ========== 通用样式 ========== */
+.list .bq {
+    margin-right: 0 !important;
+}
+

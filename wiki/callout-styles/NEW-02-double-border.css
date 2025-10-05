@@ -1,0 +1,50 @@
+/* ============================================
+   全新风格 2: 双重边框 - Double Border
+   
+   特点：
+   - 内外双层边框
+   - 无竖线！
+   - 边框间距设计
+   - 高级感
+   
+   灵感：画框、证书
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: rgba(55, 55, 65, 0.8) !important;
+    border: 2px solid rgba(100, 180, 255, 0.6);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 4px rgba(45, 45, 55, 0.9),  /* 内边框效果 */
+        inset 0 0 0 6px rgba(100, 180, 255, 0.3);  /* 内发光 */
+    transition: all 0.3s ease;
+}
+
+/* 不需要 :before 和 :after */
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    border-color: rgba(120, 200, 255, 0.8);
+    box-shadow: 
+        0 5px 12px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 4px rgba(45, 45, 55, 0.95),
+        inset 0 0 0 6px rgba(120, 200, 255, 0.5);
+    transform: scale(1.01);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(50, 50, 60, 0.7) !important;
+    border-color: rgba(120, 120, 120, 0.5);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 3px rgba(40, 40, 50, 0.8),
+        inset 0 0 0 5px rgba(120, 120, 120, 0.25);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+

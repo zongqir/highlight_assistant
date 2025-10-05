@@ -1,0 +1,75 @@
+/* ============================================
+   风格 2: 赛博朋克 - 对比度加强版
+   
+   改进：超亮青色霓虹 + 更强发光
+   ============================================ */
+
+.protyle-wysiwyg .bq {
+    background: linear-gradient(
+        135deg,
+        rgba(10, 10, 20, 0.95) 0%,
+        rgba(20, 20, 35, 0.9) 100%
+    ) !important;
+    border: 2px solid rgba(0, 255, 255, 0.8) !important;  /* 加粗加亮青色边框 */
+    border-left: 6px solid rgba(0, 255, 255, 1) !important;  /* 超粗左边框 */
+    border-radius: 10px;
+    padding: 18px 22px 18px 30px;
+    margin: 16px 0;
+    position: relative;
+    box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.3),  /* 强化外发光 */
+        inset 0 0 40px rgba(0, 255, 255, 0.1);
+}
+
+.protyle-wysiwyg .bq:before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 8px;  /* 更粗的竖线 */
+    height: calc(100% - 16px);
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 255, 255, 1),
+        rgba(0, 255, 255, 0.5)
+    );
+    border-radius: 4px;
+    box-shadow: 
+        0 0 15px rgba(0, 255, 255, 1),  /* 超强发光 */
+        0 0 30px rgba(0, 255, 255, 0.6);
+    animation: neon-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes neon-pulse {
+    0%, 100% { 
+        opacity: 1;
+        box-shadow: 
+            0 0 15px rgba(0, 255, 255, 1),
+            0 0 30px rgba(0, 255, 255, 0.6);
+    }
+    50% { 
+        opacity: 0.7;
+        box-shadow: 
+            0 0 25px rgba(0, 255, 255, 1),
+            0 0 50px rgba(0, 255, 255, 0.8);
+    }
+}
+
+.protyle-wysiwyg .bq:not(.bq .bq):hover {
+    border-color: rgba(0, 255, 255, 1);
+    box-shadow: 
+        0 0 40px rgba(0, 255, 255, 0.5),
+        inset 0 0 50px rgba(0, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.protyle-wysiwyg .bq .bq {
+    background: rgba(15, 15, 25, 0.8) !important;
+    border-color: rgba(0, 200, 200, 0.6);
+    border-left-color: rgba(0, 200, 200, 0.8);
+}
+
+.list .bq {
+    margin-right: 0 !important;
+}
+
