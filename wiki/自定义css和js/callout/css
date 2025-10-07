@@ -27,10 +27,20 @@
     display: none !important;
 }
 
-/* 折叠状态下的视觉效果 */
+/* 折叠状态下的视觉效果 - 压缩高度 */
 .protyle-wysiwyg .bq[custom-callout][data-collapsed="true"] {
-    padding-bottom: 12px !important;
+    padding: 4px 12px !important;
     cursor: pointer !important;
+    margin: 4px 0 !important;
+    min-height: auto !important;
+}
+
+/* 折叠状态下标题行高压缩 */
+.protyle-wysiwyg .bq[custom-callout][data-collapsed="true"] [data-callout-title="true"] {
+    margin-bottom: 0 !important;
+    line-height: 1.2 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 /* 折叠状态下悬停提示（点击展开） */
