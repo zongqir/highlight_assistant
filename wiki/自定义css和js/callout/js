@@ -38,58 +38,58 @@
             color: '#4493f8'
         },
         {
-            command: '@note',
-            displayName: '笔记',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z" stroke="#4493f8" stroke-width="2" fill="white"/><path d="m15 5 4 4" stroke="#4493f8" stroke-width="2"/></svg>`,
-            color: '#4493f8'
-        },
-        {
-            command: '@comment',
-            displayName: '批注',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#4493f8" stroke-width="2" fill="white"/><path d="M8 10h.01M12 10h.01M16 10h.01" stroke="#4493f8" stroke-width="2"/></svg>`,
-            color: '#4493f8'
-        },
-        {
             command: '@tip',
-            displayName: '提示',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" stroke="#238636" stroke-width="1.7" fill="none"/><path d="M9 18h6M10 22h4" stroke="#238636" stroke-width="1.7"/></svg>`,
-            color: '#238636'
+            displayName: '灯泡提示',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" stroke="#10b981" stroke-width="1.7" fill="none"/><path d="M9 18h6M10 22h4" stroke="#10b981" stroke-width="1.7"/></svg>`,
+            color: '#10b981'
         },
         {
             command: '@warning',
-            displayName: '警告',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 4L21 20H3L12 4Z" stroke="#e3b341" stroke-width="1.7" fill="white"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#e3b341"/><circle cx="12" cy="18" r="1.2" fill="#e3b341"/></svg>`,
-            color: '#e3b341'
+            displayName: '警告提醒',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 4L21 20H3L12 4Z" stroke="#f59e0b" stroke-width="1.7" fill="white"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#f59e0b"/><circle cx="12" cy="18" r="1.2" fill="#f59e0b"/></svg>`,
+            color: '#f59e0b'
         },
         {
             command: '@important',
-            displayName: '重要',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#e3b341" stroke-width="1.7" fill="white"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#e3b341"/><path d="M12 7v2M12 13h.01" stroke="#e3b341" stroke-width="1.7"/></svg>`,
-            color: '#e3b341'
+            displayName: '重点强调',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#f59e0b" stroke-width="1.5" fill="white"/></svg>`,
+            color: '#f59e0b'
         },
         {
-            command: '@caution',
-            displayName: '小心',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" overflow="visible"><path d="M12 8v4" stroke="#e3b341" stroke-width="2" stroke-linecap="round"/><path d="M12 16h.01" stroke="#e3b341" stroke-width="2" stroke-linecap="round"/><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688A2 2 0 0 1 15.312 22H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" stroke="#e3b341" stroke-width="1.7" fill="none"/></svg>`,
-            color: '#e3b341'
+            command: '@best-practice',
+            displayName: '最佳实践',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 2l2.4 7.4h7.8l-6.3 4.6 2.4 7.4L12 16.8l-6.3 4.6 2.4-7.4L2 9.4h7.8L12 2z" stroke="#059669" stroke-width="1.5" fill="white"/></svg>`,
+            color: '#059669'
         },
         {
-            command: '@question',
-            displayName: '问题',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#d1242f" stroke-width="2" fill="none"/><path d="M12 8a2 2 0 0 1 2 2c0 1.5-2 2-2 4" stroke="#d1242f" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="17" r="1" fill="#d1242f"/></svg>`,
-            color: '#d1242f'
+            command: '@success',
+            displayName: '成功案例',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M20 6L9 17l-5-5" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="10" stroke="#14b8a6" stroke-width="1.5" fill="none"/></svg>`,
+            color: '#14b8a6'
         },
         {
-            command: '@error',
-            displayName: '错误',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#d1242f" stroke-width="2" fill="white"/><path d="M14.5 9.5l-5 5M9.5 9.5l5 5" stroke="#d1242f" stroke-width="2"/></svg>`,
-            color: '#d1242f'
+            command: '@deep-dive',
+            displayName: '深水区',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 3v18m0 0l-6-6m6 6l6-6" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 8h18" stroke="#1e40af" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+            color: '#1e40af'
         },
         {
-            command: '@example',
-            displayName: '示例',
-            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13" stroke="#8957e5" stroke-width="2" fill="none"/></svg>`,
-            color: '#8957e5'
+            command: '@tradeoff',
+            displayName: '权衡取舍',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M3 12h18M12 3v18" stroke="#ea580c" stroke-width="1.5"/><circle cx="7" cy="7" r="2" fill="#ea580c"/><circle cx="17" cy="17" r="2" fill="#ea580c"/></svg>`,
+            color: '#ea580c'
+        },
+        {
+            command: '@goal',
+            displayName: '关键目标',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#9333ea" stroke-width="1.5" fill="none"/><circle cx="12" cy="12" r="6" stroke="#9333ea" stroke-width="1.5" fill="none"/><circle cx="12" cy="12" r="2" fill="#9333ea"/></svg>`,
+            color: '#9333ea'
+        },
+        {
+            command: '@attention',
+            displayName: '注意事项',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 8v4m0 4h.01" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#dc2626" stroke-width="1.5" fill="white"/></svg>`,
+            color: '#dc2626'
         }
     ];
 
@@ -109,24 +109,27 @@
     const calloutTypes = {
         '@info': { type: 'info', displayName: '信息补充' },
         '@信息': { type: 'info', displayName: '信息补充' },
-        '@note': { type: 'note', displayName: '笔记' },
-        '@笔记': { type: 'note', displayName: '笔记' },
-        '@comment': { type: 'comment', displayName: '批注' },
-        '@批注': { type: 'comment', displayName: '批注' },
-        '@tip': { type: 'tip', displayName: '提示' },
-        '@提示': { type: 'tip', displayName: '提示' },
-        '@warning': { type: 'warning', displayName: '警告' },
-        '@警告': { type: 'warning', displayName: '警告' },
-        '@important': { type: 'important', displayName: '重要' },
-        '@重要': { type: 'important', displayName: '重要' },
-        '@caution': { type: 'caution', displayName: '小心' },
-        '@小心': { type: 'caution', displayName: '小心' },
-        '@error': { type: 'error', displayName: '错误' },
-        '@错误': { type: 'error', displayName: '错误' },
-        '@question': { type: 'question', displayName: '问题' },
-        '@问题': { type: 'question', displayName: '问题' },
-        '@example': { type: 'example', displayName: '示例' },
-        '@示例': { type: 'example', displayName: '示例' },
+        '@tip': { type: 'tip', displayName: '灯泡提示' },
+        '@提示': { type: 'tip', displayName: '灯泡提示' },
+        '@warning': { type: 'warning', displayName: '警告提醒' },
+        '@警告': { type: 'warning', displayName: '警告提醒' },
+        '@important': { type: 'important', displayName: '重点强调' },
+        '@重要': { type: 'important', displayName: '重点强调' },
+        '@best-practice': { type: 'best-practice', displayName: '最佳实践' },
+        '@最佳实践': { type: 'best-practice', displayName: '最佳实践' },
+        '@success': { type: 'success', displayName: '成功案例' },
+        '@成功案例': { type: 'success', displayName: '成功案例' },
+        '@最佳案例': { type: 'success', displayName: '成功案例' },
+        '@deep-dive': { type: 'deep-dive', displayName: '深水区' },
+        '@深水区': { type: 'deep-dive', displayName: '深水区' },
+        '@tradeoff': { type: 'tradeoff', displayName: '权衡取舍' },
+        '@权衡取舍': { type: 'tradeoff', displayName: '权衡取舍' },
+        '@goal': { type: 'goal', displayName: '关键目标' },
+        '@关键目标': { type: 'goal', displayName: '关键目标' },
+        '@目标': { type: 'goal', displayName: '关键目标' },
+        '@attention': { type: 'attention', displayName: '注意事项' },
+        '@注意事项': { type: 'attention', displayName: '注意事项' },
+        '@注意': { type: 'attention', displayName: '注意事项' },
         '@default': { type: 'default', displayName: '默认' },
         '@默认': { type: 'default', displayName: '默认' }
     };
