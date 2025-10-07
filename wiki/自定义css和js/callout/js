@@ -672,74 +672,68 @@
         }
     }
   
-    // 🔥 新增：添加折叠开关按钮
+    // 🔥 新增：添加折叠功能（无按钮版本）
     function addCollapseToggle(blockquote, titleDiv) {
-        // 检查是否已经有折叠按钮
-        if (titleDiv.querySelector('.callout-collapse-toggle')) {
-            return;
+        // 设置标题点击处理
+        setupTitleClickHandler(blockquote, titleDiv);
+    }
+  
+    // 🔥 新增：设置标题点击处理（点击标题切换折叠状态）
+    function setupTitleClickHandler(blockquote, titleDiv) {
+        // 移除旧的监听器（如果有）
+        if (titleDiv._titleCollapseHandler) {
+            titleDiv.removeEventListener('click', titleDiv._titleCollapseHandler, true);
         }
-      
-        // 创建折叠按钮（放在标题行右侧）
-        const toggle = document.createElement('span');
-        toggle.className = 'callout-collapse-toggle';
-        toggle.textContent = '▼';  // 使用Unicode三角形字符
-        toggle.style.cssText = `
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            cursor: pointer;
-            opacity: 0.5;
-            transition: all 0.2s ease;
-            user-select: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1;
-            padding: 0 12px;
-            min-width: 40px;
-        `;
-      
-        // 点击事件
-        toggle.addEventListener('click', (e) => {
+        
+        // 创建新的监听器
+        const handler = function(e) {
+            // 检查是否点击了左侧图标区域（0-40px），那是用来切换主题的
+            const rect = titleDiv.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            
+            if (clickX >= 0 && clickX <= 40) {
+                // 点击了图标区域，不处理折叠，让主题切换逻辑处理
+                return;
+            }
+            
+            // 点击标题其他区域，切换折叠状态
             e.preventDefault();
             e.stopPropagation();
-            toggleCalloutCollapse(blockquote, toggle);
-        });
-      
-        // 悬停效果
-        toggle.addEventListener('mouseenter', () => {
-            toggle.style.opacity = '0.9';
-        });
-        toggle.addEventListener('mouseleave', () => {
-            toggle.style.opacity = '0.5';
-        });
-      
-        titleDiv.appendChild(toggle);
+            
+            toggleCalloutCollapse(blockquote);
+        };
+        
+        // 保存引用以便后续移除
+        titleDiv._titleCollapseHandler = handler;
+        
+        // 使用捕获阶段，确保优先处理
+        titleDiv.addEventListener('click', handler, true);
+        
+        // 添加标题悬停样式提示
+        titleDiv.style.cursor = 'pointer';
     }
   
-    // 🔥 新增：移除折叠按钮
+    // 🔥 新增：移除折叠功能
     function removeCollapseToggle(titleDiv) {
-        const toggle = titleDiv.querySelector('.callout-collapse-toggle');
-        if (toggle) {
-            toggle.remove();
+        // 移除点击处理器
+        if (titleDiv._titleCollapseHandler) {
+            titleDiv.removeEventListener('click', titleDiv._titleCollapseHandler, true);
+            titleDiv._titleCollapseHandler = null;
         }
+        // 恢复默认光标
+        titleDiv.style.cursor = '';
     }
   
-    // 🔥 新增：切换折叠状态
-    function toggleCalloutCollapse(blockquote, toggle) {
+    // 🔥 新增：切换折叠状态（无按钮版本）
+    function toggleCalloutCollapse(blockquote) {
         const isCollapsed = blockquote.getAttribute('data-collapsed') === 'true';
       
         if (isCollapsed) {
             // 展开
             blockquote.setAttribute('data-collapsed', 'false');
-            toggle.textContent = '▼';  // 向下箭头
         } else {
             // 折叠
             blockquote.setAttribute('data-collapsed', 'true');
-            toggle.textContent = '▶';  // 向右箭头
         }
     }
 
@@ -951,24 +945,19 @@
             }, true);
         });
       
-        // 🔥 新增：点击 callout 标题图标切换类型
+        // 🔥 点击 callout 标题图标区域切换类型
         document.addEventListener('click', function(e) {
             const target = e.target;
-          
-            // 如果点击的是折叠按钮，跳过
-            if (target.closest('.callout-collapse-toggle')) {
-                return;
-            }
           
             // 检查是否点击了 callout 标题
             if (target.contentEditable === 'true' && target.getAttribute('data-callout-title') === 'true') {
                 const blockquote = target.closest('[data-type="NodeBlockquote"], .bq');
                 if (blockquote && blockquote.hasAttribute('custom-callout') && !hasCustomStyle(blockquote)) {
-                    // 获取点击位置（相对于标题元素的左侧区域，图标区域约30px）
+                    // 获取点击位置（相对于标题元素的左侧区域，图标区域约40px）
                     const rect = target.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
                   
-                    // 如果点击了左侧图标区域（0-40px）
+                    // 如果点击了左侧图标区域（0-40px），显示切换主题菜单
                     if (clickX >= 0 && clickX <= 40) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -977,9 +966,10 @@
                         const bqRect = blockquote.getBoundingClientRect();
                         showCommandMenu(bqRect.left, bqRect.top, blockquote, true);
                     }
+                    // 40px之后的区域由 setupTitleClickHandler 处理折叠功能
                 }
             }
-        }, true);
+        }, true)
     }
 
     // 🔥 修复：思源API监听（安全版本）
@@ -1227,19 +1217,14 @@
             const calloutBlocks = document.querySelectorAll('.bq[custom-callout]');
             if (calloutBlocks.length > 0) {
                 const firstCallout = calloutBlocks[0];
-                const toggle = firstCallout.querySelector('.callout-collapse-toggle');
-                if (toggle) {
-                    console.log('Toggling first callout...');
-                    toggleCalloutCollapse(firstCallout, toggle);
-                } else {
-                    console.log('No collapse toggle found');
-                }
+                console.log('Toggling first callout...');
+                toggleCalloutCollapse(firstCallout);
             } else {
                 console.log('No callout blocks found');
             }
         },
       
-        // 🔥 手动刷新所有callout（添加折叠按钮）
+        // 🔥 手动刷新所有callout（添加折叠功能）
         refresh: () => {
             console.log('Refreshing all callouts...');
             processAllBlockquotes();

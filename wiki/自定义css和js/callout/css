@@ -17,15 +17,9 @@
 }
 
 /* 🔥 折叠功能样式 */
-/* 折叠按钮样式（右侧）*/
-.protyle-wysiwyg .bq[custom-callout] .callout-collapse-toggle {
-    pointer-events: auto !important;
-    z-index: 10 !important;
-}
-
-.protyle-wysiwyg .bq[custom-callout] .callout-collapse-toggle:hover {
-    opacity: 1 !important;
-    transform: translateY(-50%) scale(1.1) !important;
+/* 标题可点击（右侧40px之后的区域用于折叠切换） */
+.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"] {
+    user-select: none !important;
 }
 
 /* 折叠状态下隐藏内容（除了第一个段落/标题） */
@@ -36,9 +30,16 @@
 /* 折叠状态下的视觉效果 */
 .protyle-wysiwyg .bq[custom-callout][data-collapsed="true"] {
     padding-bottom: 12px !important;
+    cursor: pointer !important;
 }
 
-/* 折叠按钮不需要旋转动画了，因为我们直接切换字符 ▼ ↔ ▶ */
+/* 折叠状态下悬停提示（点击展开） */
+.protyle-wysiwyg .bq[custom-callout][data-collapsed="true"]:hover {
+    opacity: 0.85 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 折叠功能：点击标题区域（除图标外）切换折叠状态 */
 
 /* 1. 信息说明 - 蓝色 */
 .protyle-wysiwyg .bq[custom-callout="info"] {
@@ -380,16 +381,10 @@
     line-height: 1.5 !important;
 }
 
-/* 完全隐藏原始命令文本（如 @tradeoff），但不隐藏折叠按钮 */
-.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"] *:not(.callout-collapse-toggle) {
+/* 完全隐藏原始命令文本（如 @tradeoff） */
+.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"] * {
     display: none !important;
     visibility: hidden !important;
-}
-
-/* 确保折叠按钮可见 */
-.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"] .callout-collapse-toggle {
-    display: inline !important;
-    visibility: visible !important;
 }
 
 /* 图标样式由每个类型单独定义 */
