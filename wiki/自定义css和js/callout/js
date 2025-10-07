@@ -653,6 +653,9 @@
                 titleDiv.setAttribute('data-callout-title', 'true');
                 titleDiv.setAttribute('data-callout-display-name', config.displayName);
               
+                // 🔥 新增：添加折叠按钮
+                addCollapseToggle(blockquote, titleDiv);
+              
                 console.log('Callout attributes set');
                 return;
             }
@@ -664,6 +667,79 @@
             blockquote.removeAttribute('custom-callout');
             titleDiv.removeAttribute('data-callout-title');
             titleDiv.removeAttribute('data-callout-display-name');
+            // 移除折叠按钮
+            removeCollapseToggle(titleDiv);
+        }
+    }
+  
+    // 🔥 新增：添加折叠开关按钮
+    function addCollapseToggle(blockquote, titleDiv) {
+        // 检查是否已经有折叠按钮
+        if (titleDiv.querySelector('.callout-collapse-toggle')) {
+            return;
+        }
+      
+        // 创建折叠按钮（放在标题行右侧）
+        const toggle = document.createElement('span');
+        toggle.className = 'callout-collapse-toggle';
+        toggle.textContent = '▼';  // 使用Unicode三角形字符
+        toggle.style.cssText = `
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s ease;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1;
+            padding: 0 12px;
+            min-width: 40px;
+        `;
+      
+        // 点击事件
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleCalloutCollapse(blockquote, toggle);
+        });
+      
+        // 悬停效果
+        toggle.addEventListener('mouseenter', () => {
+            toggle.style.opacity = '0.9';
+        });
+        toggle.addEventListener('mouseleave', () => {
+            toggle.style.opacity = '0.5';
+        });
+      
+        titleDiv.appendChild(toggle);
+    }
+  
+    // 🔥 新增：移除折叠按钮
+    function removeCollapseToggle(titleDiv) {
+        const toggle = titleDiv.querySelector('.callout-collapse-toggle');
+        if (toggle) {
+            toggle.remove();
+        }
+    }
+  
+    // 🔥 新增：切换折叠状态
+    function toggleCalloutCollapse(blockquote, toggle) {
+        const isCollapsed = blockquote.getAttribute('data-collapsed') === 'true';
+      
+        if (isCollapsed) {
+            // 展开
+            blockquote.setAttribute('data-collapsed', 'false');
+            toggle.textContent = '▼';  // 向下箭头
+        } else {
+            // 折叠
+            blockquote.setAttribute('data-collapsed', 'true');
+            toggle.textContent = '▶';  // 向右箭头
         }
     }
 
@@ -878,6 +954,11 @@
         // 🔥 新增：点击 callout 标题图标切换类型
         document.addEventListener('click', function(e) {
             const target = e.target;
+          
+            // 如果点击的是折叠按钮，跳过
+            if (target.closest('.callout-collapse-toggle')) {
+                return;
+            }
           
             // 检查是否点击了 callout 标题
             if (target.contentEditable === 'true' && target.getAttribute('data-callout-title') === 'true') {
@@ -1139,6 +1220,30 @@
             } else {
                 console.log('No callout blocks found');
             }
+        },
+      
+        // 测试折叠功能
+        testCollapse: () => {
+            const calloutBlocks = document.querySelectorAll('.bq[custom-callout]');
+            if (calloutBlocks.length > 0) {
+                const firstCallout = calloutBlocks[0];
+                const toggle = firstCallout.querySelector('.callout-collapse-toggle');
+                if (toggle) {
+                    console.log('Toggling first callout...');
+                    toggleCalloutCollapse(firstCallout, toggle);
+                } else {
+                    console.log('No collapse toggle found');
+                }
+            } else {
+                console.log('No callout blocks found');
+            }
+        },
+      
+        // 🔥 手动刷新所有callout（添加折叠按钮）
+        refresh: () => {
+            console.log('Refreshing all callouts...');
+            processAllBlockquotes();
+            console.log('Refresh complete!');
         }
     };
 
