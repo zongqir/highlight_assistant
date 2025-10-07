@@ -102,6 +102,9 @@
     let currentTargetBlockQuote = null;
     let selectedMenuIndex = 0;
     let menuItems = [];
+    let isInitialLoad = true; // 🔥 新增：标记是否为初始加载
+    let lastBatchAddTime = 0; // 🔥 记录最后一次批量添加的时间
+    let batchAddCount = 0; // 🔥 批量添加计数器
 
     // ==================== Callout 处理部分 ====================
   
@@ -677,18 +680,50 @@
                 // 去重
                 const uniqueBlockquotes = [...new Set(newBlockquotes)];
               
+                // 🔥 关键修复：检测是否为批量加载（文档切换）
+                const now = Date.now();
+                let isBatchLoad = false;
+              
+                // 如果距离上次添加小于300ms，认为是批量加载
+                if (now - lastBatchAddTime < 300) {
+                    batchAddCount += uniqueBlockquotes.length;
+                    // 如果累计添加数量>=2，认为是批量加载
+                    if (batchAddCount >= 2) {
+                        isBatchLoad = true;
+                    }
+                } else {
+                    // 重置计数器
+                    batchAddCount = uniqueBlockquotes.length;
+                }
+                
+                lastBatchAddTime = now;
+                
+                // 500ms后重置计数器
+                setTimeout(() => {
+                    if (Date.now() - lastBatchAddTime >= 500) {
+                        batchAddCount = 0;
+                    }
+                }, 500);
+              
                 setTimeout(() => {
                     uniqueBlockquotes.forEach(bq => {
                         if (!hasCustomStyle(bq)) {
                             const nodeId = bq.getAttribute('data-node-id');
+                          
+                            // 检查是否已经被跟踪过
+                            const wasTracked = nodeId && trackedBlockQuotes.has(nodeId);
                           
                             // 标记为已跟踪
                             if (nodeId) {
                                 trackedBlockQuotes.add(nodeId);
                             }
                           
-                            // 检查是否为新建的空blockquote
-                            if (isBlockQuoteEmpty(bq)) {
+                            // 🔥 修复：只在以下情况显示菜单：
+                            // 1. 不是初始加载
+                            // 2. 不是批量加载（文档切换）
+                            // 3. 之前没被跟踪过
+                            // 4. blockquote是空的
+                            if (!isInitialLoad && !isBatchLoad && !wasTracked && isBlockQuoteEmpty(bq)) {
                                 const rect = bq.getBoundingClientRect();
                                 if (rect.width > 0 && rect.height > 0) {
                                     showCommandMenu(rect.left, rect.top, bq);
@@ -719,6 +754,9 @@
       
         document.addEventListener('focusin', (e) => {
             const target = e.target;
+          
+            // 🔥 修复：跳过初始加载阶段的焦点事件
+            if (isInitialLoad) return;
           
             // 检查是否聚焦到blockquote内的可编辑元素
             if (target.contentEditable === 'true') {
@@ -785,10 +823,13 @@
                                     transaction.doOperations?.forEach(op => {
                                         if (op.action === 'insert' && op.data?.includes('NodeBlockquote')) {
                                             setTimeout(() => {
-                                                const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
-                                                if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
-                                                    const rect = newBlockquote.getBoundingClientRect();
-                                                    showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                // 🔥 修复：只在非初始加载时显示菜单
+                                                if (!isInitialLoad) {
+                                                    const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
+                                                    if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
+                                                        const rect = newBlockquote.getBoundingClientRect();
+                                                        showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                    }
                                                 }
                                             }, 100);
                                         }
@@ -809,10 +850,13 @@
                                     transaction.doOperations?.forEach(op => {
                                         if (op.action === 'insert' && op.data?.includes('NodeBlockquote')) {
                                             setTimeout(() => {
-                                                const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
-                                                if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
-                                                    const rect = newBlockquote.getBoundingClientRect();
-                                                    showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                // 🔥 修复：只在非初始加载时显示菜单
+                                                if (!isInitialLoad) {
+                                                    const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
+                                                    if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
+                                                        const rect = newBlockquote.getBoundingClientRect();
+                                                        showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                    }
                                                 }
                                             }, 100);
                                         }
@@ -888,6 +932,12 @@
       
         // 设置优化的事件监听
         setupOptimizedEventListeners();
+      
+        // 🔥 修复：延迟结束初始加载状态，避免页面加载时弹出菜单
+        setTimeout(() => {
+            isInitialLoad = false;
+            console.log('Initial load complete, menu triggers now active');
+        }, 2000); // 延迟2秒，确保页面完全加载
     }
 
     // 启动优化版本
@@ -943,8 +993,17 @@
         status: () => ({
             menuVisible: isMenuVisible,
             trackedCount: trackedBlockQuotes.size,
-            recentCount: recentlyCreatedBlockQuotes.size
+            recentCount: recentlyCreatedBlockQuotes.size,
+            isInitialLoad: isInitialLoad,
+            batchAddCount: batchAddCount,
+            timeSinceLastBatch: Date.now() - lastBatchAddTime
         }),
+      
+        // 重置初始加载状态
+        resetInitialLoad: () => {
+            isInitialLoad = false;
+            console.log('Initial load flag reset to false');
+        },
 
         // 性能测试
         performanceTest: () => {
