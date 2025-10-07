@@ -407,8 +407,9 @@
     opacity: 1 !important;
     position: absolute !important;
     left: 28px !important;
-    top: 0 !important;
-    line-height: 1.5 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    line-height: 1 !important;
 }
 
 /* 11. 重要亮点 - 金黄色 */
