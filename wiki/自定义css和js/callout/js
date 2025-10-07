@@ -1,0 +1,856 @@
+(function() {
+    'use strict';
+
+    console.log('=== Optimized SiYuan BlockQuote Enhanced Script ===');
+
+    // ==================== 自定义样式检测 ====================
+  
+    // 检查是否为自定义样式的 BlockQuote
+    function hasCustomStyle(blockQuote) {
+        if (!blockQuote) return false;
+      
+        // 检查 custom-b 属性
+        const customB = blockQuote.getAttribute('custom-b');
+        if (customB) {
+            const customBTypes = ['info', 'light', 'bell', 'check', 'question', 'warn', 'wrong', 'bug', 'note', 'pen'];
+            if (customBTypes.includes(customB)) {
+                return true;
+            }
+        }
+      
+        // 检查 custom-callout 属性
+        const customCallout = blockQuote.getAttribute('custom-callout');
+        if (customCallout === '书签') {
+            return true;
+        }
+      
+        return false;
+    }
+
+    // ==================== 命令菜单部分 ====================
+  
+    // 命令定义（菜单用）
+    const menuCommands = [
+        {
+            command: '@info',
+            displayName: '信息补充',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#4493f8" stroke-width="1.7" fill="white"/><rect x="11" y="7" width="2" height="7" rx="1" fill="#4493f8"/><circle cx="12" cy="17" r="1.2" fill="#4493f8"/></svg>`,
+            color: '#4493f8'
+        },
+        {
+            command: '@note',
+            displayName: '笔记',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z" stroke="#4493f8" stroke-width="2" fill="white"/><path d="m15 5 4 4" stroke="#4493f8" stroke-width="2"/></svg>`,
+            color: '#4493f8'
+        },
+        {
+            command: '@comment',
+            displayName: '批注',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#4493f8" stroke-width="2" fill="white"/><path d="M8 10h.01M12 10h.01M16 10h.01" stroke="#4493f8" stroke-width="2"/></svg>`,
+            color: '#4493f8'
+        },
+        {
+            command: '@tip',
+            displayName: '提示',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" stroke="#238636" stroke-width="1.7" fill="none"/><path d="M9 18h6M10 22h4" stroke="#238636" stroke-width="1.7"/></svg>`,
+            color: '#238636'
+        },
+        {
+            command: '@warning',
+            displayName: '警告',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 4L21 20H3L12 4Z" stroke="#e3b341" stroke-width="1.7" fill="white"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#e3b341"/><circle cx="12" cy="18" r="1.2" fill="#e3b341"/></svg>`,
+            color: '#e3b341'
+        },
+        {
+            command: '@important',
+            displayName: '重要',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#e3b341" stroke-width="1.7" fill="white"/><rect x="11" y="9" width="2" height="6" rx="1" fill="#e3b341"/><path d="M12 7v2M12 13h.01" stroke="#e3b341" stroke-width="1.7"/></svg>`,
+            color: '#e3b341'
+        },
+        {
+            command: '@caution',
+            displayName: '小心',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" overflow="visible"><path d="M12 8v4" stroke="#e3b341" stroke-width="2" stroke-linecap="round"/><path d="M12 16h.01" stroke="#e3b341" stroke-width="2" stroke-linecap="round"/><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688A2 2 0 0 1 15.312 22H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" stroke="#e3b341" stroke-width="1.7" fill="none"/></svg>`,
+            color: '#e3b341'
+        },
+        {
+            command: '@question',
+            displayName: '问题',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#d1242f" stroke-width="2" fill="none"/><path d="M12 8a2 2 0 0 1 2 2c0 1.5-2 2-2 4" stroke="#d1242f" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="17" r="1" fill="#d1242f"/></svg>`,
+            color: '#d1242f'
+        },
+        {
+            command: '@error',
+            displayName: '错误',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#d1242f" stroke-width="2" fill="white"/><path d="M14.5 9.5l-5 5M9.5 9.5l5 5" stroke="#d1242f" stroke-width="2"/></svg>`,
+            color: '#d1242f'
+        },
+        {
+            command: '@example',
+            displayName: '示例',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13" stroke="#8957e5" stroke-width="2" fill="none"/></svg>`,
+            color: '#8957e5'
+        }
+    ];
+
+    // 菜单状态管理
+    let commandMenu = null;
+    let isMenuVisible = false;
+    let isProcessingEvent = false;
+    let trackedBlockQuotes = new Set();
+    let recentlyCreatedBlockQuotes = new Set();
+    let currentTargetBlockQuote = null;
+
+    // ==================== Callout 处理部分 ====================
+  
+    // Callout 类型定义（处理器用）
+    const calloutTypes = {
+        '@info': { type: 'info', displayName: '信息补充' },
+        '@信息': { type: 'info', displayName: '信息补充' },
+        '@note': { type: 'note', displayName: '笔记' },
+        '@笔记': { type: 'note', displayName: '笔记' },
+        '@comment': { type: 'comment', displayName: '批注' },
+        '@批注': { type: 'comment', displayName: '批注' },
+        '@tip': { type: 'tip', displayName: '提示' },
+        '@提示': { type: 'tip', displayName: '提示' },
+        '@warning': { type: 'warning', displayName: '警告' },
+        '@警告': { type: 'warning', displayName: '警告' },
+        '@important': { type: 'important', displayName: '重要' },
+        '@重要': { type: 'important', displayName: '重要' },
+        '@caution': { type: 'caution', displayName: '小心' },
+        '@小心': { type: 'caution', displayName: '小心' },
+        '@error': { type: 'error', displayName: '错误' },
+        '@错误': { type: 'error', displayName: '错误' },
+        '@question': { type: 'question', displayName: '问题' },
+        '@问题': { type: 'question', displayName: '问题' },
+        '@example': { type: 'example', displayName: '示例' },
+        '@示例': { type: 'example', displayName: '示例' },
+        '@default': { type: 'default', displayName: '默认' },
+        '@默认': { type: 'default', displayName: '默认' }
+    };
+
+    // ==================== 命令菜单功能 ====================
+
+    // 创建命令菜单
+    function createCommandMenu(targetBlockQuote) {
+        if (commandMenu) return commandMenu;
+
+        currentTargetBlockQuote = targetBlockQuote;
+        commandMenu = document.createElement('div');
+        commandMenu.style.cssText = `
+            position: fixed;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 10000;
+            font-size: 14px;
+            min-width: 250px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        `;
+
+        // 关闭按钮
+        const closeButton = document.createElement('div');
+        closeButton.style.cssText = `
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6b7280;
+            transition: all 0.15s ease;
+            z-index: 1;
+        `;
+        closeButton.innerHTML = '×';
+        closeButton.addEventListener('mouseenter', () => {
+            closeButton.style.background = '#ef4444';
+            closeButton.style.color = 'white';
+        });
+        closeButton.addEventListener('mouseleave', () => {
+            closeButton.style.background = '#f3f4f6';
+            closeButton.style.color = '#6b7280';
+        });
+        closeButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideCommandMenu(true);
+        });
+        commandMenu.appendChild(closeButton);
+
+        // 标题
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 12px 40px 12px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 600;
+        `;
+        header.innerHTML = '<div>Callout 命令菜单</div>';
+        commandMenu.appendChild(header);
+
+        // 命令选项
+        menuCommands.forEach((cmd, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f3f4f6;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transition: all 0.15s ease;
+            `;
+          
+            if (index === menuCommands.length - 1) {
+                item.style.borderBottom = 'none';
+            }
+          
+            item.innerHTML = `
+                <span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${cmd.icon}</span>
+                <div style="flex: 1;">
+                    <div style="font-weight: 500; color: #374151; margin-bottom: 2px;">${cmd.command}</div>
+                    <div style="color: #6b7280; font-size: 12px;">${cmd.displayName}</div>
+                </div>
+            `;
+          
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = '#f3f4f6';
+                item.style.transform = 'translateX(2px)';
+            });
+          
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = '';
+                item.style.transform = 'translateX(0)';
+            });
+          
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.style.backgroundColor = '#dbeafe';
+                item.style.color = '#1e40af';
+                insertCommandToBlockQuote(cmd.command, currentTargetBlockQuote);
+                setTimeout(() => hideCommandMenu(true), 300);
+            });
+          
+            commandMenu.appendChild(item);
+        });
+
+        // 底部提示
+        const footer = document.createElement('div');
+        footer.style.cssText = `
+            padding: 8px 16px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+        `;
+        footer.innerHTML = '点击选择 Callout 类型 • ESC 关闭';
+        commandMenu.appendChild(footer);
+
+        document.body.appendChild(commandMenu);
+        return commandMenu;
+    }
+
+    // 插入命令并自动换行
+    function insertCommandToBlockQuote(command, blockQuoteElement) {
+        if (!blockQuoteElement) return false;
+
+        const editableDiv = blockQuoteElement.querySelector('[contenteditable="true"]');
+        if (!editableDiv) return false;
+
+        try {
+            editableDiv.textContent = command;
+          
+            // 触发事件，让 Callout 处理器知道内容已更改
+            editableDiv.dispatchEvent(new Event('input', { bubbles: true }));
+            editableDiv.dispatchEvent(new Event('change', { bubbles: true }));
+
+            // 设置光标并自动换行
+            setTimeout(() => {
+                editableDiv.focus();
+              
+                const range = document.createRange();
+                const selection = window.getSelection();
+              
+                if (editableDiv.childNodes.length > 0) {
+                    const lastNode = editableDiv.childNodes[editableDiv.childNodes.length - 1];
+                    if (lastNode.nodeType === Node.TEXT_NODE) {
+                        range.setStart(lastNode, lastNode.textContent.length);
+                        range.setEnd(lastNode, lastNode.textContent.length);
+                    } else {
+                        range.setStartAfter(lastNode);
+                        range.setEndAfter(lastNode);
+                    }
+                } else {
+                    range.selectNodeContents(editableDiv);
+                    range.collapse(false);
+                }
+              
+                selection.removeAllRanges();
+                selection.addRange(range);
+              
+                // 自动换行
+                setTimeout(() => {
+                    editableDiv.dispatchEvent(new KeyboardEvent('keydown', {
+                        key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true
+                    }));
+                    editableDiv.dispatchEvent(new KeyboardEvent('keyup', {
+                        key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true
+                    }));
+                  
+                    // 延迟处理 Callout，确保内容已更新
+                    setTimeout(() => {
+                        processBlockquote(blockQuoteElement);
+                    }, 200);
+                }, 100);
+            }, 150);
+
+            return true;
+        } catch (error) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(command);
+            }
+            return false;
+        }
+    }
+
+    // 显示菜单
+    function showCommandMenu(x, y, blockQuoteElement) {
+        if (isProcessingEvent || isMenuVisible) return;
+      
+        // 检查是否为自定义样式的 BlockQuote
+        if (hasCustomStyle(blockQuoteElement)) {
+            console.log('Skipping custom styled blockquote:', blockQuoteElement);
+            return;
+        }
+      
+        isProcessingEvent = true;
+        const menu = createCommandMenu(blockQuoteElement);
+
+        // 获取菜单尺寸
+        menu.style.left = '0px';
+        menu.style.top = '0px';
+        menu.style.visibility = 'hidden';
+        menu.style.opacity = '1';
+        menu.style.pointerEvents = 'auto';
+
+        requestAnimationFrame(() => {
+            const menuRect = menu.getBoundingClientRect();
+            const menuHeight = menuRect.height;
+            const menuWidth = menuRect.width;
+          
+            let menuX = x;
+            let menuY = y;
+          
+            if (blockQuoteElement) {
+                const blockRect = blockQuoteElement.getBoundingClientRect();
+                menuX = blockRect.left;
+                menuY = blockRect.top - menuHeight - 10;
+            }
+
+            // 边界检查
+            if (menuY < 10 && blockQuoteElement) {
+                const blockRect = blockQuoteElement.getBoundingClientRect();
+                menuY = blockRect.bottom + 10;
+            }
+            if (menuX + menuWidth > window.innerWidth) {
+                menuX = window.innerWidth - menuWidth - 10;
+            }
+            if (menuY + menuHeight > window.innerHeight) {
+                menuY = window.innerHeight - menuHeight - 10;
+            }
+            if (menuX < 10) menuX = 10;
+            if (menuY < 10) menuY = 10;
+          
+            // 设置位置并显示
+            menu.style.left = menuX + 'px';
+            menu.style.top = menuY + 'px';
+            menu.style.visibility = 'visible';
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(-10px)';
+          
+            setTimeout(() => {
+                menu.style.opacity = '1';
+                menu.style.transform = 'translateY(0)';
+            }, 10);
+          
+            isMenuVisible = true;
+            isProcessingEvent = false;
+          
+            // 标记已显示
+            if (blockQuoteElement) {
+                const nodeId = blockQuoteElement.getAttribute('data-node-id');
+                if (nodeId) {
+                    recentlyCreatedBlockQuotes.add(nodeId);
+                    setTimeout(() => recentlyCreatedBlockQuotes.delete(nodeId), 3000);
+                }
+            }
+        });
+    }
+
+    // 隐藏菜单
+    function hideCommandMenu(immediate = false) {
+        if (!commandMenu || !isMenuVisible) return;
+      
+        currentTargetBlockQuote = null;
+      
+        if (immediate) {
+            commandMenu.remove();
+            commandMenu = null;
+            isMenuVisible = false;
+            return;
+        }
+      
+        commandMenu.style.opacity = '0';
+        commandMenu.style.transform = 'translateY(-10px)';
+        commandMenu.style.pointerEvents = 'none';
+      
+        setTimeout(() => {
+            if (commandMenu) {
+                commandMenu.remove();
+                commandMenu = null;
+            }
+            isMenuVisible = false;
+        }, 200);
+    }
+
+    // ==================== Callout 处理功能 ====================
+
+    // 处理单个引用块的函数
+    function processBlockquote(blockquote) {
+        console.log('Processing blockquote:', blockquote);
+      
+        // 跳过自定义样式的 BlockQuote
+        if (hasCustomStyle(blockquote)) {
+            console.log('Skipping custom styled blockquote for callout processing');
+            return;
+        }
+      
+        const firstParagraph = blockquote.querySelector('div[data-type="NodeParagraph"]:first-of-type');
+        if (!firstParagraph) {
+            console.log('No first paragraph found');
+            return;
+        }
+
+        const titleDiv = firstParagraph.querySelector('div[contenteditable="true"]');
+        if (!titleDiv) {
+            console.log('No contenteditable div found');
+            return;
+        }
+
+        const text = titleDiv.textContent.trim();
+        console.log('Current text:', text);
+      
+        // 检查是否匹配任何 callout 类型
+        for (const [trigger, config] of Object.entries(calloutTypes)) {
+            if (text.startsWith(trigger)) {
+                console.log(`Match found: ${trigger} -> ${config.type}`);
+              
+                // 设置 callout 类型
+                blockquote.setAttribute('data-callout-type', config.type);
+              
+                // 标记标题并设置显示名称
+                titleDiv.setAttribute('data-callout-title', 'true');
+                titleDiv.setAttribute('data-callout-display-name', config.displayName);
+              
+                console.log('Callout attributes set');
+                return;
+            }
+        }
+      
+        // 如果不匹配任何 callout 类型，清除相关属性
+        if (blockquote.hasAttribute('data-callout-type')) {
+            console.log('Clearing callout attributes');
+            blockquote.removeAttribute('data-callout-type');
+            titleDiv.removeAttribute('data-callout-title');
+            titleDiv.removeAttribute('data-callout-display-name');
+        }
+    }
+
+    // 处理所有引用块
+    function processAllBlockquotes() {
+        console.log('=== Processing all blockquotes ===');
+        const blockquotes = document.querySelectorAll('.bq');
+        console.log('Found blockquotes:', blockquotes.length);
+      
+        blockquotes.forEach((bq, index) => {
+            if (!hasCustomStyle(bq)) {
+                console.log(`Processing blockquote ${index + 1}`);
+                processBlockquote(bq);
+            } else {
+                console.log(`Skipping custom blockquote ${index + 1}`);
+            }
+        });
+    }
+
+    // ==================== 共用功能 ====================
+
+    // 查找 BlockQuote 元素
+    function findSiYuanBlockQuotes() {
+        const selectors = ['[data-type="NodeBlockquote"]', '.bq'];
+        let allBlockQuotes = [];
+      
+        selectors.forEach(selector => {
+            allBlockQuotes = allBlockQuotes.concat(Array.from(document.querySelectorAll(selector)));
+        });
+      
+        return [...new Set(allBlockQuotes)];
+    }
+
+    // 检查是否为空
+    function isBlockQuoteEmpty(blockQuote) {
+        const contentDiv = blockQuote.querySelector('[contenteditable="true"]');
+        if (!contentDiv) return false;
+      
+        const text = contentDiv.textContent.trim();
+        return text === '' || text.length < 3 || /^[\s\n\r]*$/.test(text);
+    }
+
+    // 检查是否新创建
+    function isBlockQuoteNewlyCreated(blockQuote) {
+        const nodeId = blockQuote.getAttribute('data-node-id');
+        if (!nodeId) return false;
+      
+        // 跳过自定义样式的 BlockQuote
+        if (hasCustomStyle(blockQuote)) {
+            return false;
+        }
+      
+        const wasTracked = trackedBlockQuotes.has(nodeId);
+        const isEmpty = isBlockQuoteEmpty(blockQuote);
+      
+        return !wasTracked && isEmpty;
+    }
+
+    // ==================== 优化的事件监听系统 ====================
+
+    // 优化的MutationObserver
+    function setupOptimizedObserver() {
+        const observer = new MutationObserver(function(mutations) {
+            const relevantMutations = mutations.filter(mutation => {
+                // 只关注添加节点的变化
+                return mutation.type === 'childList' && mutation.addedNodes.length > 0;
+            });
+
+            if (relevantMutations.length === 0) return;
+
+            let newBlockquotes = [];
+          
+            relevantMutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // 直接检查是否是blockquote
+                        if (node.getAttribute?.('data-type') === 'NodeBlockquote' || 
+                            node.classList?.contains('bq')) {
+                            newBlockquotes.push(node);
+                        }
+                        // 检查子元素中的blockquote
+                        const childBlockquotes = node.querySelectorAll?.('[data-type="NodeBlockquote"], .bq');
+                        if (childBlockquotes?.length > 0) {
+                            newBlockquotes.push(...Array.from(childBlockquotes));
+                        }
+                    }
+                });
+            });
+
+            // 批量处理新的blockquote
+            if (newBlockquotes.length > 0) {
+                // 去重
+                const uniqueBlockquotes = [...new Set(newBlockquotes)];
+              
+                setTimeout(() => {
+                    uniqueBlockquotes.forEach(bq => {
+                        if (!hasCustomStyle(bq)) {
+                            const nodeId = bq.getAttribute('data-node-id');
+                          
+                            // 标记为已跟踪
+                            if (nodeId) {
+                                trackedBlockQuotes.add(nodeId);
+                            }
+                          
+                            // 检查是否为新建的空blockquote
+                            if (isBlockQuoteEmpty(bq)) {
+                                const rect = bq.getBoundingClientRect();
+                                if (rect.width > 0 && rect.height > 0) {
+                                    showCommandMenu(rect.left, rect.top, bq);
+                                }
+                            }
+                            // 处理callout
+                            processBlockquote(bq);
+                        }
+                    });
+                }, 50);
+            }
+        });
+
+        // 更精确的观察配置
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true,
+            attributes: false, // 不观察属性变化
+            characterData: false // 不观察文本变化
+        });
+
+        return observer;
+    }
+
+    // 基于焦点的检测
+    function setupFocusBasedDetection() {
+        let lastFocusedElement = null;
+      
+        document.addEventListener('focusin', (e) => {
+            const target = e.target;
+          
+            // 检查是否聚焦到blockquote内的可编辑元素
+            if (target.contentEditable === 'true') {
+                const blockquote = target.closest('[data-type="NodeBlockquote"], .bq');
+                if (blockquote && !hasCustomStyle(blockquote)) {
+                    // 如果是新的空blockquote，显示菜单
+                    if (isBlockQuoteEmpty(blockquote) && lastFocusedElement !== target) {
+                        const nodeId = blockquote.getAttribute('data-node-id');
+                        if (nodeId && !recentlyCreatedBlockQuotes.has(nodeId)) {
+                            const rect = blockquote.getBoundingClientRect();
+                            showCommandMenu(rect.left, rect.top, blockquote);
+                        }
+                    }
+                    lastFocusedElement = target;
+                }
+            }
+        });
+    }
+
+    // 事件驱动的callout处理
+    function setupEventDrivenSystem() {
+        // 使用防抖的输入监听
+        let inputTimeout;
+      
+        ['input', 'keyup', 'paste'].forEach(eventType => {
+            document.addEventListener(eventType, function(e) {
+                // 检查是否在可编辑元素中
+                if (e.target.contentEditable === 'true') {
+                    clearTimeout(inputTimeout);
+                    inputTimeout = setTimeout(() => {
+                        // 查找最近的引用块父元素
+                        const blockquote = e.target.closest('[data-type="NodeBlockquote"], .bq');
+                        if (blockquote && !hasCustomStyle(blockquote)) {
+                            processBlockquote(blockquote);
+                        }
+                    }, eventType === 'paste' ? 100 : 300); // 防抖300ms，粘贴100ms
+                }
+            }, true);
+        });
+    }
+
+    // 🔥 修复：思源API监听（安全版本）
+    function setupSiYuanAPIListener() {
+        try {
+            // 检查思源API是否可用
+            if (typeof window.siyuan === 'object' && window.siyuan !== null) {
+                console.log('SiYuan API detected');
+              
+                // 尝试不同的API监听方式
+                if (window.siyuan.ws && typeof window.siyuan.ws.onmessage !== 'undefined') {
+                    // 方式1：使用 onmessage 属性
+                    const originalOnMessage = window.siyuan.ws.onmessage;
+                    window.siyuan.ws.onmessage = function(event) {
+                        // 调用原始处理器
+                        if (originalOnMessage) {
+                            originalOnMessage.call(this, event);
+                        }
+                      
+                        // 我们的处理逻辑
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.cmd === 'transactions' && data.data) {
+                                data.data.forEach(transaction => {
+                                    transaction.doOperations?.forEach(op => {
+                                        if (op.action === 'insert' && op.data?.includes('NodeBlockquote')) {
+                                            setTimeout(() => {
+                                                const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
+                                                if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
+                                                    const rect = newBlockquote.getBoundingClientRect();
+                                                    showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                }
+                                            }, 100);
+                                        }
+                                    });
+                                });
+                            }
+                        } catch (error) {
+                            // 忽略JSON解析错误
+                        }
+                    };
+                    console.log('SiYuan WebSocket listener attached via onmessage');
+                } else if (window.siyuan.eventBus && typeof window.siyuan.eventBus.on === 'function') {
+                    // 方式2：使用事件总线
+                    window.siyuan.eventBus.on('ws-main', (data) => {
+                        try {
+                            if (data.cmd === 'transactions' && data.data) {
+                                data.data.forEach(transaction => {
+                                    transaction.doOperations?.forEach(op => {
+                                        if (op.action === 'insert' && op.data?.includes('NodeBlockquote')) {
+                                            setTimeout(() => {
+                                                const newBlockquote = document.querySelector(`[data-node-id="${op.id}"]`);
+                                                if (newBlockquote && !hasCustomStyle(newBlockquote) && isBlockQuoteEmpty(newBlockquote)) {
+                                                    const rect = newBlockquote.getBoundingClientRect();
+                                                    showCommandMenu(rect.left, rect.top, newBlockquote);
+                                                }
+                                            }, 100);
+                                        }
+                                    });
+                                });
+                            }
+                        } catch (error) {
+                            // 忽略处理错误
+                        }
+                    });
+                    console.log('SiYuan event bus listener attached');
+                } else {
+                    console.log('SiYuan API available but no suitable WebSocket interface found');
+                }
+            } else {
+                console.log('SiYuan API not detected, using DOM-based detection only');
+            }
+        } catch (error) {
+            console.log('Error setting up SiYuan API listener:', error.message);
+            console.log('Falling back to DOM-based detection only');
+        }
+    }
+
+    // 优化的事件监听设置
+    function setupOptimizedEventListeners() {
+        console.log('Setting up optimized event listeners');
+      
+        // 初始化已知的 BlockQuote
+        const initialBlockQuotes = findSiYuanBlockQuotes();
+        initialBlockQuotes.forEach(bq => {
+            const nodeId = bq.getAttribute('data-node-id');
+            if (nodeId) trackedBlockQuotes.add(nodeId);
+        });
+      
+        // 1. 优化的MutationObserver
+        setupOptimizedObserver();
+      
+        // 2. 基于焦点的检测
+        setupFocusBasedDetection();
+      
+        // 3. 事件驱动的callout处理
+        setupEventDrivenSystem();
+      
+        // 4. 键盘事件（ESC关闭菜单）
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isMenuVisible) {
+                e.preventDefault();
+                hideCommandMenu(true);
+                return;
+            }
+        });
+      
+        // 5. 点击外部关闭菜单
+        document.addEventListener('click', function(e) {
+            if (commandMenu && !commandMenu.contains(e.target) && isMenuVisible) {
+                setTimeout(() => {
+                    if (isMenuVisible) hideCommandMenu(true);
+                }, 100);
+            }
+        });
+
+        // 6. 🔥 修复：安全的思源API监听
+        setupSiYuanAPIListener();
+    }
+
+    // ==================== 初始化 ====================
+
+    function initOptimized() {
+        console.log('Initializing optimized BlockQuote script');
+      
+        // 初始处理现有的blockquote（只执行一次）
+        processAllBlockquotes();
+      
+        // 设置优化的事件监听
+        setupOptimizedEventListeners();
+    }
+
+    // 启动优化版本
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initOptimized);
+    } else {
+        initOptimized();
+    }
+
+    // 页面卸载清理
+    window.addEventListener('beforeunload', () => hideCommandMenu(true));
+
+    // 调试功能
+    window.debugEnhancedBlockQuote = {
+        // 菜单相关
+        showMenu: () => {
+            const blockQuotes = findSiYuanBlockQuotes();
+            if (blockQuotes.length > 0) {
+                const lastBlockQuote = blockQuotes[blockQuotes.length - 1];
+                const rect = lastBlockQuote.getBoundingClientRect();
+                showCommandMenu(rect.left, rect.top, lastBlockQuote);
+            }
+        },
+        hideMenu: () => hideCommandMenu(true),
+      
+        // Callout 相关
+        processAll: processAllBlockquotes,
+        checkBlockquotes: () => {
+            const bqs = document.querySelectorAll('.bq');
+            console.log('=== Current blockquotes ===');
+            bqs.forEach((bq, i) => {
+                const text = bq.textContent.trim();
+                const type = bq.getAttribute('data-callout-type');
+                const customStyle = hasCustomStyle(bq);
+                console.log(`BQ ${i + 1}: "${text}" - Type: ${type || 'none'} - Custom: ${customStyle}`);
+            });
+        },
+      
+        // 检查自定义样式
+        checkCustomStyles: () => {
+            const bqs = document.querySelectorAll('.bq');
+            console.log('=== Custom styled blockquotes ===');
+            bqs.forEach((bq, i) => {
+                if (hasCustomStyle(bq)) {
+                    const customB = bq.getAttribute('custom-b');
+                    const customCallout = bq.getAttribute('custom-callout');
+                    console.log(`Custom BQ ${i + 1}: custom-b="${customB}" custom-callout="${customCallout}"`);
+                }
+            });
+        },
+      
+        // 状态查看
+        status: () => ({
+            menuVisible: isMenuVisible,
+            trackedCount: trackedBlockQuotes.size,
+            recentCount: recentlyCreatedBlockQuotes.size
+        }),
+
+        // 性能测试
+        performanceTest: () => {
+            const start = performance.now();
+            processAllBlockquotes();
+            const end = performance.now();
+            console.log(`Processing all blockquotes took ${end - start} milliseconds`);
+        }
+    };
+
+    console.log('=== Optimized Enhanced BlockQuote Script Loaded ===');
+})();

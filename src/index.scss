@@ -1,75 +1,90 @@
 /**
- * 高亮助手插件样式
- * 类似微信读书的高亮效果，移动端优先设计
+ * ✨ 高亮助手插件 - 现代化样式
+ * 微信读书风格，优雅的响应式设计
  */
 
-/* 全局变量 */
+/* ============================================
+   🎨 主题配色系统
+   ============================================ */
 :root {
+    /* 高亮颜色 - 亮色主题 */
     --highlight-yellow: #fff3cd;
     --highlight-yellow-text: #856404;
-    --highlight-blue: #cce5ff;
+    --highlight-blue: #cfe8ff;
     --highlight-blue-text: #004085;
-    --highlight-green: #d4e6d4;
+    --highlight-green: #d8f3dc;
     --highlight-green-text: #155724;
-    --highlight-pink: #f8d7da;
+    --highlight-pink: #ffdce5;
     --highlight-pink-text: #721c24;
     
+    /* 工具栏设计系统 */
     --toolbar-bg: var(--b3-theme-background);
     --toolbar-border: var(--b3-theme-border);
-    --toolbar-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    --toolbar-radius: 8px;
+    --toolbar-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    --toolbar-radius: 12px;
     
-    --animation-fast: 0.2s ease;
-    --animation-medium: 0.3s ease;
+    /* 动画曲线 */
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --duration-fast: 0.15s;
+    --duration-normal: 0.25s;
+    --duration-slow: 0.35s;
 }
 
-/* 暗色主题适配 */
+/* 暗色主题 - 精心调校的配色 */
 .b3-theme-dark {
     --highlight-yellow: #4a4016;
-    --highlight-yellow-text: #f4d03f;
+    --highlight-yellow-text: #ffd54f;
     --highlight-blue: #1a3a5c;
-    --highlight-blue-text: #85c1ff;
+    --highlight-blue-text: #90caf9;
     --highlight-green: #1e3a1e;
-    --highlight-green-text: #7ed57e;
+    --highlight-green-text: #81c784;
     --highlight-pink: #4a1a1e;
-    --highlight-pink-text: #ff7a7a;
+    --highlight-pink-text: #ff8a95;
 }
 
-/* 基础高亮样式重置 */
+/* ============================================
+   ✨ 高亮文本核心样式
+   ============================================ */
 .highlight-assistant-span {
+    /* 重置所有样式 */
+    all: unset;
+    
+    /* 基础显示 */
     display: inline !important;
     position: relative !important;
+    cursor: pointer !important;
+    
+    /* 文本样式继承 */
     line-height: inherit !important;
     font-family: inherit !important;
     font-size: inherit !important;
     font-weight: inherit !important;
-    text-decoration: none !important;
-    border-radius: 3px !important;
-    padding: 2px 4px !important;
-    margin: 0 1px !important;
-    cursor: pointer !important;
-    transition: var(--animation-fast) !important;
+    vertical-align: baseline !important;
+    
+    /* 视觉效果 */
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+    margin: 0 2px !important;
+    
+    /* 交互效果 */
+    transition: all var(--duration-fast) var(--ease-smooth) !important;
     user-select: text !important;
     -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
     
-    /* 防止继承其他样式 */
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-    vertical-align: baseline !important;
+    /* 默认高亮色 */
+    background-color: var(--highlight-yellow) !important;
+    color: var(--highlight-yellow-text) !important;
+    
+    &:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12) !important;
+        filter: brightness(1.05) !important;
+        z-index: 10 !important;
+    }
 }
 
-/* 高亮悬停效果 */
-.highlight-assistant-span:hover {
-    transform: scale(1.02) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-    z-index: 10 !important;
-}
-
-/* 高亮颜色 */
+/* 高亮颜色主题 */
 .highlight-color-yellow {
     background-color: var(--highlight-yellow) !important;
     color: var(--highlight-yellow-text) !important;
@@ -90,28 +105,29 @@
     color: var(--highlight-pink-text) !important;
 }
 
-/* 有备注的高亮特殊样式 */
+/* 带备注的高亮 */
 .highlight-with-comment {
     position: relative;
     border-bottom: 2px dotted currentColor !important;
-}
-
-.highlight-with-comment::after {
-    content: "💭";
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    font-size: 10px;
-    opacity: 0.8;
-    pointer-events: none;
-    background: var(--b3-theme-background);
-    border-radius: 50%;
-    width: 14px;
-    height: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--b3-theme-border);
+    
+    &::after {
+        content: "💭";
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        font-size: 11px;
+        opacity: 0.9;
+        pointer-events: none;
+        background: var(--b3-theme-background);
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--b3-theme-border);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
 }
 
 /* 移动端基础工具栏样式重写 - 确保所有移动端都使用大尺寸 */
