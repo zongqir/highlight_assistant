@@ -178,7 +178,7 @@
     }
 
     // 创建命令菜单
-    function createCommandMenu(targetBlockQuote) {
+    function createCommandMenu(targetBlockQuote, isEdit = false) {
         if (commandMenu) return commandMenu;
 
         currentTargetBlockQuote = targetBlockQuote;
@@ -252,7 +252,8 @@
             color: #6b7280;
             font-weight: 600;
         `;
-        header.innerHTML = '<div>Callout 命令菜单</div>';
+        const headerText = isEdit ? '切换 Callout 类型' : 'Callout 命令菜单';
+        header.innerHTML = `<div>${headerText}</div>`;
         commandMenu.appendChild(header);
 
         // 创建网格容器
@@ -300,7 +301,8 @@
                 e.stopPropagation();
                 item.style.backgroundColor = '#dbeafe';
                 item.style.color = '#1e40af';
-                insertCommandToBlockQuote(cmd.command, currentTargetBlockQuote);
+                // 🔥 传递 isEdit 参数
+                insertCommandToBlockQuote(cmd.command, currentTargetBlockQuote, isEdit);
                 setTimeout(() => hideCommandMenu(true), 300);
             });
           
@@ -362,13 +364,37 @@
     }
 
     // 插入命令并自动换行
-    function insertCommandToBlockQuote(command, blockQuoteElement) {
+    function insertCommandToBlockQuote(command, blockQuoteElement, isEdit = false) {
         if (!blockQuoteElement) return false;
 
-        const editableDiv = blockQuoteElement.querySelector('[contenteditable="true"]');
+        // 如果是编辑模式，查找标题div，否则查找第一个可编辑div
+        let editableDiv;
+        if (isEdit) {
+            editableDiv = blockQuoteElement.querySelector('[data-callout-title="true"]');
+        }
+        if (!editableDiv) {
+            editableDiv = blockQuoteElement.querySelector('[contenteditable="true"]');
+        }
         if (!editableDiv) return false;
 
         try {
+            // 如果是编辑模式，直接替换并立即处理
+            if (isEdit) {
+                editableDiv.textContent = command;
+                
+                // 触发事件
+                editableDiv.dispatchEvent(new Event('input', { bubbles: true }));
+                editableDiv.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // 立即处理 Callout
+                setTimeout(() => {
+                    processBlockquote(blockQuoteElement);
+                }, 100);
+                
+                return true;
+            }
+          
+            // 新建模式：原有逻辑
             editableDiv.textContent = command;
           
             // 触发事件，让 Callout 处理器知道内容已更改
@@ -425,7 +451,7 @@
     }
 
     // 显示菜单
-    function showCommandMenu(x, y, blockQuoteElement) {
+    function showCommandMenu(x, y, blockQuoteElement, isEdit = false) {
         if (isProcessingEvent || isMenuVisible) return;
       
         // 检查是否为自定义样式的 BlockQuote
@@ -435,7 +461,7 @@
         }
       
         isProcessingEvent = true;
-        const menu = createCommandMenu(blockQuoteElement);
+        const menu = createCommandMenu(blockQuoteElement, isEdit);
 
         // 获取菜单尺寸
         menu.style.left = '0px';
@@ -796,6 +822,31 @@
                 }
             }, true);
         });
+      
+        // 🔥 新增：点击 callout 标题图标切换类型
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+          
+            // 检查是否点击了 callout 标题
+            if (target.contentEditable === 'true' && target.getAttribute('data-callout-title') === 'true') {
+                const blockquote = target.closest('[data-type="NodeBlockquote"], .bq');
+                if (blockquote && blockquote.hasAttribute('custom-callout') && !hasCustomStyle(blockquote)) {
+                    // 获取点击位置（相对于标题元素的左侧区域，图标区域约30px）
+                    const rect = target.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                  
+                    // 如果点击了左侧图标区域（0-40px）
+                    if (clickX >= 0 && clickX <= 40) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      
+                        // 显示切换菜单
+                        const bqRect = blockquote.getBoundingClientRect();
+                        showCommandMenu(bqRect.left, bqRect.top, blockquote, true);
+                    }
+                }
+            }
+        }, true);
     }
 
     // 🔥 修复：思源API监听（安全版本）
@@ -1011,6 +1062,19 @@
             processAllBlockquotes();
             const end = performance.now();
             console.log(`Processing all blockquotes took ${end - start} milliseconds`);
+        },
+      
+        // 测试切换功能
+        testSwitch: () => {
+            const calloutBlocks = document.querySelectorAll('.bq[custom-callout]');
+            if (calloutBlocks.length > 0) {
+                const firstCallout = calloutBlocks[0];
+                const rect = firstCallout.getBoundingClientRect();
+                console.log('Opening switch menu for first callout...');
+                showCommandMenu(rect.left, rect.top, firstCallout, true);
+            } else {
+                console.log('No callout blocks found');
+            }
         }
     };
 

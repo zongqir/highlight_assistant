@@ -1,5 +1,21 @@
 /* ==================== Callout 样式配置 ==================== */
 
+/* 🔥 通用：标题图标区域可点击提示 */
+.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"] {
+    cursor: pointer !important;
+    position: relative;
+}
+
+.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"]::before {
+    cursor: pointer !important;
+    transition: transform 0.2s ease, opacity 0.2s ease !important;
+}
+
+.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"]:hover::before {
+    transform: translateY(-50%) scale(1.1) !important;
+    opacity: 0.8 !important;
+}
+
 /* 1. 信息说明 - 蓝色 */
 .protyle-wysiwyg .bq[custom-callout="info"] {
     background: linear-gradient(to bottom, #eff6ff, #ffffff) !important;
