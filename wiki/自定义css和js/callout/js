@@ -100,6 +100,8 @@
     let trackedBlockQuotes = new Set();
     let recentlyCreatedBlockQuotes = new Set();
     let currentTargetBlockQuote = null;
+    let selectedMenuIndex = 0;
+    let menuItems = [];
 
     // ==================== Callout 处理部分 ====================
   
@@ -131,28 +133,72 @@
 
     // ==================== 命令菜单功能 ====================
 
+    // 更新选中的菜单项
+    function updateMenuSelection(immediate = false) {
+        const doUpdate = () => {
+            menuItems.forEach((item, index) => {
+                if (index === selectedMenuIndex) {
+                    item.style.backgroundColor = '#dbeafe';
+                    item.style.borderColor = '#60a5fa';
+                    item.style.transform = 'scale(1.02)';
+                    // 只在需要时才滚动，且使用 instant 避免动画冲突
+                    if (commandMenu) {
+                        const itemRect = item.getBoundingClientRect();
+                        const menuRect = commandMenu.getBoundingClientRect();
+                        if (itemRect.top < menuRect.top || itemRect.bottom > menuRect.bottom) {
+                            item.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+                        }
+                    }
+                } else {
+                    item.style.backgroundColor = '';
+                    item.style.borderColor = '#f3f4f6';
+                    item.style.transform = 'scale(1)';
+                }
+            });
+        };
+        
+        if (immediate) {
+            doUpdate();
+        } else {
+            requestAnimationFrame(doUpdate);
+        }
+    }
+
+    // 选择当前高亮的菜单项
+    function selectCurrentMenuItem() {
+        if (menuItems[selectedMenuIndex]) {
+            menuItems[selectedMenuIndex].click();
+        }
+    }
+
     // 创建命令菜单
     function createCommandMenu(targetBlockQuote) {
         if (commandMenu) return commandMenu;
 
         currentTargetBlockQuote = targetBlockQuote;
+        selectedMenuIndex = 0;
+        menuItems = [];
+        
         commandMenu = document.createElement('div');
+        commandMenu.setAttribute('tabindex', '0'); // 让菜单可以获得焦点
         commandMenu.style.cssText = `
             position: fixed;
             background: white;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
             z-index: 10000;
             font-size: 14px;
-            min-width: 250px;
+            min-width: 520px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             opacity: 0;
             transform: translateY(-10px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
+            outline: none;
+            will-change: opacity, transform;
         `;
 
         // 关闭按钮
@@ -203,39 +249,44 @@
         header.innerHTML = '<div>Callout 命令菜单</div>';
         commandMenu.appendChild(header);
 
+        // 创建网格容器
+        const gridContainer = document.createElement('div');
+        gridContainer.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            padding: 8px;
+        `;
+
         // 命令选项
         menuCommands.forEach((cmd, index) => {
             const item = document.createElement('div');
             item.style.cssText = `
-                padding: 12px 16px;
+                padding: 10px 12px;
                 cursor: pointer;
-                border-bottom: 1px solid #f3f4f6;
+                border: 1px solid #f3f4f6;
+                border-radius: 6px;
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                transition: all 0.15s ease;
+                gap: 10px;
+                transition: background-color 0.1s ease, transform 0.1s ease, border-color 0.1s ease;
             `;
           
-            if (index === menuCommands.length - 1) {
-                item.style.borderBottom = 'none';
-            }
-          
             item.innerHTML = `
-                <span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${cmd.icon}</span>
-                <div style="flex: 1;">
-                    <div style="font-weight: 500; color: #374151; margin-bottom: 2px;">${cmd.command}</div>
-                    <div style="color: #6b7280; font-size: 12px;">${cmd.displayName}</div>
+                <span style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${cmd.icon}</span>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 500; color: #374151; font-size: 13px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.command}</div>
+                    <div style="color: #6b7280; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.displayName}</div>
                 </div>
             `;
           
             item.addEventListener('mouseenter', () => {
-                item.style.backgroundColor = '#f3f4f6';
-                item.style.transform = 'translateX(2px)';
+                selectedMenuIndex = index; // 同步更新选中索引
+                updateMenuSelection();
             });
           
             item.addEventListener('mouseleave', () => {
-                item.style.backgroundColor = '';
-                item.style.transform = 'translateX(0)';
+                // 鼠标离开时保持键盘选中状态
             });
           
             item.addEventListener('click', (e) => {
@@ -247,8 +298,12 @@
                 setTimeout(() => hideCommandMenu(true), 300);
             });
           
-            commandMenu.appendChild(item);
+            menuItems.push(item); // 保存菜单项引用
+            gridContainer.appendChild(item);
         });
+        
+        // 将网格容器添加到菜单
+        commandMenu.appendChild(gridContainer);
 
         // 底部提示
         const footer = document.createElement('div');
@@ -260,10 +315,43 @@
             color: #9ca3af;
             text-align: center;
         `;
-        footer.innerHTML = '点击选择 Callout 类型 • ESC 关闭';
+        footer.innerHTML = '↑↓←→ 导航 • Enter 确认 • ESC 关闭';
         commandMenu.appendChild(footer);
 
+        // 添加键盘事件监听（支持上下左右导航）
+        commandMenu.addEventListener('keydown', (e) => {
+            const cols = 2; // 列数
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                // 向下移动2行（因为是2列）
+                selectedMenuIndex = Math.min(selectedMenuIndex + cols, menuItems.length - 1);
+                updateMenuSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                // 向上移动2行
+                selectedMenuIndex = Math.max(selectedMenuIndex - cols, 0);
+                updateMenuSelection();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                // 向右移动
+                selectedMenuIndex = Math.min(selectedMenuIndex + 1, menuItems.length - 1);
+                updateMenuSelection();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                // 向左移动
+                selectedMenuIndex = Math.max(selectedMenuIndex - 1, 0);
+                updateMenuSelection();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                selectCurrentMenuItem();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hideCommandMenu(true);
+            }
+        });
+
         document.body.appendChild(commandMenu);
+        
         return commandMenu;
     }
 
@@ -385,10 +473,20 @@
             menu.style.opacity = '0';
             menu.style.transform = 'translateY(-10px)';
           
-            setTimeout(() => {
+            // 立即更新选中状态（在动画之前）
+            updateMenuSelection(true);
+            
+            // 然后执行动画
+            requestAnimationFrame(() => {
                 menu.style.opacity = '1';
                 menu.style.transform = 'translateY(0)';
-            }, 10);
+                
+                // 动画结束后聚焦
+                menu.addEventListener('transitionend', function focusMenu() {
+                    menu.removeEventListener('transitionend', focusMenu);
+                    menu.focus();
+                }, { once: true });
+            });
           
             isMenuVisible = true;
             isProcessingEvent = false;
@@ -409,6 +507,8 @@
         if (!commandMenu || !isMenuVisible) return;
       
         currentTargetBlockQuote = null;
+        selectedMenuIndex = 0;
+        menuItems = [];
       
         if (immediate) {
             commandMenu.remove();
