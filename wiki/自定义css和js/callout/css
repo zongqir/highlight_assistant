@@ -362,9 +362,7 @@
     visibility: hidden !important;
 }
 
-.protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"]::before {
-    /* 图标会被每个类型单独定义 */
-}
+/* 图标样式由每个类型单独定义 */
 
 /* 显示友好的标题名称 */
 .protyle-wysiwyg .bq[custom-callout] [data-callout-title="true"]::after {
@@ -376,4 +374,36 @@
     left: 28px !important;
     top: 0 !important;
     line-height: 1.5 !important;
+}
+
+/* 11. 重要亮点 - 金黄色 */
+.protyle-wysiwyg .bq[custom-callout="highlight"] {
+    background: linear-gradient(to bottom, #fffbeb, #ffffff) !important;
+    border: 1px solid #e5e7eb !important;
+    border-left: 4px solid #f59e0b !important;
+    border-radius: 6px !important;
+    padding: 16px !important;
+    margin: 12px 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.protyle-wysiwyg .bq[custom-callout="highlight"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12) !important;
+}
+
+.protyle-wysiwyg .bq[custom-callout="highlight"] [data-callout-title="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l2.163 6.636L21 12l-6.837 2.364L12 21l-2.163-6.636L3 12l6.837-2.364L12 3z" fill="%23f59e0b" stroke="%23f59e0b" stroke-width="1.5"/></svg>') center/contain no-repeat;
+}
+
+.protyle-wysiwyg .bq[custom-callout="highlight"] [data-callout-title="true"]::after {
+    color: #f59e0b !important;
 }

@@ -32,6 +32,13 @@
     // 命令定义（菜单用）
     const menuCommands = [
         {
+            command: 'none',
+            displayName: '原生样式',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M18.364 5.636L5.636 18.364M5.636 5.636l12.728 12.728" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/></svg>`,
+            color: '#9ca3af',
+            isNone: true
+        },
+        {
             command: '@info',
             displayName: '信息说明',
             icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><circle cx="12" cy="12" r="10" stroke="#4493f8" stroke-width="1.7" fill="white"/><rect x="11" y="7" width="2" height="7" rx="1" fill="#4493f8"/><circle cx="12" cy="17" r="1.2" fill="#4493f8"/></svg>`,
@@ -90,6 +97,12 @@
             displayName: '常见陷阱',
             icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#dc2626" stroke-width="1.5" fill="none"/></svg>`,
             color: '#dc2626'
+        },
+        {
+            command: '@highlight',
+            displayName: '重要亮点',
+            icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="white" overflow="visible"><path d="M12 3l2.163 6.636L21 12l-6.837 2.364L12 21l-2.163-6.636L3 12l6.837-2.364L12 3z" fill="#f59e0b" stroke="#f59e0b" stroke-width="1.5"/></svg>`,
+            color: '#f59e0b'
         }
     ];
 
@@ -134,7 +147,10 @@
         '@章节总结': { type: 'summary', displayName: '章节总结' },
         '@pitfall': { type: 'pitfall', displayName: '常见陷阱' },
         '@陷阱': { type: 'pitfall', displayName: '常见陷阱' },
-        '@常见陷阱': { type: 'pitfall', displayName: '常见陷阱' }
+        '@常见陷阱': { type: 'pitfall', displayName: '常见陷阱' },
+        '@highlight': { type: 'highlight', displayName: '重要亮点' },
+        '@亮点': { type: 'highlight', displayName: '重要亮点' },
+        '@重要亮点': { type: 'highlight', displayName: '重要亮点' }
     };
 
     // ==================== 命令菜单功能 ====================
@@ -301,9 +317,16 @@
                 e.stopPropagation();
                 item.style.backgroundColor = '#dbeafe';
                 item.style.color = '#1e40af';
-                // 🔥 传递 isEdit 参数
-                insertCommandToBlockQuote(cmd.command, currentTargetBlockQuote, isEdit);
-                setTimeout(() => hideCommandMenu(true), 300);
+                
+                // 🔥 处理清除样式
+                if (cmd.isNone) {
+                    clearCalloutStyle(currentTargetBlockQuote);
+                    setTimeout(() => hideCommandMenu(true), 100);
+                } else {
+                    // 🔥 传递 isEdit 参数
+                    insertCommandToBlockQuote(cmd.command, currentTargetBlockQuote, isEdit);
+                    setTimeout(() => hideCommandMenu(true), 300);
+                }
             });
           
             menuItems.push(item); // 保存菜单项引用
@@ -361,6 +384,35 @@
         document.body.appendChild(commandMenu);
         
         return commandMenu;
+    }
+
+    // 🔥 新增：清除 Callout 样式
+    function clearCalloutStyle(blockQuoteElement) {
+        if (!blockQuoteElement) return false;
+
+        try {
+            // 移除 callout 属性
+            blockQuoteElement.removeAttribute('custom-callout');
+            
+            // 查找并清理标题元素
+            const titleDiv = blockQuoteElement.querySelector('[data-callout-title="true"]');
+            if (titleDiv) {
+                titleDiv.removeAttribute('data-callout-title');
+                titleDiv.removeAttribute('data-callout-display-name');
+                
+                // 清空标题内容（如果内容是命令格式）
+                const text = titleDiv.textContent.trim();
+                if (text.startsWith('@') || Object.keys(calloutTypes).includes(text)) {
+                    titleDiv.textContent = '';
+                }
+            }
+            
+            console.log('Callout style cleared');
+            return true;
+        } catch (error) {
+            console.error('Error clearing callout style:', error);
+            return false;
+        }
     }
 
     // 插入命令并自动换行
@@ -1072,6 +1124,18 @@
                 const rect = firstCallout.getBoundingClientRect();
                 console.log('Opening switch menu for first callout...');
                 showCommandMenu(rect.left, rect.top, firstCallout, true);
+            } else {
+                console.log('No callout blocks found');
+            }
+        },
+      
+        // 测试清除样式
+        testClear: () => {
+            const calloutBlocks = document.querySelectorAll('.bq[custom-callout]');
+            if (calloutBlocks.length > 0) {
+                const firstCallout = calloutBlocks[0];
+                console.log('Clearing first callout style...');
+                clearCalloutStyle(firstCallout);
             } else {
                 console.log('No callout blocks found');
             }
