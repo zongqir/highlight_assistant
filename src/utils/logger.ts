@@ -127,7 +127,6 @@ class Logger {
             'highlight': '🎨',
             'memo': '💭',
             'search': '🔍',
-            'flashcard': '🃏',
             'api': '🌐',
             'storage': '💾',
             'ui': '🎭',

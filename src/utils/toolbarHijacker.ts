@@ -16,7 +16,6 @@ import { operationWrapper } from './operationWrapper';
 import { HighlightClickManager } from './highlightClickManager';
 import { TagManager } from './tagManager';
 import { TagClickManager } from './tagClickManager';
-import { FlashcardQuickSwitchManager } from '../flashcard';
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -28,7 +27,6 @@ export class ToolbarHijacker {
     private highlightClickManager: HighlightClickManager;
     private tagManager: TagManager;
     private tagClickManager: TagClickManager;
-    private flashcardQuickSwitchManager: FlashcardQuickSwitchManager;
     private buttonFactory: ToolbarButtonFactory;
     private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
@@ -56,17 +54,6 @@ export class ToolbarHijacker {
         this.tagClickManager = new TagClickManager();
         Logger.log('✅ TagClickManager 已创建');
         
-        // 初始化闪卡快切管理器
-        this.flashcardQuickSwitchManager = new FlashcardQuickSwitchManager({
-            enabled: true,
-            maxHistory: 10,
-            ballPosition: { x: 20, y: 100 },
-            autoHide: false,
-            showUsageCount: true,
-            enableDrag: true
-        });
-        Logger.log('✅ FlashcardQuickSwitchManager 已创建');
-        
         // 在手机版和电脑版环境下都拦截原生备注弹窗，并启动高亮点击、标签功能
         if (this.isMobile || this.isDesktop) {
             Logger.log('🚀 开始初始化管理器（环境检查通过）...');
@@ -74,13 +61,6 @@ export class ToolbarHijacker {
             this.highlightClickManager.initialize();
             this.tagManager.initialize();
             this.tagClickManager.initialize();
-            
-            // 初始化闪卡快切管理器（异步）
-            this.flashcardQuickSwitchManager.initialize().then(() => {
-                Logger.log('✅ FlashcardQuickSwitchManager 初始化完成');
-            }).catch((error) => {
-                Logger.error('❌ FlashcardQuickSwitchManager 初始化失败:', error);
-            });
         } else {
             Logger.warn('⚠️ 不是手机版或桌面版，跳过管理器初始化');
         }
@@ -1486,13 +1466,6 @@ export class ToolbarHijacker {
         try {
             this.activeEventListeners.forEach(cleanup => cleanup());
             this.activeEventListeners = [];
-            
-            // 销毁闪卡快切管理器
-            if (this.flashcardQuickSwitchManager) {
-                this.flashcardQuickSwitchManager.destroy().catch((error) => {
-                    Logger.error('销毁FlashcardQuickSwitchManager失败:', error);
-                });
-            }
         } catch (error) {
             // 静默处理错误
         }
@@ -2592,13 +2565,6 @@ export class ToolbarHijacker {
             isReadonly: false,
             source: '默认值'
         };
-    }
-    
-    /**
-     * 获取闪卡快切管理器（用于调试）
-     */
-    public getFlashcardQuickSwitchManager(): FlashcardQuickSwitchManager {
-        return this.flashcardQuickSwitchManager;
     }
     
 }

@@ -20,14 +20,6 @@ A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag inser
 - **Smart Protection**: Auto-detect code blocks, math formulas to avoid format damage
 - **State Protection**: Read-only state protection for data safety
 
-### ⚡ Flashcard Quick Switch
-- **History Recording**: Auto-record flashcard filter history (max 10)
-- **Quick Access**: Floating ball widget for fast access to history
-- **Smart Management**: Support pinning favorites, deduplication, usage statistics
-- **One-click Switch**: Quickly switch to historical filter targets
-- **Flexible Customization**: Drag to adjust position
-- **Data Persistence**: Auto-save, cleanup on plugin uninstall
-
 ## 🚀 How to Use
 
 ### 🎨 Highlighting & Annotations
@@ -133,11 +125,6 @@ pnpm run make-install
   - Click tags to quickly search
   - Multiple search scope support
   - Smart style protection and state protection
-- ⚡ **New Feature**: Flashcard Quick Switch
-  - Auto-record filter history
-  - Floating ball quick access
-  - Support pinning and managing history
-  - Smart deduplication and frequency statistics
 - 🔧 Technical improvements and performance optimization
 
 ### v1.1.0
