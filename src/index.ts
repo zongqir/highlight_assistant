@@ -145,25 +145,25 @@ export default class HighlightAssistantPlugin extends Plugin {
                     }
                 };
                 
-                // 添加标签点击调试控制命令
-                (window as any).tagClickDebug = {
-                    enable: () => {
-                        const manager = this.toolbarHijacker?.getTagClickManager();
-                        if (manager) {
-                            manager.enableDebug();
-                        } else {
-                            Logger.error('❌ 标签点击管理器不可用');
-                        }
-                    },
-                    disable: () => {
-                        const manager = this.toolbarHijacker?.getTagClickManager();
-                        if (manager) {
-                            manager.disableDebug();
-                        } else {
-                            Logger.error('❌ 标签点击管理器不可用');
-                        }
-                    }
-                };
+                // 已禁用：标签点击弹窗功能
+                // (window as any).tagClickDebug = {
+                //     enable: () => {
+                //         const manager = this.toolbarHijacker?.getTagClickManager();
+                //         if (manager) {
+                //             manager.enableDebug();
+                //         } else {
+                //             Logger.error('❌ 标签点击管理器不可用');
+                //         }
+                //     },
+                //     disable: () => {
+                //         const manager = this.toolbarHijacker?.getTagClickManager();
+                //         if (manager) {
+                //             manager.disableDebug();
+                //         } else {
+                //             Logger.error('❌ 标签点击管理器不可用');
+                //         }
+                //     }
+                // };
                 
                 // 初始化完成后，只显示欢迎信息（默认调试模式关闭）
                 console.log(
@@ -186,12 +186,12 @@ export default class HighlightAssistantPlugin extends Plugin {
                 Logger.log('    - highlightDebug.disable() - 关闭高亮点击调试');
                 Logger.log('    - tagDebug.enable() - 开启标签管理调试');
                 Logger.log('    - tagDebug.disable() - 关闭标签管理调试');
-                Logger.log('    - tagClickDebug.enable() - 开启标签点击调试');
-                Logger.log('    - tagClickDebug.disable() - 关闭标签点击调试');
+                // Logger.log('    - tagClickDebug.enable() - 开启标签点击调试'); // 已禁用
+                // Logger.log('    - tagClickDebug.disable() - 关闭标签点击调试'); // 已禁用
                 Logger.log('💡 操作提示:');
                 Logger.log('  - 桌面版：右键点击块 - 快速打标签（仅锁定状态）');
                 Logger.log('  - 手机版：长按块（500ms）- 快速打标签（仅锁定状态）');
-                Logger.log('  - 点击标签 - 显示自定义搜索面板（已替代原生搜索）');
+                // Logger.log('  - 点击标签 - 显示自定义搜索面板（已替代原生搜索）'); // 已禁用
                 
             }, 2000);
         }

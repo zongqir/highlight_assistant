@@ -15,7 +15,7 @@ import { CustomToolbarManager } from './customToolbarManager';
 import { operationWrapper } from './operationWrapper';
 import { HighlightClickManager } from './highlightClickManager';
 import { TagManager } from './tagManager';
-import { TagClickManager } from './tagClickManager';
+// import { TagClickManager } from './tagClickManager'; // 已禁用：标签点击弹窗功能
 
 export class ToolbarHijacker {
     private originalShowContent: any = null;
@@ -26,7 +26,7 @@ export class ToolbarHijacker {
     private memoManager: MemoManager;
     private highlightClickManager: HighlightClickManager;
     private tagManager: TagManager;
-    private tagClickManager: TagClickManager;
+    // private tagClickManager: TagClickManager; // 已禁用：标签点击弹窗功能
     private buttonFactory: ToolbarButtonFactory;
     private customToolbarManager: CustomToolbarManager;
     private activeEventListeners: (() => void)[] = [];
@@ -50,9 +50,9 @@ export class ToolbarHijacker {
         this.tagManager = new TagManager();
         Logger.log('✅ TagManager 已创建');
         
-        // 初始化标签点击管理器
-        this.tagClickManager = new TagClickManager();
-        Logger.log('✅ TagClickManager 已创建');
+        // 已禁用：标签点击弹窗功能
+        // this.tagClickManager = new TagClickManager();
+        // Logger.log('✅ TagClickManager 已创建');
         
         // 在手机版和电脑版环境下都拦截原生备注弹窗，并启动高亮点击、标签功能
         if (this.isMobile || this.isDesktop) {
@@ -60,7 +60,7 @@ export class ToolbarHijacker {
             this.memoManager.initialize();
             this.highlightClickManager.initialize();
             this.tagManager.initialize();
-            this.tagClickManager.initialize();
+            // this.tagClickManager.initialize(); // 已禁用：标签点击弹窗功能
         } else {
             Logger.warn('⚠️ 不是手机版或桌面版，跳过管理器初始化');
         }
@@ -2085,10 +2085,11 @@ export class ToolbarHijacker {
     
     /**
      * 获取标签点击管理器（用于调试）
+     * 已禁用：标签点击弹窗功能
      */
-    public getTagClickManager(): any {
-        return this.tagClickManager;
-    }
+    // public getTagClickManager(): any {
+    //     return this.tagClickManager;
+    // }
     
     /**
      * 设置锁按钮点击监听器，实时响应用户的锁定/解锁操作
