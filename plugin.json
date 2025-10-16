@@ -2,7 +2,7 @@
   "name": "highlight-assistant",
   "author": "zongqir",
   "url": "https://github.com/zongqir/highlight_assistant",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "minAppVersion": "3.2.1",
   "disabledInPublish": false,
   "backends": ["all"],
@@ -18,8 +18,8 @@
     "zh_CN": "标注助手"
   },
   "description": {
-    "default": "Quick tag insertion, memo block creation, reading annotation, and highlight features. WeChat Reading-style experience, optimized for mobile.",
-    "zh_CN": "提供标签快打、备注块打、阅读批注、高亮功能。类似微信读书的体验，移动端优化。"
+    "default": "Quick tag insertion (double-tap/Ctrl+right-click), memo block creation, and multi-color highlighting. WeChat Reading-style experience, optimized for mobile.",
+    "zh_CN": "标签快打（双击/Ctrl+右键）、备注块打、多彩高亮功能。类似微信读书的体验，移动端优化。"
   },
   "readme": {
     "default": "README.md",

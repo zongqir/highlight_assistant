@@ -1,6 +1,6 @@
 # Annotation Assistant (标注助手)
 
-A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag insertion, memo block creation, reading annotation, and highlighting. Delivers a WeChat Reading-style experience optimized for mobile devices.
+A powerful annotation tool for SiYuan Note, featuring quick tag insertion, memo block creation, and multi-color highlighting. Delivers a WeChat Reading-style experience optimized for mobile devices.
 
 ## ✨ Features
 
@@ -15,8 +15,6 @@ A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag inser
 ### 🏷️ Quick Tag Marking
 - **Fast Tagging**: Right-click or long-press to quickly add tags (desktop & mobile)
 - **Preset Tags**: 8 well-designed tags (Important⭐, Difficult🔥, Mistake⚡, Memory💭, Explore🔍, Check✅, Practice✍️, Question❓)
-- **Tag Search**: Click tags to search all blocks containing that tag
-- **Search Scope**: Support for current document, subdocuments, and notebook
 - **Smart Protection**: Auto-detect code blocks, math formulas to avoid format damage
 - **State Protection**: Read-only state protection for data safety
 
@@ -29,11 +27,11 @@ A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag inser
 3. **Add Annotation**: Click the annotation button to add personal thoughts to highlighted text
 4. **Manage Highlights**: Click on already highlighted text to modify color or delete
 
-### 🏷️ Quick Tag Marking (v1.1.4+)
+### 🏷️ Quick Tag Marking
 
 **How to Trigger:**
-- **Mobile**: Long-press (500ms) on blank area within a block (avoid selecting text)
-- **Desktop**: Right-click on blank area within a block
+- **Mobile**: Double-tap on a block
+- **Desktop**: Ctrl + Right-click on a block
 
 **How It Works:**
 - The plugin automatically handles document lock state
@@ -41,7 +39,7 @@ A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag inser
 - Temporarily unlocks if needed, then restores original state
 
 **Steps:**
-1. Long-press (mobile) or right-click (desktop) on blank area of any block
+1. Double-tap (mobile) or Ctrl+Right-click (desktop) on any block
 2. Select an appropriate tag from the popup panel
 3. The tag will be automatically added to the end of the block
 4. Document lock state is automatically restored
@@ -55,11 +53,6 @@ A powerful all-in-one annotation tool for SiYuan Note, featuring quick tag inser
 - ✅ Check - Content that needs review
 - ✍️ Practice - Exercises to practice
 - ❓ Question - Areas with questions
-
-**Tag Search:**
-- Click any tag to search all blocks containing that tag
-- Support three search scopes: current document, subdocuments, notebook
-- Search results displayed in document tree structure for easy navigation
 
 ## 📋 System Requirements
 
@@ -99,46 +92,29 @@ pnpm run make-install
 
 ## 📝 Changelog
 
+### v2.2.0 (2025-10-16)
+- 🗑️ **Feature Cleanup**: Removed tag click popup feature for simpler codebase
+- 🎯 **Focus on Core**: Streamlined to focus on core annotation features
+- 🧹 **Code Optimization**: Cleaner and more maintainable code structure
+
 ### v2.1.0 (2025-10-05)
 - 🎯 **Brand Repositioning**: Renamed plugin to "Annotation Assistant" (标注助手)
-- 📋 **Feature Clarity**: Emphasized four core features
-  - Quick Tag Insertion - Fast tagging for content classification
-  - Memo Block Creation - Smart annotations for highlighted text  
-  - Reading Annotation - Personal notes and thoughts
-  - Highlighting - Multi-color text highlighting
+- 📋 **Feature Clarity**: Emphasized core features (Tag Insertion, Memo Blocks, Annotations, Highlighting)
 - 📱 **Experience Positioning**: Emphasized WeChat Reading-style experience and mobile optimization
-- 📖 **Description Update**: Clearer plugin positioning and feature communication
-
-### v3.0.3 (2025-10-02)
-- 🐛 **Bug Fix**: Mobile quick tag adding issue
-  - Fixed issue where tags became plain text on mobile
-  - Changed from Markdown format to DOM format, no longer dependent on "Markdown inline tag syntax" setting
-  - Both mobile and desktop versions now correctly add clickable tags
-- 📖 **Documentation**: Improved tag feature usage instructions
-  - Detailed explanation of mobile long-press and desktop right-click triggers
-  - Added usage requirements (document must be locked)
 
 ### v2.0.0 (2025-10-02)
-- 🎉 **Major Update**: Quick Tag Marking System (developed in v1.1.4)
-  - Right-click or long-press to quickly add tags
-  - 8 preset tags for various learning scenarios
-  - Click tags to quickly search
-  - Multiple search scope support
-  - Smart style protection and state protection
+- 🎉 **Major Update**: Quick Tag Marking System
 - 🔧 Technical improvements and performance optimization
 
 ### v1.1.0
 - ✅ Added desktop support for read-only mode
 - ✅ Enhanced platform detection (mobile/desktop)
 - ✅ Optimized UI for desktop environment
-- ✅ Improved button styling for different platforms
-- ✅ Added comprehensive testing tools
 
 ### v1.0.1
 - ✅ Fixed toolbar only working once issue
 - ✅ Improved event listener management
 - ✅ Optimized Markdown format preservation logic
-- ✅ Cleaned up unused code, reduced plugin size
 
 ### v1.0.0
 - 🎉 Initial release

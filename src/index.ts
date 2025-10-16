@@ -189,8 +189,8 @@ export default class HighlightAssistantPlugin extends Plugin {
                 // Logger.log('    - tagClickDebug.enable() - 开启标签点击调试'); // 已禁用
                 // Logger.log('    - tagClickDebug.disable() - 关闭标签点击调试'); // 已禁用
                 Logger.log('💡 操作提示:');
-                Logger.log('  - 桌面版：右键点击块 - 快速打标签（仅锁定状态）');
-                Logger.log('  - 手机版：长按块（500ms）- 快速打标签（仅锁定状态）');
+                Logger.log('  - 桌面版：Ctrl + 右键点击块 - 快速打标签');
+                Logger.log('  - 手机版：双击块 - 快速打标签');
                 // Logger.log('  - 点击标签 - 显示自定义搜索面板（已替代原生搜索）'); // 已禁用
                 
             }, 2000);
